@@ -10,6 +10,7 @@ abstract class AppColors {
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFF9E9E9E);
   static const Color textTertiary = Color(0xFF6B6B6B);
+  static const Color primaryBlue = Color(0xFF5C7CFA); // Approximated from screenshot
 
   static const Color streakGreen = Color(0xFF4CAF50);
   static const Color streakBlue = Color(0xFF42A5F5);

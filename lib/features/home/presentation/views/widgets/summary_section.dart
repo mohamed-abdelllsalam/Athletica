@@ -3,15 +3,15 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class SummarySection extends StatefulWidget {
-  const SummarySection({super.key});
+class SummarySection extends StatelessWidget {
+  const SummarySection({
+    super.key,
+    required this.selectedTab,
+    required this.onTabChanged,
+  });
 
-  @override
-  State<SummarySection> createState() => _SummarySectionState();
-}
-
-class _SummarySectionState extends State<SummarySection> {
-  int _selectedTab = 1;
+  final int selectedTab;
+  final ValueChanged<int> onTabChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +58,11 @@ class _SummarySectionState extends State<SummarySection> {
   }
 
   Widget _buildTab(BuildContext context, String label, int index) {
-    final bool isActive = _selectedTab == index;
+    final bool isActive = selectedTab == index;
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          setState(() {
-            _selectedTab = index;
-          });
+          onTabChanged(index);
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -87,3 +85,4 @@ class _SummarySectionState extends State<SummarySection> {
     );
   }
 }
+
