@@ -1,0 +1,13 @@
+{
+    "cmake.ignoreCMakeListsMissing": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "always",
+        "source.organizeImports": "always"
+    },
+    "dart.enableSdkFormatter": true,
+    "dart.analysisServerFolding": true,
+    "dart.completeFunctionCalls": true,
+    "dart.showTodos": true,
+    "dart.fixAll": true
+}
