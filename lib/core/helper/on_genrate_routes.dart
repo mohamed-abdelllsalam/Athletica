@@ -8,8 +8,10 @@ import 'package:athletica/features/complete_profile/presentation/views/complete_
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
+import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart';
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_view.dart';
+import 'package:athletica/features/workout_session/presentation/views/workout_session_view.dart';
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +46,15 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const ProfileView());
     case EditProfileView.routeName:
       return MaterialPageRoute(builder: (context) => const EditProfileView());
+    case WorkoutSessionView.routeName:
+      final args = settings.arguments!
+          as ({WorkoutExercise exercise, int exerciseIndex});
+      return MaterialPageRoute(
+        builder: (context) => WorkoutSessionView(
+          exercise: args.exercise,
+          exerciseIndex: args.exerciseIndex,
+        ),
+      );
     default:
       return MaterialPageRoute(builder: (context) => const Scaffold());
   }

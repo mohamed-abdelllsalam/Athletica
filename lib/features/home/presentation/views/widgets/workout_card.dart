@@ -11,6 +11,7 @@ class WorkoutCard extends StatelessWidget {
     required this.repsRange,
     required this.restRange,
     required this.bottomText,
+    this.onRepsTap,
   });
 
   final String name;
@@ -18,6 +19,7 @@ class WorkoutCard extends StatelessWidget {
   final String repsRange;
   final String restRange;
   final String bottomText;
+  final VoidCallback? onRepsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -74,17 +76,20 @@ class WorkoutCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  'Reps',
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
+              GestureDetector(
+                onTap: onRepsTap,
+                child: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue,
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(
+                    'Reps',
+                    style: AppTextStyles.medium14(context)
+                        .copyWith(color: AppColors.textPrimary),
+                  ),
                 ),
               ),
             ],
