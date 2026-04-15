@@ -10,7 +10,9 @@ abstract class AppColors {
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFF9E9E9E);
   static const Color textTertiary = Color(0xFF6B6B6B);
-  static const Color primaryBlue = Color(0xFF5C7CFA); // Approximated from screenshot
+  static const Color primaryBlue = Color(
+    0xFF5C7CFA,
+  ); // Approximated from screenshot
 
   static const Color streakGreen = Color(0xFF4CAF50);
   static const Color streakBlue = Color(0xFF42A5F5);
@@ -20,10 +22,10 @@ abstract class AppColors {
   static const Color proteinAccent = Color(0xFF4FC3F7);
   static const Color fatAccent = Color(0xFFCE93D8);
 
-  static const Color barCarb = Color(0xFF7C4DFF);
-  static const Color barFat = Color(0xFFFFD54F);
-  static const Color barProtein = Color(0xFFF44336);
-  static const Color barExtraMeals = Color(0xFF4CAF50);
+  static const Color barCarb = Color(0xFF236c71);
+  static const Color barFat = Color(0xFFac262c);
+  static const Color barProtein = Color(0xFF6529b3);
+  static const Color barExtraMeals = Color(0xFF631735);
 
   static const Color activeTabBg = Color(0xFFFFFFFF);
   static const Color activeTabText = Color(0xFF000000);
