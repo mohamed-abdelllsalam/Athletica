@@ -1,12 +1,14 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/info/domain/entities/info_question.dart';
+import 'package:athletica/features/info/presentation/views/widgets/custom_dropdown_field.dart';
 import 'package:athletica/features/info/presentation/views/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class InfoQuestionItem extends StatelessWidget {
-  const InfoQuestionItem({super.key, required this.label});
+  const InfoQuestionItem({super.key, required this.question});
 
-  final String label;
+  final InfoQuestion question;
 
   @override
   Widget build(BuildContext context) {
@@ -14,13 +16,14 @@ class InfoQuestionItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: AppTextStyles.extraBold14(
-            context,
-          ).copyWith(color: Colors.white),
+          question.question,
+          style: AppTextStyles.extraBold14(context).copyWith(color: Colors.white),
         ),
         SizedBox(height: 6.h),
-        const CustomTextField(),
+        if (question.type == InfoQuestionType.text)
+          const CustomTextField(keyboardType: TextInputType.number)
+        else
+          CustomDropdownField(options: question.options!),
       ],
     );
   }
