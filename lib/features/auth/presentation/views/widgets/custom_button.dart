@@ -13,7 +13,7 @@ class CustomButton extends StatelessWidget {
       height: 54,
       child: TextButton(
         style: TextButton.styleFrom(
-          backgroundColor: Color(0xFF1D8A16),
+          backgroundColor: Color(0xFF5273E0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -21,9 +21,9 @@ class CustomButton extends StatelessWidget {
         onPressed: onPressed,
         child: Text(
           text,
-          style: AppTextStyles.semiBold15(context).copyWith(
-            color: const Color(0xffFFFFFF),
-          ),
+          style: AppTextStyles.semiBold15(
+            context,
+          ).copyWith(color: const Color(0xffFFFFFF)),
         ),
       ),
     );

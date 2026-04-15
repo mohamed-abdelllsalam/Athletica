@@ -35,7 +35,8 @@ class CustomFormTextField extends StatelessWidget {
       textInputAction: textInputAction,
       obscureText: obscureText,
       onSaved: onSaved,
-      validator: validator ??
+      validator:
+          validator ??
           (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your $hintText';
@@ -46,14 +47,13 @@ class CustomFormTextField extends StatelessWidget {
       decoration: InputDecoration(
         suffixIcon: suffixIcon,
         labelText: labelText,
-        labelStyle: AppTextStyles.medium15(context).copyWith(
-          color: Colors.white,
-        ),
+        labelStyle: AppTextStyles.medium15(
+          context,
+        ).copyWith(color: Colors.white),
         hintText: hintText,
-        hintStyle: AppTextStyles.regular13(context).copyWith(
-          color: const Color(0xFFC0C0C0),
-        ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle: AppTextStyles.regular13(
+          context,
+        ).copyWith(color: const Color(0xFFC0C0C0)),
         border: buildBorder(),
         focusedBorder: buildBorder(),
         enabledBorder: buildBorder(),
@@ -63,11 +63,8 @@ class CustomFormTextField extends StatelessWidget {
 
   OutlineInputBorder buildBorder() {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(15),
-      borderSide: const BorderSide(
-        color: Color(0xCC206D3E),
-        width: 1,
-      ),
+      borderRadius: BorderRadius.circular(20),
+      borderSide: const BorderSide(color: Color(0xFF919191), width: 1),
     );
   }
 }
