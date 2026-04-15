@@ -4,9 +4,11 @@ import 'package:athletica/features/auth/presentation/views/reset_password_view.d
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_up_view.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/complete_profile/presentation/views/complete_profile_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
+import 'package:athletica/features/profile/presentation/views/profile_view.dart';
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
 import 'package:flutter/material.dart';
@@ -35,9 +37,14 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const SettingsView());
     case ChatView.routeName:
       return MaterialPageRoute(builder: (context) => const ChatView());
+    case CompleteProfileView.routeName:
+      return MaterialPageRoute(builder: (context) => const CompleteProfileView());
+    case ProfileView.routeName:
+      return MaterialPageRoute(builder: (context) => const ProfileView());
     default:
       return MaterialPageRoute(builder: (context) => const Scaffold());
   }
 }
+
 
 

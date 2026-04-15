@@ -1,6 +1,7 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/profile/presentation/views/profile_view.dart';
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -14,13 +15,18 @@ class HomeAppBar extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22.r,
-            backgroundColor: AppColors.cardBackgroundLight,
-            child: Icon(
-              Icons.person,
-              color: AppColors.textSecondary,
-              size: 24.sp,
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, ProfileView.routeName);
+            },
+            child: CircleAvatar(
+              radius: 22.r,
+              backgroundColor: AppColors.cardBackgroundLight,
+              child: Icon(
+                Icons.person,
+                color: AppColors.textSecondary,
+                size: 24.sp,
+              ),
             ),
           ),
           SizedBox(width: 12.w),

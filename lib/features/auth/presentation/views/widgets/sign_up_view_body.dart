@@ -4,6 +4,7 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_checbo
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
+import 'package:athletica/features/complete_profile/presentation/views/complete_profile_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -188,7 +189,8 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                       );
                       return;
                     }
-                    // Proceed with signup logic
+
+                    Navigator.pushNamed(context, CompleteProfileView.routeName);
                   } else {
                     setState(() {
                       autoValidateMode = AutovalidateMode.always;
