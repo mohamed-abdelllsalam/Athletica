@@ -12,6 +12,10 @@ abstract class AppTextStyles {
     fontFamily: 'Inter',
     height: 0.65,
   );
+  static TextStyle extraBold14(BuildContext context) => TextStyle(
+    fontWeight: FontWeight.w800,
+    fontSize: getResponsiveFontSize(context, fontSize: 14),
+  );
   static TextStyle regular16(BuildContext context) => TextStyle(
     fontWeight: FontWeight.normal,
     fontSize: getResponsiveFontSize(context, fontSize: 16),
