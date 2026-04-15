@@ -28,7 +28,7 @@ class ResetPasswordViewBody extends StatelessWidget {
             'Email Address',
             style: AppTextStyles.medium16(
               context,
-            ).copyWith(color: const Color(0xFFEAFBF1).withOpacity(0.72)),
+            ).copyWith(color: const Color(0xFFEAFBF1).withValues()),
           ),
           const SizedBox(height: 15),
           TextFormField(

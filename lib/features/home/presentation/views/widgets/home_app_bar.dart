@@ -1,5 +1,7 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -30,52 +32,71 @@ class HomeAppBar extends StatelessWidget {
               ).copyWith(color: AppColors.textPrimary),
             ),
           ),
-          _buildIconButton(icon: Icons.mail_outline_rounded, badgeCount: 0),
+          _buildIconButton(
+            icon: Icons.mail_outline_rounded,
+            badgeCount: 0,
+            onTap: () {
+              Navigator.pushNamed(context, ChatView.routeName);
+            },
+          ),
           SizedBox(width: 8.w),
           _buildIconButton(
             icon: Icons.notifications_none_rounded,
             badgeCount: 2,
           ),
           SizedBox(width: 8.w),
-          _buildIconButton(icon: Icons.settings_outlined, badgeCount: 0),
+          _buildIconButton(
+            icon: Icons.settings_outlined,
+            badgeCount: 0,
+            onTap: () {
+              Navigator.pushNamed(context, SettingsView.routeName);
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildIconButton({required IconData icon, required int badgeCount}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          padding: EdgeInsets.all(8.r),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(12.r),
+  Widget _buildIconButton({
+    required IconData icon,
+    required int badgeCount,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.r),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Icon(icon, color: AppColors.textPrimary, size: 20.sp),
           ),
-          child: Icon(icon, color: AppColors.textPrimary, size: 20.sp),
-        ),
-        if (badgeCount > 0)
-          Positioned(
-            top: -4,
-            right: -4,
-            child: Container(
-              padding: EdgeInsets.all(4.r),
-              decoration: const BoxDecoration(
-                color: AppColors.notificationBadge,
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '$badgeCount',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 8.sp,
-                  fontWeight: FontWeight.bold,
+          if (badgeCount > 0)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                padding: EdgeInsets.all(4.r),
+                decoration: const BoxDecoration(
+                  color: AppColors.notificationBadge,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 8.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
