@@ -1,11 +1,11 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/auth/presentation/views/reset_password_view.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_passwor_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
+import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -102,7 +102,7 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                   Spacer(),
                   GestureDetector(
                     onTap: () => (
-                      Navigator.pushNamed(context, ResetPasswordView.routeName),
+                      // Navigator.pushNamed(context, ResetPasswordView.routeName),
                     ),
                     child: Text(
                       'Forgot Password?',
@@ -118,6 +118,7 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                 onPressed: () {
                   if (formKey.currentState!.validate()) {
                     formKey.currentState!.save();
+                    Navigator.pushNamed(context, InfoView.routeName);
                   } else {
                     setState(() {
                       autoValidateMode = AutovalidateMode.always;
