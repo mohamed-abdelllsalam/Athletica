@@ -1,4 +1,5 @@
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
+import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/presentation/views/widgets/info_questions_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -112,7 +113,9 @@ class _InfoViewBodyState extends State<InfoViewBody> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
                       );
-                    } else {}
+                    } else {
+                      Navigator.pushNamed(context, HomeView.routeName);
+                    }
                   },
                   text: 'Submit',
                 ),
