@@ -8,17 +8,25 @@ class OnBoardingViewBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Positioned.fill(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment(0.50, -0.00),
-                end: Alignment(0.50, 1.00),
-                colors: [
-                  Colors.transparent,
-                  Color(0x0023AC58),
-                  Color(0x5E0F4B27),
-                ],
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.45,
+            width: double.infinity,
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: const ShapeDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(0.50, -0.00),
+                  end: Alignment(0.50, 1.00),
+                  colors: [Color(0x005273E0), Color(0x285273E0)],
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(23),
+                    topRight: Radius.circular(23),
+                  ),
+                ),
               ),
             ),
           ),

@@ -13,32 +13,20 @@ class OnboardingBottom extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: 'Make Your Self\n',
-                style: AppTextStyles.semiBold35(
-                  context,
-                ).copyWith(color: Colors.white),
-              ),
-              TextSpan(
-                text: 'Better',
-                style: AppTextStyles.regular35(
-                  context,
-                ).copyWith(color: const Color(0xFFBEF3D2)),
-              ),
-            ],
-          ),
+        Text(
+          'Become the best\nversion of yourself',
+          style: AppTextStyles.semiBold35(
+            context,
+          ).copyWith(color: Colors.white),
         ),
         const SizedBox(height: 12),
         Text(
-          'Start now and live a healthy life',
+          'Start your journey and change your lives',
           style: AppTextStyles.regular16(
             context,
-          ).copyWith(color: Colors.white.withOpacity(0.8)),
+          ).copyWith(color: Color(0xFF919191)),
         ),
-        const SizedBox(height: 95),
+        const SizedBox(height: 96),
         CustomElveButton(
           onPressed: () {
             Navigator.pushNamed(context, SignUpView.routeName);
@@ -52,7 +40,7 @@ class OnboardingBottom extends StatelessWidget {
               'You already have an account?',
               style: AppTextStyles.medium15(
                 context,
-              ).copyWith(color: Colors.white.withOpacity(0.6)),
+              ).copyWith(color: Colors.white.withValues(alpha: 0.41)),
             ),
             const SizedBox(width: 6),
             GestureDetector(
