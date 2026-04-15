@@ -6,7 +6,7 @@ import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dar
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SignUpViewBody extends StatefulWidget {
   const SignUpViewBody({super.key});
@@ -45,20 +45,19 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
           autovalidateMode: autoValidateMode,
           child: Column(
             children: [
-              const SizedBox(height: 16),
-              AspectRatio(
-                aspectRatio: 4,
-                child: SvgPicture.asset(
-                  'assets/images/dumbell.svg',
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text('Athletica', style: AppTextStyles.extraBold30(context)),
-              const SizedBox(height: 8),
+              SizedBox(height: 16.h),
               Text(
-                'Start the challenge and keep going till the end',
-                style: AppTextStyles.semiBold10(context),
+                'Sign Up',
+                style: AppTextStyles.bold24(
+                  context,
+                ).copyWith(color: Colors.white),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'Guide the challenge, inspire the journey',
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: Colors.white),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 26),
