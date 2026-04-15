@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/widgets/profile_header.dart';
 import 'package:athletica/features/profile/presentation/views/widgets/profile_info_field.dart';
 import 'package:athletica/features/profile/presentation/views/widgets/goals_section.dart';
@@ -46,10 +47,16 @@ class ProfileViewBody extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 12.w),
-                    Text(
-                      'Edit Profile',
-                      style: AppTextStyles.medium14(context).copyWith(
-                        color: AppColors.textPrimary,
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        EditProfileView.routeName,
+                      ),
+                      child: Text(
+                        'Edit Profile',
+                        style: AppTextStyles.medium14(context).copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                   ],

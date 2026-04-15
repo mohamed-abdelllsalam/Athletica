@@ -8,6 +8,7 @@ import 'package:athletica/features/complete_profile/presentation/views/complete_
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
+import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_view.dart';
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
@@ -41,6 +42,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const CompleteProfileView());
     case ProfileView.routeName:
       return MaterialPageRoute(builder: (context) => const ProfileView());
+    case EditProfileView.routeName:
+      return MaterialPageRoute(builder: (context) => const EditProfileView());
     default:
       return MaterialPageRoute(builder: (context) => const Scaffold());
   }
