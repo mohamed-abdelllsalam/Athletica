@@ -42,19 +42,20 @@ class SplashViewBodyState extends State<SplashViewBody>
   Animation<double> _createScaleAnimation() {
     return TweenSequence([
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.2)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween(
+          begin: 1.0,
+          end: 1.2,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 30,
       ),
       TweenSequenceItem(
-        tween:
-            Tween(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween(
+          begin: 1.2,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 20,
       ),
-      TweenSequenceItem(
-        tween: ConstantTween(1.0),
-        weight: 50,
-      ),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 50),
     ]).animate(_controller);
   }
 
@@ -62,13 +63,17 @@ class SplashViewBodyState extends State<SplashViewBody>
     return TweenSequence([
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
       TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.745)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween(
+          begin: 0.0,
+          end: 1.745,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 10,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.745, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween(
+          begin: 1.745,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 10,
       ),
       TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
@@ -76,10 +81,7 @@ class SplashViewBodyState extends State<SplashViewBody>
   }
 
   Animation<Color?> _createBackgroundColorAnimation() {
-    return ColorTween(
-      begin: Colors.white,
-      end: Colors.green[100],
-    ).animate(
+    return ColorTween(begin: Colors.white, end: Colors.green[100]).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.5, 1.0, curve: Curves.easeInOut),
