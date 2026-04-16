@@ -87,9 +87,7 @@ class _CoachAddCertificateViewBodyState
                   title: 'Upload your certificates',
                   subtitle:
                       'Upload your certificates to verify your expertise.',
-                  onUploadTap: () {
-                    // TODO: wire up file_picker when package is added
-                  },
+                  onUploadTap: () {},
                 ),
                 SizedBox(height: 24.h),
                 Text(

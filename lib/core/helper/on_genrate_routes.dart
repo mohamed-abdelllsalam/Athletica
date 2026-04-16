@@ -4,11 +4,15 @@ import 'package:athletica/features/auth/presentation/views/reset_password_view.d
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_up_view.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/coach/Clients/presentation/views/coach_client_detail_view.dart';
+import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_clients_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_add_certificate_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_messages_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_edit_profile_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_photo_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_view.dart';
@@ -30,6 +34,15 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const SplashView());
     case CoachHomeView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachHomeView());
+    case CoachClientsView.routeName:
+      return MaterialPageRoute(builder: (context) => const CoachClientsView());
+    case CoachClientDetailView.routeName:
+      final client = settings.arguments! as CoachClient;
+      return MaterialPageRoute(
+        builder: (context) => CoachClientDetailView(client: client),
+      );
+    case CoachMessagesView.routeName:
+      return MaterialPageRoute(builder: (context) => const CoachMessagesView());
     case CoachProfileView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachProfileView());
     case CoachEditProfileView.routeName:

@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class UploadVideoCubit extends Cubit<UploadVideoState> {
   UploadVideoCubit() : super(UploadVideoInitial());
 
-  // TODO: inject UploadVideoUseCase when API + file_picker package are wired up.
   Future<void> pickAndUploadVideo() async {
     emit(UploadVideoLoading());
     // Stub — replace with actual file pick + upload call.

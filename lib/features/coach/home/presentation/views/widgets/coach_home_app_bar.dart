@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_messages_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -31,7 +32,7 @@ class _ChatIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () => Navigator.pushNamed(context, CoachMessagesView.routeName),
       child: Container(
         padding: EdgeInsets.all(10.r),
         decoration: BoxDecoration(
