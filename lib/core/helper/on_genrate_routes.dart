@@ -9,6 +9,9 @@ import 'package:athletica/features/coach/complete_profile/presentation/views/coa
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/coach/profile/presentation/views/coach_edit_profile_view.dart';
+import 'package:athletica/features/coach/profile/presentation/views/coach_profile_photo_view.dart';
+import 'package:athletica/features/coach/profile/presentation/views/coach_profile_view.dart';
 import 'package:athletica/features/complete_profile/presentation/views/complete_profile_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart';
@@ -27,6 +30,16 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const SplashView());
     case CoachHomeView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachHomeView());
+    case CoachProfileView.routeName:
+      return MaterialPageRoute(builder: (context) => const CoachProfileView());
+    case CoachEditProfileView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachEditProfileView(),
+      );
+    case CoachProfilePhotoView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachProfilePhotoView(),
+      );
     case CoachCompleteProfileView.routeName:
       return MaterialPageRoute(
         builder: (context) => const CoachCompleteProfileView(),
