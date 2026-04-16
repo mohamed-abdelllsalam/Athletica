@@ -4,22 +4,42 @@ import 'package:athletica/features/auth/presentation/views/reset_password_view.d
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_up_view.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_add_certificate_view.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/complete_profile/presentation/views/complete_profile_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
+import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
-import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart';
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_view.dart';
-import 'package:athletica/features/workout_session/presentation/views/workout_session_view.dart';
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
+import 'package:athletica/features/workout_session/presentation/views/workout_session_view.dart';
 import 'package:flutter/material.dart';
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
   switch (settings.name) {
     case SplashView.routeName:
       return MaterialPageRoute(builder: (context) => const SplashView());
+    case CoachCompleteProfileView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachCompleteProfileView(),
+      );
+    case CoachAddCertificateView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachAddCertificateView(),
+      );
+    case CoachUploadVideoView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachUploadVideoView(),
+      );
+    case CoachSubscriptionView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachSubscriptionView(),
+      );
     case OnBoardingView.routeName:
       return MaterialPageRoute(builder: (context) => const OnBoardingView());
     case SignInView.routeName:
@@ -41,14 +61,17 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case ChatView.routeName:
       return MaterialPageRoute(builder: (context) => const ChatView());
     case CompleteProfileView.routeName:
-      return MaterialPageRoute(builder: (context) => const CompleteProfileView());
+      return MaterialPageRoute(
+        builder: (context) => const CompleteProfileView(),
+      );
     case ProfileView.routeName:
       return MaterialPageRoute(builder: (context) => const ProfileView());
     case EditProfileView.routeName:
       return MaterialPageRoute(builder: (context) => const EditProfileView());
     case WorkoutSessionView.routeName:
-      final args = settings.arguments!
-          as ({WorkoutExercise exercise, int exerciseIndex});
+      final args =
+          settings.arguments!
+              as ({WorkoutExercise exercise, int exerciseIndex});
       return MaterialPageRoute(
         builder: (context) => WorkoutSessionView(
           exercise: args.exercise,
@@ -59,6 +82,3 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const Scaffold());
   }
 }
-
-
-
