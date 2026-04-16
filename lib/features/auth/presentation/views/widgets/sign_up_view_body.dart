@@ -1,9 +1,11 @@
+import 'package:athletica/core/services/user_role_service.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
 import 'package:athletica/features/complete_profile/presentation/views/complete_profile_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +23,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
   AutovalidateMode autoValidateMode = AutovalidateMode.disabled;
 
   late String name, email, phone, password, confirmPassword;
+  String? _selectedRole;
   bool agreeToTerms = false;
 
   String? validatePassword(String? value) {
@@ -144,6 +147,50 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                 ),
               ),
               const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedRole,
+                dropdownColor: const Color(0xFF1E1E1E),
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Status',
+                  labelStyle: AppTextStyles.medium15(
+                    context,
+                  ).copyWith(color: Colors.white),
+                  hintText: 'Select your role',
+                  hintStyle: AppTextStyles.regular13(
+                    context,
+                  ).copyWith(color: const Color(0xFFC0C0C0)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF919191),
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF919191),
+                      width: 1,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF919191),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'Coach', child: Text('Coach')),
+                  DropdownMenuItem(value: 'Client', child: Text('Client')),
+                ],
+                onChanged: (value) => setState(() => _selectedRole = value),
+                validator: (value) =>
+                    value == null ? 'Please select your status' : null,
+              ),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   CustomCheckBox(
@@ -190,7 +237,14 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                       return;
                     }
 
-                    Navigator.pushNamed(context, CompleteProfileView.routeName);
+                    UserRoleService.instance.registerUser(
+                      email,
+                      _selectedRole!,
+                    );
+                    final route = _selectedRole == 'Coach'
+                        ? CoachCompleteProfileView.routeName
+                        : CompleteProfileView.routeName;
+                    Navigator.pushNamed(context, route);
                   } else {
                     setState(() {
                       autoValidateMode = AutovalidateMode.always;

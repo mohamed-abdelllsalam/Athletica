@@ -1,3 +1,4 @@
+import 'package:athletica/core/services/user_role_service.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
@@ -5,7 +6,8 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_passwo
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
-import 'package:athletica/features/info/presentation/views/info_view.dart';
+import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -118,7 +120,57 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                 onPressed: () {
                   if (formKey.currentState!.validate()) {
                     formKey.currentState!.save();
-                    Navigator.pushNamed(context, InfoView.routeName);
+                    final role =
+                        UserRoleService.instance.getRoleByEmail(email);
+                    if (role == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Account not found. Please sign up.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    if (role == 'Coach') {
+                      showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          title: const Text(
+                            'Welcome back, Coach!',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          content: const Text(
+                            'Where would you like to go?',
+                            style: TextStyle(color: Color(0xFF919191)),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                Navigator.pushNamed(
+                                  context,
+                                  HomeView.routeName,
+                                );
+                              },
+                              child: const Text('Client Homepage'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                Navigator.pushNamed(
+                                  context,
+                                  CoachHomeView.routeName,
+                                );
+                              },
+                              child: const Text('Coach Homepage'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      Navigator.pushNamed(context, HomeView.routeName);
+                    }
                   } else {
                     setState(() {
                       autoValidateMode = AutovalidateMode.always;
