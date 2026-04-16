@@ -8,6 +8,7 @@ import 'package:athletica/features/coach/complete_profile/presentation/views/coa
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
+import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:athletica/features/complete_profile/presentation/views/complete_profile_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart';
@@ -24,6 +25,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
   switch (settings.name) {
     case SplashView.routeName:
       return MaterialPageRoute(builder: (context) => const SplashView());
+    case CoachHomeView.routeName:
+      return MaterialPageRoute(builder: (context) => const CoachHomeView());
     case CoachCompleteProfileView.routeName:
       return MaterialPageRoute(
         builder: (context) => const CoachCompleteProfileView(),
