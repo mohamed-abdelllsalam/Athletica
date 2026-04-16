@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:athletica/features/settings/presentation/views/widgets/settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -76,9 +77,10 @@ class _SettingsViewBodyState extends State<SettingsViewBody> {
                         icon: Icons.chat_bubble_outline_rounded,
                         title: 'Feed Back',
                       ),
-                      const SettingsTile(
+                      SettingsTile(
                         icon: Icons.logout_rounded,
                         title: 'Log Out',
+                        onTap: () => _confirmLogout(context),
                       ),
                     ],
                   ),
@@ -87,6 +89,54 @@ class _SettingsViewBodyState extends State<SettingsViewBody> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: Text(
+          'Log Out',
+          style: AppTextStyles.bold20(context).copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to log out?',
+          style: AppTextStyles.medium14(context).copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.medium14(context).copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                SignInView.routeName,
+                (route) => false,
+              );
+            },
+            child: Text(
+              'Log Out',
+              style: AppTextStyles.semiBold14(context).copyWith(
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class AddCertificateCubit extends Cubit<AddCertificateState> {
   AddCertificateCubit() : super(AddCertificateInitial());
 
-  // TODO: inject AddCertificateUseCase when API is wired up.
   Future<void> saveCertificate({
     required String name,
     required String description,
