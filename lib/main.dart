@@ -1,6 +1,6 @@
 import 'package:athletica/core/helper/on_genrate_routes.dart';
 import 'package:athletica/core/utils/app_colors.dart';
-import 'package:athletica/screens/splash_screen.dart';
+import 'package:athletica/features/splash/presentation/views/splash_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -21,7 +21,7 @@ class Athletica extends StatelessWidget {
         theme: ThemeData(scaffoldBackgroundColor: AppColors.primaryAppColor),
         debugShowCheckedModeBanner: false,
         onGenerateRoute: onGenerateRoute,
-        home: const SplashScreen(),
+        home: const SplashView(),
       ),
     );
   }

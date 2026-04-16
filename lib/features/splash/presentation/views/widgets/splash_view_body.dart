@@ -1,130 +1,142 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
-import 'package:athletica/features/splash/presentation/views/widgets/build_logo.dart';
-import 'package:athletica/features/splash/presentation/views/widgets/build_text.dart';
 import 'package:flutter/material.dart';
 
 class SplashViewBody extends StatefulWidget {
   const SplashViewBody({super.key});
 
   @override
-  SplashViewBodyState createState() => SplashViewBodyState();
+  State<SplashViewBody> createState() => _SplashViewBodyState();
 }
 
-class SplashViewBodyState extends State<SplashViewBody>
+class _SplashViewBodyState extends State<SplashViewBody>
     with TickerProviderStateMixin {
+  static const String _appName = 'Athletica';
+  static const Duration _animationDuration = Duration(milliseconds: 1000);
+  static const Duration _typeInterval = Duration(milliseconds: 100);
+
   late final AnimationController _controller;
-  late final Animation<double> _scaleAnim;
-  late final Animation<double> _rotationAnim;
-  late final Animation<Color?> _bgColor;
+  late final Animation<Offset> _logoSlide;
+  late final Animation<double> _logoScale;
+  Timer? _typeTimer;
+  Timer? _navigateTimer;
+  int _visibleChars = 0;
 
   @override
   void initState() {
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(seconds: 3),
       vsync: this,
+      duration: _animationDuration,
     );
 
-    _scaleAnim = _createScaleAnimation();
-    _rotationAnim = _createRotationAnimation();
-    _bgColor = _createBackgroundColorAnimation();
+    _logoSlide = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0.0, -1.0),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    _controller.forward();
+    _logoScale = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Navigator.pushReplacementNamed(context, OnBoardingView.routeName);
+        _handleAnimationComplete();
       }
+    });
+
+    _controller.forward();
+  }
+
+  void _startTypewriter() {
+    _typeTimer?.cancel();
+    _typeTimer = Timer.periodic(_typeInterval, (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_visibleChars >= _appName.length) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _visibleChars = math.min(_visibleChars + 1, _appName.length);
+      });
     });
   }
 
-  Animation<double> _createScaleAnimation() {
-    return TweenSequence([
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.0,
-          end: 1.2,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30,
-      ),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.2,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 20,
-      ),
-      TweenSequenceItem(tween: ConstantTween(1.0), weight: 50),
-    ]).animate(_controller);
-  }
-
-  Animation<double> _createRotationAnimation() {
-    return TweenSequence([
-      TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 0.0,
-          end: 1.745,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 10,
-      ),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.745,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 10,
-      ),
-      TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
-    ]).animate(_controller);
-  }
-
-  Animation<Color?> _createBackgroundColorAnimation() {
-    return ColorTween(begin: Colors.white, end: Colors.green[100]).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.5, 1.0, curve: Curves.easeInOut),
-      ),
-    );
+  void _handleAnimationComplete() {
+    _startTypewriter();
+    final remainingChars = math.max(0, _appName.length - _visibleChars);
+    final remainingMs = remainingChars * _typeInterval.inMilliseconds;
+    final totalDelay = Duration(milliseconds: remainingMs + 1500);
+    _navigateTimer?.cancel();
+    _navigateTimer = Timer(totalDelay, () {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, OnBoardingView.routeName);
+    });
   }
 
   @override
   void dispose() {
+    _typeTimer?.cancel();
+    _navigateTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Scaffold(
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: _controller.value > 0.6
-                  ? const LinearGradient(
-                      begin: Alignment(0.80, 0.18),
-                      end: Alignment(0.37, 0.74),
-                      colors: [Color(0xFFEAFBF1), Color(0xFFBEF3D2)],
-                    )
-                  : null,
-              color: _bgColor.value,
-            ),
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  buildLogo(_controller, _scaleAnim, _rotationAnim),
-                  const SizedBox(width: 5),
-                  buildText(context, _controller),
-                ],
+    final size = MediaQuery.of(context).size;
+    final minDimension = math.min(size.width, size.height);
+    final logoSize = minDimension * 0.25;
+    final targetDy = (minDimension * 0.06).clamp(30.0, 40.0).toDouble();
+    final visibleText = _appName.substring(0, _visibleChars);
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedBuilder(
+                animation: _logoSlide,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0.0, _logoSlide.value.dy * targetDy),
+                    child: child,
+                  );
+                },
+                child: ScaleTransition(
+                  scale: _logoScale,
+                  child: Image.asset(
+                    'assets/icons/icon.png',
+                    width: logoSize,
+                    height: logoSize,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 12),
+              Text(
+                visibleText,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.extraBold45(
+                  context,
+                ).copyWith(color: const Color(0xFF4C0DFD)),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
