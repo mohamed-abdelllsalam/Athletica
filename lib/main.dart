@@ -1,3 +1,4 @@
+import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/helper/on_genrate_routes.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  setupDependencies();
   runApp(const Athletica());
 }
 
