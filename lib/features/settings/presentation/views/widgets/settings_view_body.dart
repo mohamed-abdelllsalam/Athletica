@@ -1,8 +1,11 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
+import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
+import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
 import 'package:athletica/features/settings/presentation/views/widgets/settings_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SettingsViewBody extends StatefulWidget {
@@ -17,7 +20,24 @@ class _SettingsViewBodyState extends State<SettingsViewBody> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthInitial) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            OnBoardingView.routeName,
+            (_) => false,
+          );
+        } else if (state is AuthFailureState) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.primaryAppColor,
       body: SafeArea(
         child: Column(
@@ -90,6 +110,7 @@ class _SettingsViewBodyState extends State<SettingsViewBody> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -123,11 +144,7 @@ class _SettingsViewBodyState extends State<SettingsViewBody> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                SignInView.routeName,
-                (route) => false,
-              );
+              context.read<AuthCubit>().logout();
             },
             child: Text(
               'Log Out',
