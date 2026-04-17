@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
 import 'package:flutter/material.dart';
 
@@ -78,9 +81,20 @@ class _SplashViewBodyState extends State<SplashViewBody>
     final remainingMs = remainingChars * _typeInterval.inMilliseconds;
     final totalDelay = Duration(milliseconds: remainingMs + 1500);
     _navigateTimer?.cancel();
-    _navigateTimer = Timer(totalDelay, () {
+    _navigateTimer = Timer(totalDelay, () async {
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, OnBoardingView.routeName);
+      final token = await TokenStorageService.instance.getToken();
+      if (!mounted) return;
+      if (token != null) {
+        final role = await TokenStorageService.instance.getRole();
+        if (!mounted) return;
+        final route = role == 'trainer'
+            ? CoachHomeView.routeName
+            : HomeView.routeName;
+        Navigator.pushReplacementNamed(context, route);
+      } else {
+        Navigator.pushReplacementNamed(context, OnBoardingView.routeName);
+      }
     });
   }
 
