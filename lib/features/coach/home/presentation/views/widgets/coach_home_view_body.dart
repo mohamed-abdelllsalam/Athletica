@@ -1,4 +1,6 @@
+import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_clients_view_body.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_plan_view_body.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_bottom_nav_bar.dart';
@@ -7,6 +9,7 @@ import 'package:athletica/features/coach/home/presentation/views/widgets/coach_h
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_insights_section.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_stats_grid.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachHomeViewBody extends StatefulWidget {
@@ -55,7 +58,10 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
             _buildHomeTab(),
             const CoachClientsViewBody(),
             const CoachPlanViewBody(),
-            const CoachProfileViewBody(),
+            BlocProvider(
+              create: (_) => sl<AuthCubit>(),
+              child: const CoachProfileViewBody(),
+            ),
           ],
         ),
       ),

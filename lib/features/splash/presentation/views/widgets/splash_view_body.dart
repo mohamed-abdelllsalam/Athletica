@@ -88,7 +88,7 @@ class _SplashViewBodyState extends State<SplashViewBody>
       if (token != null) {
         final role = await TokenStorageService.instance.getRole();
         if (!mounted) return;
-        final route = role == 'trainer'
+        final route = role == 'TRAINER'
             ? CoachHomeView.routeName
             : HomeView.routeName;
         Navigator.pushReplacementNamed(context, route);
