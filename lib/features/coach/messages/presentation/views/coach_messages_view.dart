@@ -8,6 +8,6 @@ class CoachMessagesView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: CoachMessagesViewBody());
+    return const CoachMessagesViewBody();
   }
 }

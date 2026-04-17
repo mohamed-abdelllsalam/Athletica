@@ -21,7 +21,13 @@ class Athletica extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       child: MaterialApp(
-        theme: ThemeData(scaffoldBackgroundColor: AppColors.primaryAppColor),
+        theme: ThemeData(
+          scaffoldBackgroundColor: AppColors.primaryAppColor,
+          canvasColor: AppColors.primaryAppColor,
+          colorScheme: const ColorScheme.dark(
+            surface: AppColors.primaryAppColor,
+          ),
+        ),
         debugShowCheckedModeBanner: false,
         onGenerateRoute: onGenerateRoute,
         home: const SplashView(),

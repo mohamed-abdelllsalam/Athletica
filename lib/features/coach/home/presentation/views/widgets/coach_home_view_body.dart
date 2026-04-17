@@ -2,7 +2,7 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_clients_view_body.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_plan_view_body.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_bottom_nav_bar.dart';
-import 'package:athletica/features/coach/profile/presentation/views/coach_profile_view.dart';
+import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_profile_view_body.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_home_app_bar.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_insights_section.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_stats_grid.dart';
@@ -55,18 +55,13 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
             _buildHomeTab(),
             const CoachClientsViewBody(),
             const CoachPlanViewBody(),
+            const CoachProfileViewBody(),
           ],
         ),
       ),
       bottomNavigationBar: CoachBottomNavBar(
         selectedIndex: _selectedNavIndex,
-        onTap: (index) {
-          if (index == 3) {
-            Navigator.pushNamed(context, CoachProfileView.routeName);
-          } else if (index < 3) {
-            setState(() => _selectedNavIndex = index);
-          }
-        },
+        onTap: (index) => setState(() => _selectedNavIndex = index),
       ),
     );
   }

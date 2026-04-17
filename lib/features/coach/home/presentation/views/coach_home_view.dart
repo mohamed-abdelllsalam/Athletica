@@ -8,8 +8,6 @@ class CoachHomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: CoachHomeViewBody(),
-    );
+    return const CoachHomeViewBody();
   }
 }
