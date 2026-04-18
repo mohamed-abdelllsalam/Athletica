@@ -42,7 +42,6 @@ class TokenStorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
-    // _profileCompleteKey is intentionally kept — profile completion
-    // is permanent and must not reset on logout.
+    await prefs.remove(_profileCompleteKey);
   }
 }
