@@ -4,7 +4,7 @@ import 'package:athletica/features/info/presentation/views/widgets/info_question
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class InfoQuestionsPage extends StatelessWidget {
+class InfoQuestionsPage extends StatefulWidget {
   const InfoQuestionsPage({
     super.key,
     required this.questions,
@@ -15,6 +15,26 @@ class InfoQuestionsPage extends StatelessWidget {
   final VoidCallback onBack;
 
   @override
+  InfoQuestionsPageState createState() => InfoQuestionsPageState();
+}
+
+class InfoQuestionsPageState extends State<InfoQuestionsPage> {
+  late final Map<int, String?> _answers;
+
+  @override
+  void initState() {
+    super.initState();
+    _answers = {for (var i = 0; i < widget.questions.length; i++) i: null};
+  }
+
+  bool get allAnswered =>
+      _answers.values.every((v) => v != null && v.trim().isNotEmpty);
+
+  void _onQuestionChanged(int index, String? value) {
+    setState(() => _answers[index] = value?.trim().isEmpty == true ? null : value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
@@ -23,7 +43,7 @@ class InfoQuestionsPage extends StatelessWidget {
         children: [
           SizedBox(height: 10.h),
           IconButton(
-            onPressed: onBack,
+            onPressed: widget.onBack,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             icon: Icon(Icons.arrow_back, color: Colors.white, size: 18.sp),
@@ -31,9 +51,12 @@ class InfoQuestionsPage extends StatelessWidget {
           SizedBox(height: 12.h),
           const _InfoPageHeader(),
           SizedBox(height: 16.h),
-          for (int i = 0; i < questions.length; i++) ...[
-            InfoQuestionItem(question: questions[i]),
-            if (i != questions.length - 1) SizedBox(height: 14.h),
+          for (int i = 0; i < widget.questions.length; i++) ...[
+            InfoQuestionItem(
+              question: widget.questions[i],
+              onChanged: (value) => _onQuestionChanged(i, value),
+            ),
+            if (i != widget.questions.length - 1) SizedBox(height: 14.h),
           ],
           SizedBox(height: 10.h),
         ],
@@ -68,8 +91,9 @@ class _InfoPageHeader extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         Text(
-          'Welcome Mohamed Q&A',
-          style: AppTextStyles.semiBold15(context).copyWith(color: Colors.white),
+          'Welcome Q&A',
+          style:
+              AppTextStyles.semiBold15(context).copyWith(color: Colors.white),
         ),
       ],
     );

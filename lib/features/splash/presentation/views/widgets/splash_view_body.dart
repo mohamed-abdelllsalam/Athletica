@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
-import 'package:athletica/features/home/presentation/views/home_view.dart';
-import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
+import 'package:athletica/features/splash/presentation/cubits/splash_cubit.dart';
+import 'package:athletica/features/splash/presentation/cubits/splash_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SplashViewBody extends StatefulWidget {
   const SplashViewBody({super.key});
@@ -81,20 +80,9 @@ class _SplashViewBodyState extends State<SplashViewBody>
     final remainingMs = remainingChars * _typeInterval.inMilliseconds;
     final totalDelay = Duration(milliseconds: remainingMs + 1500);
     _navigateTimer?.cancel();
-    _navigateTimer = Timer(totalDelay, () async {
+    _navigateTimer = Timer(totalDelay, () {
       if (!mounted) return;
-      final token = await TokenStorageService.instance.getToken();
-      if (!mounted) return;
-      if (token != null) {
-        final role = await TokenStorageService.instance.getRole();
-        if (!mounted) return;
-        final route = role == 'TRAINER'
-            ? CoachHomeView.routeName
-            : HomeView.routeName;
-        Navigator.pushReplacementNamed(context, route);
-      } else {
-        Navigator.pushReplacementNamed(context, OnBoardingView.routeName);
-      }
+      context.read<SplashCubit>().checkStatus();
     });
   }
 
@@ -114,40 +102,47 @@ class _SplashViewBodyState extends State<SplashViewBody>
     final targetDy = (minDimension * 0.06).clamp(30.0, 40.0).toDouble();
     final visibleText = _appName.substring(0, _visibleChars);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedBuilder(
-                animation: _logoSlide,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0.0, _logoSlide.value.dy * targetDy),
-                    child: child,
-                  );
-                },
-                child: ScaleTransition(
-                  scale: _logoScale,
-                  child: Image.asset(
-                    'assets/icons/icon.png',
-                    width: logoSize,
-                    height: logoSize,
-                    fit: BoxFit.contain,
+    return BlocListener<SplashCubit, SplashState>(
+      listener: (context, state) {
+        if (state is SplashNavigate) {
+          Navigator.pushReplacementNamed(context, state.route);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedBuilder(
+                  animation: _logoSlide,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0.0, _logoSlide.value.dy * targetDy),
+                      child: child,
+                    );
+                  },
+                  child: ScaleTransition(
+                    scale: _logoScale,
+                    child: Image.asset(
+                      'assets/icons/icon.png',
+                      width: logoSize,
+                      height: logoSize,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                visibleText,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.extraBold45(
-                  context,
-                ).copyWith(color: const Color(0xFF4C0DFD)),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  visibleText,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.extraBold45(
+                    context,
+                  ).copyWith(color: const Color(0xFF4C0DFD)),
+                ),
+              ],
+            ),
           ),
         ),
       ),

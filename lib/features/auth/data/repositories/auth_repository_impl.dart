@@ -2,6 +2,7 @@ import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/domain/entities/user_entity.dart';
 import 'package:athletica/features/auth/domain/repositories/auth_repository.dart';
 import 'package:dio/dio.dart';
@@ -88,6 +89,22 @@ class AuthRepositoryImpl implements AuthRepository {
       return ApiError(UnknownFailure(e.toString()));
     }
   }
+
+  @override
+  Future<AuthStatus> getAuthStatus() async {
+    final token = await TokenStorageService.instance.getToken();
+    if (token == null) return const Unauthenticated();
+    final role = await TokenStorageService.instance.getRole();
+    final isComplete = await TokenStorageService.instance.isProfileComplete();
+    if (role == 'TRAINER') {
+      return isComplete ? const CoachReady() : const CoachProfileIncomplete();
+    }
+    return isComplete ? const ClientReady() : const ClientProfileIncomplete();
+  }
+
+  @override
+  Future<void> markProfileComplete() =>
+      TokenStorageService.instance.saveProfileComplete();
 
   AppFailure _mapDioError(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout ||

@@ -6,6 +6,7 @@ class TokenStorageService {
 
   static const String _tokenKey = 'auth_token';
   static const String _roleKey = 'user_role';
+  static const String _profileCompleteKey = 'is_profile_complete';
 
   Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -27,9 +28,21 @@ class TokenStorageService {
     return prefs.getString(_roleKey);
   }
 
+  Future<void> saveProfileComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_profileCompleteKey, true);
+  }
+
+  Future<bool> isProfileComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_profileCompleteKey) ?? false;
+  }
+
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
+    // _profileCompleteKey is intentionally kept — profile completion
+    // is permanent and must not reset on logout.
   }
 }

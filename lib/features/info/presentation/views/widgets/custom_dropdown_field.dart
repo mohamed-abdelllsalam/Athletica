@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CustomDropdownField extends StatefulWidget {
-  const CustomDropdownField({super.key, required this.options});
+  const CustomDropdownField({
+    super.key,
+    required this.options,
+    required this.onChanged,
+  });
 
   final List<String> options;
+  final ValueChanged<String?> onChanged;
 
   @override
   State<CustomDropdownField> createState() => _CustomDropdownFieldState();
@@ -20,7 +25,12 @@ class _CustomDropdownFieldState extends State<CustomDropdownField> {
       height: 42.h,
       decoration: ShapeDecoration(
         shape: RoundedRectangleBorder(
-          side: BorderSide(width: 3.w, color: const Color(0xFF4A4949)),
+          side: BorderSide(
+            width: 3.w,
+            color: _selectedValue == null
+                ? const Color(0xFF4A4949)
+                : const Color(0xFF5273E0),
+          ),
           borderRadius: BorderRadius.circular(10),
         ),
       ),
@@ -37,9 +47,8 @@ class _CustomDropdownFieldState extends State<CustomDropdownField> {
             style: TextStyle(color: Colors.grey, fontSize: 12.sp),
           ),
           onChanged: (value) {
-            setState(() {
-              _selectedValue = value;
-            });
+            setState(() => _selectedValue = value);
+            widget.onChanged(value);
           },
           items: widget.options
               .map(

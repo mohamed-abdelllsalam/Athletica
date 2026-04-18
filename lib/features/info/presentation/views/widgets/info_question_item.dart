@@ -6,9 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class InfoQuestionItem extends StatelessWidget {
-  const InfoQuestionItem({super.key, required this.question});
+  const InfoQuestionItem({
+    super.key,
+    required this.question,
+    required this.onChanged,
+  });
 
   final InfoQuestion question;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -17,13 +22,20 @@ class InfoQuestionItem extends StatelessWidget {
       children: [
         Text(
           question.question,
-          style: AppTextStyles.extraBold14(context).copyWith(color: Colors.white),
+          style:
+              AppTextStyles.extraBold14(context).copyWith(color: Colors.white),
         ),
         SizedBox(height: 6.h),
         if (question.type == InfoQuestionType.text)
-          const CustomTextField(keyboardType: TextInputType.number)
+          CustomTextField(
+            keyboardType: TextInputType.number,
+            onChanged: onChanged,
+          )
         else
-          CustomDropdownField(options: question.options!),
+          CustomDropdownField(
+            options: question.options!,
+            onChanged: onChanged,
+          ),
       ],
     );
   }

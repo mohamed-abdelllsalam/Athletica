@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/features/auth/domain/usecases/check_auth_status_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/login_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_client_usecase.dart';
@@ -11,16 +12,19 @@ class AuthCubit extends Cubit<AuthState> {
   final RegisterClientUseCase _registerClientUseCase;
   final RegisterTrainerUseCase _registerTrainerUseCase;
   final LogoutUseCase _logoutUseCase;
+  final CheckAuthStatusUseCase _checkAuthStatusUseCase;
 
   AuthCubit({
     required LoginUseCase loginUseCase,
     required RegisterClientUseCase registerClientUseCase,
     required RegisterTrainerUseCase registerTrainerUseCase,
     required LogoutUseCase logoutUseCase,
+    required CheckAuthStatusUseCase checkAuthStatusUseCase,
   })  : _loginUseCase = loginUseCase,
         _registerClientUseCase = registerClientUseCase,
         _registerTrainerUseCase = registerTrainerUseCase,
         _logoutUseCase = logoutUseCase,
+        _checkAuthStatusUseCase = checkAuthStatusUseCase,
         super(AuthInitial());
 
   Future<void> login({
@@ -77,6 +81,11 @@ class AuthCubit extends Cubit<AuthState> {
       case ApiError(:final failure):
         emit(AuthFailureState(failure.message));
     }
+  }
+
+  Future<void> checkAuthStatus() async {
+    final status = await _checkAuthStatusUseCase();
+    emit(AuthStatusChecked(status));
   }
 
   Future<void> logout() async {

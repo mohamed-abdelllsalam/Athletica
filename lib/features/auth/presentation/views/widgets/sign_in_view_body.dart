@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
@@ -7,8 +8,10 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_passwo
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
+import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,11 +39,16 @@ class _SignInViewBodyState extends State<SignInViewBody> {
     context.read<AuthCubit>().login(email: email, password: password);
   }
 
-  void _navigateByRole(BuildContext context, String primaryRole) {
-    if (primaryRole == 'TRAINER') {
-      Navigator.pushReplacementNamed(context, CoachHomeView.routeName);
-    } else {
-      Navigator.pushReplacementNamed(context, HomeView.routeName);
+  void _navigateByStatus(BuildContext context, AuthStatus status) {
+    final route = switch (status) {
+      Unauthenticated() => null,
+      ClientProfileIncomplete() => InfoView.routeName,
+      CoachProfileIncomplete() => CoachCompleteProfileView.routeName,
+      ClientReady() => HomeView.routeName,
+      CoachReady() => CoachHomeView.routeName,
+    };
+    if (route != null) {
+      Navigator.pushReplacementNamed(context, route);
     }
   }
 
@@ -49,7 +57,9 @@ class _SignInViewBodyState extends State<SignInViewBody> {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is LoginSuccess) {
-          _navigateByRole(context, state.response.user.primaryRole);
+          context.read<AuthCubit>().checkAuthStatus();
+        } else if (state is AuthStatusChecked) {
+          _navigateByStatus(context, state.status);
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

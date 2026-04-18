@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
@@ -22,4 +23,8 @@ abstract class AuthRepository {
   });
 
   Future<ApiResult<void>> logout();
+
+  Future<AuthStatus> getAuthStatus();
+
+  Future<void> markProfileComplete();
 }
