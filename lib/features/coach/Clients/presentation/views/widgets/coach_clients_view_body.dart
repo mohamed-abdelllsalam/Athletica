@@ -3,6 +3,7 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_clients_data.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_detail_view.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_join_requests_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_client_card.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_join_requests_banner.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +60,13 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
         SizedBox(height: 16.h),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: CoachJoinRequestsBanner(count: 120, onTap: () {}),
+          child: CoachJoinRequestsBanner(
+            count: 120,
+            onTap: () => Navigator.pushNamed(
+              context,
+              CoachJoinRequestsView.routeName,
+            ),
+          ),
         ),
         SizedBox(height: 16.h),
         Expanded(

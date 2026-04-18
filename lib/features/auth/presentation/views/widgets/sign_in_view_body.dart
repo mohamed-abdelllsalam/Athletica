@@ -48,7 +48,7 @@ class _SignInViewBodyState extends State<SignInViewBody> {
       CoachReady() => CoachHomeView.routeName,
     };
     if (route != null) {
-      Navigator.pushReplacementNamed(context, route);
+      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
     }
   }
 

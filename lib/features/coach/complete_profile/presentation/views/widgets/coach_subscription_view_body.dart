@@ -86,7 +86,8 @@ class _CoachSubscriptionViewBodyState
     return BlocConsumer<CoachSubscriptionCubit, CoachSubscriptionState>(
       listener: (context, state) {
         if (state is CoachSubscriptionSuccess) {
-          Navigator.pushReplacementNamed(context, CoachHomeView.routeName);
+          Navigator.pushNamedAndRemoveUntil(
+              context, CoachHomeView.routeName, (_) => false);
         } else if (state is CoachSubscriptionError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
