@@ -1,6 +1,8 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
+import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -28,10 +30,12 @@ class CoachClientDetailViewBody extends StatelessWidget {
                     _buildActionButtons(context),
                     SizedBox(height: 20.h),
                     _buildProfileCard(context),
+                    SizedBox(height: 20.h),
+                    _buildMessageButton(context),
                     SizedBox(height: 24.h),
                     _buildGoalsSection(context),
                     SizedBox(height: 24.h),
-                    _buildSessionHistorySection(context),
+                    _buildProgressOverviewSection(context),
                     SizedBox(height: 32.h),
                   ],
                 ),
@@ -136,6 +140,46 @@ class CoachClientDetailViewBody extends StatelessWidget {
     );
   }
 
+  Widget _buildMessageButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50.h,
+      child: ElevatedButton(
+        onPressed: () {
+          final contact = ChatContactsData.contacts.firstWhere(
+            (c) => c.id == client.id,
+            orElse: () => ChatContact(
+              id: client.id,
+              name: client.name,
+              goals: client.goals,
+              heightCm: client.heightCm,
+              weightKg: client.weightKg,
+            ),
+          );
+          Navigator.pushNamed(
+            context,
+            CoachChatView.routeName,
+            arguments: contact,
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryPurple,
+          foregroundColor: AppColors.textPrimary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30.r),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          'Message ${client.name.split(' ').first}',
+          style: AppTextStyles.semiBold15(context).copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildGoalsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,49 +235,47 @@ class CoachClientDetailViewBody extends StatelessWidget {
     );
   }
 
-  Widget _buildSessionHistorySection(BuildContext context) {
+  Widget _buildProgressOverviewSection(BuildContext context) {
+    const barHeights = [0.85, 0.45, 0.30, 0.20, 0.15, 0.35, 0.25, 0.40, 0.30];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Session History',
+          'Progress Overview',
           style: AppTextStyles.bold20(context).copyWith(
             color: AppColors.textPrimary,
           ),
         ),
+        SizedBox(height: 8.h),
+        Text(
+          'Client lost 0.5kg this week',
+          style: AppTextStyles.medium14(context).copyWith(
+            color: AppColors.primaryBlue,
+          ),
+        ),
         SizedBox(height: 16.h),
-        ...client.sessionHistory.map(
-          (session) => Padding(
-            padding: EdgeInsets.only(bottom: 16.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Session ${session.sessionNumber}',
-                      style: AppTextStyles.meduim12(context).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      session.title,
-                      style: AppTextStyles.semiBold14(context).copyWith(
+        SizedBox(
+          height: 100.h,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: barHeights.map((ratio) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 3.w),
+                  child: FractionallySizedBox(
+                    heightFactor: ratio,
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      decoration: BoxDecoration(
                         color: AppColors.primaryBlue,
+                        borderRadius: BorderRadius.circular(4.r),
                       ),
                     ),
-                  ],
-                ),
-                Text(
-                  session.date,
-                  style: AppTextStyles.meduim12(context).copyWith(
-                    color: AppColors.textSecondary,
                   ),
                 ),
-              ],
-            ),
+              );
+            }).toList(),
           ),
         ),
       ],

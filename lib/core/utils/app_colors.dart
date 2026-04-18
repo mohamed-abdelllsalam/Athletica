@@ -13,6 +13,7 @@ abstract class AppColors {
   static const Color primaryBlue = Color(
     0xFF5C7CFA,
   ); // Approximated from screenshot
+  static const Color primaryPurple = Color(0xFF7C3AED);
 
   static const Color streakGreen = Color(0xFF4CAF50);
   static const Color streakBlue = Color(0xFF42A5F5);

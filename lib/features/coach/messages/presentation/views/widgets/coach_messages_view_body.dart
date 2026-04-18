@@ -1,7 +1,9 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
 import 'package:athletica/features/coach/messages/domain/entities/coach_message_preview.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_message_requests_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/widgets/coach_message_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -102,7 +104,10 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
         _TabLabel(
           label: 'Requests',
           isActive: _selectedTab == 1,
-          onTap: () => setState(() => _selectedTab = 1),
+          onTap: () => Navigator.pushNamed(
+            context,
+            CoachMessageRequestsView.routeName,
+          ),
         ),
       ],
     );
@@ -120,9 +125,24 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
         thickness: 1,
       ),
       itemBuilder: (context, index) {
+        final preview = items[index];
         return CoachMessageItem(
-          message: items[index],
-          onTap: () => Navigator.pushNamed(context, ChatView.routeName),
+          message: preview,
+          onTap: () {
+            final contact = ChatContactsData.contacts.firstWhere(
+              (c) => c.id == preview.id,
+              orElse: () => ChatContact(
+                id: preview.id,
+                name: preview.name,
+                imageAsset: preview.imageAsset,
+              ),
+            );
+            Navigator.pushNamed(
+              context,
+              CoachChatView.routeName,
+              arguments: contact,
+            );
+          },
         );
       },
     );
