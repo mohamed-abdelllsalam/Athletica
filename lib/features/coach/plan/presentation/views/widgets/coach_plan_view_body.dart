@@ -1,6 +1,7 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/coach_plan_client.dart';
+import 'package:athletica/features/coach/plan/presentation/views/client_plan_detail_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_plan_client_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -45,14 +46,34 @@ class _CoachPlanViewBodyState extends State<CoachPlanViewBody> {
           ),
         ),
         SizedBox(height: 16.h),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Text(
+            'MY programs',
+            style: AppTextStyles.semiBold15(context).copyWith(
+              color: AppColors.textPrimary,
+              decoration: TextDecoration.underline,
+              decorationColor: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        SizedBox(height: 12.h),
         Expanded(
           child: ListView.separated(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             itemCount: clients.length,
             separatorBuilder: (_, _) => SizedBox(height: 12.h),
-            itemBuilder: (context, index) =>
-                CoachPlanClientCard(client: clients[index]),
+            itemBuilder: (context, index) => CoachPlanClientCard(
+              client: clients[index],
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ClientPlanDetailView(client: clients[index]),
+                ),
+              ),
+            ),
           ),
         ),
       ],

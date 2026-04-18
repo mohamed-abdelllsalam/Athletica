@@ -12,6 +12,9 @@ import 'package:athletica/features/coach/complete_profile/presentation/views/coa
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/coach/plan/domain/entities/coach_plan_client.dart';
+import 'package:athletica/features/coach/plan/presentation/views/client_plan_detail_view.dart';
+import 'package:athletica/features/coach/plan/presentation/views/workout_plans_list_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_messages_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_edit_profile_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_photo_view.dart';
@@ -34,6 +37,15 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const SplashView());
     case CoachHomeView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachHomeView());
+    case ClientPlanDetailView.routeName:
+      final client = settings.arguments! as CoachPlanClient;
+      return MaterialPageRoute(
+        builder: (context) => ClientPlanDetailView(client: client),
+      );
+    case WorkoutPlansListView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const WorkoutPlansListView(),
+      );
     case CoachClientsView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachClientsView());
     case CoachClientDetailView.routeName:
