@@ -87,7 +87,7 @@ class CoachUploadVideoViewBody extends StatelessWidget {
                           ? () => Navigator.of(context).pop()
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
+                        backgroundColor: AppColors.buttonColor,
                         disabledBackgroundColor: AppColors.surfaceDark,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14.r),
