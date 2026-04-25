@@ -44,9 +44,9 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
           padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
           child: Text(
             'Total Clients',
-            style: AppTextStyles.bold24(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
+            style: AppTextStyles.bold24(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
         ),
         SizedBox(height: 16.h),
@@ -61,11 +61,9 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: CoachJoinRequestsBanner(
-            count: 120,
-            onTap: () => Navigator.pushNamed(
-              context,
-              CoachJoinRequestsView.routeName,
-            ),
+            count: 10,
+            onTap: () =>
+                Navigator.pushNamed(context, CoachJoinRequestsView.routeName),
           ),
         ),
         SizedBox(height: 16.h),
@@ -110,14 +108,14 @@ class _SearchBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: AppTextStyles.medium14(context).copyWith(
-          color: AppColors.textPrimary,
-        ),
+        style: AppTextStyles.medium14(
+          context,
+        ).copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search',
-          hintStyle: AppTextStyles.medium14(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
+          hintStyle: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
           prefixIcon: Icon(
             Icons.search,
             color: AppColors.textSecondary,

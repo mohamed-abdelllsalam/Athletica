@@ -1,9 +1,11 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_add_certificate_view.dart';
-import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
-import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/widgets/coach_dashed_upload_box.dart';
+// import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
+// import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
+import 'package:athletica/core/services/token_storage_service.dart';
+import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -65,30 +67,20 @@ class _CoachCompleteProfileViewBodyState
                       showSkip: true,
                       onSkipTap: () {},
                     ),
-                    SizedBox(height: 28.h),
-                    _SectionHeader(
-                      title: 'Introduction Video',
-                      subtitle:
-                          'Upload a short video to introduce yourself, share your coaching style, and tell people why they should trust you.',
-                    ),
-                    SizedBox(height: 12.h),
-                    CoachDashedUploadBox(
-                      title: 'Upload your video',
-                      subtitle:
-                          'Upload a video to introduce yourself to potential clients.',
-                      onUploadTap: () => Navigator.of(
-                        context,
-                      ).pushNamed(CoachUploadVideoView.routeName),
-                    ),
                     SizedBox(height: 32.h),
                   ],
                 ),
               ),
             ),
             _BottomBar(
-              onContinue: () => Navigator.of(
-                context,
-              ).pushNamed(CoachSubscriptionView.routeName),
+              onContinue: () {},
+              onSkip: () async {
+                await TokenStorageService.instance.saveProfileComplete();
+                if (!context.mounted) return;
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil(CoachHomeView.routeName, (_) => false);
+              },
             ),
           ],
         ),
@@ -158,9 +150,10 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.onContinue});
+  const _BottomBar({required this.onContinue, required this.onSkip});
 
   final VoidCallback onContinue;
+  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -168,15 +161,6 @@ class _BottomBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 32.h),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Dot(active: true),
-              SizedBox(width: 6.w),
-              _Dot(active: false),
-            ],
-          ),
-          SizedBox(height: 16.h),
           SizedBox(
             width: double.infinity,
             height: 52.h,
@@ -197,26 +181,27 @@ class _BottomBar extends StatelessWidget {
               ),
             ),
           ),
+          SizedBox(height: 12.h),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton(
+              onPressed: onSkip,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.textPrimary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+              ),
+              child: Text(
+                'Skip',
+                style: AppTextStyles.semiBold15(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _Dot extends StatelessWidget {
-  const _Dot({required this.active});
-
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: active ? 20.w : 8.w,
-      height: 8.h,
-      decoration: BoxDecoration(
-        color: active ? AppColors.primaryBlue : AppColors.textTertiary,
-        borderRadius: BorderRadius.circular(4.r),
       ),
     );
   }

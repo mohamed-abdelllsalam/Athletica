@@ -1,9 +1,13 @@
+import 'package:athletica/features/coach/clients/presentation/views/coach_active_clients_view.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_expiring_subscriptions_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachStatsGrid extends StatelessWidget {
-  const CoachStatsGrid({super.key});
+  const CoachStatsGrid({super.key, this.onTotalClientsTap});
+
+  final VoidCallback? onTotalClientsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +22,7 @@ class CoachStatsGrid extends StatelessWidget {
                   child: CoachStatCard(
                     label: 'Total Clients',
                     value: '120',
+                    onTap: onTotalClientsTap,
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -25,6 +30,10 @@ class CoachStatsGrid extends StatelessWidget {
                   child: CoachStatCard(
                     label: 'Active Clients',
                     value: '95',
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      CoachActiveClientsView.routeName,
+                    ),
                   ),
                 ),
               ],
@@ -38,12 +47,14 @@ class CoachStatsGrid extends StatelessWidget {
                   child: CoachStatCard(
                     label: 'Expiring\nSubscription',
                     value: '6',
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      CoachExpiringSubscriptionsView.routeName,
+                    ),
                   ),
                 ),
                 SizedBox(width: 12.w),
-                const Expanded(
-                  child: CoachInviteCard(),
-                ),
+                const Expanded(child: CoachInviteCard()),
               ],
             ),
           ),

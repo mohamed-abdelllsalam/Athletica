@@ -10,6 +10,9 @@ import 'package:athletica/features/coach/messages/presentation/views/coach_chat_
 import 'package:athletica/features/coach/messages/presentation/views/coach_contact_profile_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_message_requests_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_detail_view.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_client_info_view.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_active_clients_view.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_expiring_subscriptions_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_clients_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_join_requests_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_add_certificate_view.dart';
@@ -53,6 +56,14 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       );
     case CoachClientsView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachClientsView());
+    case CoachActiveClientsView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachActiveClientsView(),
+      );
+    case CoachExpiringSubscriptionsView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const CoachExpiringSubscriptionsView(),
+      );
     case CoachJoinRequestsView.routeName:
       return MaterialPageRoute(
         builder: (context) => const CoachJoinRequestsView(),
@@ -61,6 +72,11 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       final client = settings.arguments! as CoachClient;
       return MaterialPageRoute(
         builder: (context) => CoachClientDetailView(client: client),
+      );
+    case CoachClientInfoView.routeName:
+      final client = settings.arguments! as CoachClient;
+      return MaterialPageRoute(
+        builder: (context) => CoachClientInfoView(client: client),
       );
     case CoachMessagesView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachMessagesView());
