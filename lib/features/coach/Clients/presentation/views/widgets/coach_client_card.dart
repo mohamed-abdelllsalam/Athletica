@@ -9,10 +9,12 @@ class CoachClientCard extends StatelessWidget {
     super.key,
     required this.client,
     this.onTap,
+    this.showPercent = false,
   });
 
   final CoachClient client;
   final VoidCallback? onTap;
+  final bool showPercent;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +55,9 @@ class CoachClientCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        client.subscriptionActive ? 'Active' : 'Inactive',
+                        client.subscriptionActive
+                            ? 'Active${showPercent && client.subscriptionPercent != null ? ' ${client.subscriptionPercent}%' : ''}'
+                            : 'Inactive',
                         style: AppTextStyles.semiBold14(context).copyWith(
                           color: client.subscriptionActive
                               ? const Color(0xFF4CAF50)

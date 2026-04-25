@@ -8,14 +8,18 @@ class CoachStatCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
+    this.onTap,
   });
 
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
@@ -40,6 +44,7 @@ class CoachStatCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

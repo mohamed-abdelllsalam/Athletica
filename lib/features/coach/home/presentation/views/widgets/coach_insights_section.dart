@@ -49,7 +49,7 @@ class CoachInsightsSection extends StatelessWidget {
             _percentages[selectedPeriod],
             style: AppTextStyles.bold24(
               context,
-            ).copyWith(color: AppColors.streakBlue),
+            ).copyWith(color: AppColors.streakPurple),
           ),
         ),
         SizedBox(height: 16.h),

@@ -33,7 +33,10 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
           SizedBox(height: 8.h),
           const CoachHomeAppBar(),
           SizedBox(height: 20.h),
-          const CoachStatsGrid(),
+          CoachStatsGrid(
+                    onTotalClientsTap: () =>
+                        setState(() => _selectedNavIndex = 1),
+                  ),
           SizedBox(height: 28.h),
           CoachInsightsSection(
             selectedPeriod: _selectedPeriod,
