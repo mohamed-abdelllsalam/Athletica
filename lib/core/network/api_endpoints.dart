@@ -1,7 +1,9 @@
+import 'package:athletica/core/config/app_config.dart';
+
 class ApiEndpoints {
   ApiEndpoints._();
 
-  static const String baseUrl = 'https://athletica-six.vercel.app/api/v1/';
+  static String get baseUrl => AppConfig.instance.baseUrl;
 
   static const String registerClient = 'auth/register/client';
   static const String registerTrainer = 'auth/register/trainer';
