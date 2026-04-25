@@ -41,16 +41,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
   }
 
   void _submit(BuildContext context) {
-    if (!agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must agree to the terms & conditions'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     if (!formKey.currentState!.validate()) {
       setState(() => autoValidateMode = AutovalidateMode.always);
       return;
@@ -62,6 +52,16 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Passwords do not match'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!agreeToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must agree to the terms & conditions'),
           backgroundColor: Colors.red,
         ),
       );

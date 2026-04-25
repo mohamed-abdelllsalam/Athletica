@@ -84,8 +84,12 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> checkAuthStatus() async {
-    final status = await _checkAuthStatusUseCase();
-    emit(AuthStatusChecked(status));
+    try {
+      final status = await _checkAuthStatusUseCase();
+      emit(AuthStatusChecked(status));
+    } catch (e) {
+      emit(AuthFailureState('Failed to verify session. Please try again.'));
+    }
   }
 
   Future<void> logout() async {

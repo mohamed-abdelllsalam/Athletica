@@ -40,15 +40,26 @@ class _SignInViewBodyState extends State<SignInViewBody> {
   }
 
   void _navigateByStatus(BuildContext context, AuthStatus status) {
-    final route = switch (status) {
-      Unauthenticated() => null,
-      ClientProfileIncomplete() => InfoView.routeName,
-      CoachProfileIncomplete() => CoachCompleteProfileView.routeName,
-      ClientReady() => HomeView.routeName,
-      CoachReady() => CoachHomeView.routeName,
-    };
-    if (route != null) {
-      Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+    switch (status) {
+      case Unauthenticated():
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login failed. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      case ClientProfileIncomplete():
+        Navigator.pushNamedAndRemoveUntil(
+            context, InfoView.routeName, (_) => false);
+      case CoachProfileIncomplete():
+        Navigator.pushNamedAndRemoveUntil(
+            context, CoachCompleteProfileView.routeName, (_) => false);
+      case ClientReady():
+        Navigator.pushNamedAndRemoveUntil(
+            context, HomeView.routeName, (_) => false);
+      case CoachReady():
+        Navigator.pushNamedAndRemoveUntil(
+            context, CoachHomeView.routeName, (_) => false);
     }
   }
 
@@ -125,6 +136,12 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                         SizedBox(height: 30.h),
                         CustomPasswordField(
                           onSaved: (value) => password = value!,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Password is required';
+                            }
+                            return null;
+                          },
                         ),
                       ],
                     ),

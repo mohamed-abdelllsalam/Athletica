@@ -106,6 +106,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> markProfileComplete() =>
       TokenStorageService.instance.saveProfileComplete();
 
+  String? _extractMessage(dynamic value) {
+    if (value is String) return value;
+    if (value is List && value.isNotEmpty) return value.join(', ');
+    return null;
+  }
+
   AppFailure _mapDioError(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
@@ -116,10 +122,10 @@ class AuthRepositoryImpl implements AuthRepository {
     final statusCode = e.response?.statusCode;
     final data = e.response?.data;
     final message = data is Map<String, dynamic>
-        ? (data['message'] as String? ??
-              data['error'] as String? ??
+        ? (_extractMessage(data['message']) ??
+              _extractMessage(data['error']) ??
               'Something went wrong.')
-        : e.message ?? 'Something went wrong.';
+        : 'Something went wrong. Please try again.';
 
     if (statusCode == 401) return UnauthorizedFailure(message);
     return ServerFailure(message);
