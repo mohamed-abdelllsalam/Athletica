@@ -136,8 +136,8 @@ class _CoachAddCertificateViewBodyState
                           );
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    disabledBackgroundColor: AppColors.primaryBlue.withValues(
+                    backgroundColor: AppColors.buttonColor,
+                    disabledBackgroundColor: AppColors.buttonColor.withValues(
                       alpha: 0.5,
                     ),
                     shape: RoundedRectangleBorder(

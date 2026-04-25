@@ -124,7 +124,7 @@ class _RestTimerSheet extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: isDone ? null : cubit.togglePause,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
+                        backgroundColor: AppColors.buttonColor,
                         foregroundColor: AppColors.textPrimary,
                         disabledBackgroundColor: AppColors.textTertiary,
                         shape: RoundedRectangleBorder(

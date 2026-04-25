@@ -177,7 +177,7 @@ class _CoachSubscriptionViewBodyState
                           : () =>
                               context.read<CoachSubscriptionCubit>().subscribe(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
+                        backgroundColor: AppColors.buttonColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14.r),
                         ),

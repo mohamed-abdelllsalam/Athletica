@@ -210,7 +210,7 @@ class _SummaryBar extends StatelessWidget {
           ElevatedButton(
             onPressed: onSubmit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
+              backgroundColor: AppColors.buttonColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),

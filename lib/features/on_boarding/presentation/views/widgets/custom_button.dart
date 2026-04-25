@@ -1,3 +1,4 @@
+import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
@@ -13,8 +14,7 @@ class CustomElveButton extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.3,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFD0E3FD),
-              // foregroundColor: Colors.black,
+              backgroundColor: AppColors.buttonColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -25,7 +25,7 @@ class CustomElveButton extends StatelessWidget {
               'Get Start',
               style: AppTextStyles.medium16(
                 context,
-              ).copyWith(color: Color(0xFF22508C)),
+              ).copyWith(color: Colors.white),
             ),
           ),
         ),
