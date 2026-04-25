@@ -2,8 +2,17 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_text_f
 import 'package:flutter/material.dart';
 
 class CustomPasswordField extends StatefulWidget {
-  const CustomPasswordField({super.key, required this.onSaved});
+  const CustomPasswordField({
+    super.key,
+    required this.onSaved,
+    this.validator,
+    this.hintText = 'Enter your password',
+    this.labelText = 'Password',
+  });
   final void Function(String?) onSaved;
+  final String? Function(String?)? validator;
+  final String hintText;
+  final String labelText;
 
   @override
   State<CustomPasswordField> createState() => _CustomPasswordFieldState();
@@ -25,8 +34,9 @@ class _CustomPasswordFieldState extends State<CustomPasswordField> {
         icon: Icon(isObscure ? Icons.visibility_off : Icons.visibility),
       ),
       textInputAction: TextInputAction.done,
-      labelText: 'Password',
-      hintText: 'Enter your password',
+      validator: widget.validator,
+      labelText: widget.labelText,
+      hintText: widget.hintText,
       keyboardType: TextInputType.visiblePassword,
     );
   }

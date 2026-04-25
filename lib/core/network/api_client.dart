@@ -2,6 +2,7 @@ import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 class ApiClient {
   ApiClient._();
@@ -19,7 +20,7 @@ class ApiClient {
       ),
     );
 
-    _dio.interceptors.addAll([
+    _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await TokenStorageService.instance.getToken();
@@ -29,13 +30,21 @@ class ApiClient {
           handler.next(options);
         },
       ),
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        error: true,
-        logPrint: (o) => debugPrint(o.toString()),
-      ),
-    ]);
+    );
+
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        PrettyDioLogger(
+          requestHeader: true,
+          requestBody: true,
+          responseBody: true,
+          responseHeader: false,
+          error: true,
+          compact: true,
+          logPrint: (object) => debugPrint(object.toString()),
+        ),
+      );
+    }
   }
 
   Dio get dio => _dio;
