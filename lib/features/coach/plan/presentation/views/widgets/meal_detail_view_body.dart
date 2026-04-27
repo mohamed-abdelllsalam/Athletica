@@ -159,7 +159,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
               Text('🔥', style: TextStyle(fontSize: 16.sp)),
               SizedBox(width: 6.w),
               Text(
-                '${_totalCalories} Calories',
+                '$_totalCalories Calories',
                 style: AppTextStyles.semiBold14(
                   context,
                 ).copyWith(color: AppColors.textPrimary),
