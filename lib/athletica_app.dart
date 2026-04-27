@@ -21,7 +21,6 @@ class AthleticaApp extends StatelessWidget {
             surface: AppColors.primaryAppColor,
           ),
         ),
-
         debugShowCheckedModeBanner: false,
         onGenerateRoute: onGenerateRoute,
         home: const SplashView(),
