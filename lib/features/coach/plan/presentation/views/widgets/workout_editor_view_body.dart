@@ -1,7 +1,7 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/coach/plan/domain/entities/day_workout.dart';
 import 'package:athletica/features/coach/plan/domain/entities/plan_exercise.dart';
+import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/exercise_search_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_day_exercises_view.dart';
 import 'package:flutter/material.dart';
@@ -48,17 +48,20 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
   }
 
   void _viewDay() {
-    final day = DayWorkout(
-      day: _day,
-      warmUp: List.from(_warmUp),
-      workout: List.from(_workout),
-      coolDown: List.from(_coolDown),
-      summary: _summaryController.text,
+    final day = ProgramDay(
+      dayNumber: _day,
+      name: 'Day $_day',
+      durationMinutes: 60,
+      exercises: [
+        ..._warmUp.map((e) => ProgramExercise(id: e.id, name: e.name)),
+        ..._workout.map((e) => ProgramExercise(id: e.id, name: e.name)),
+        ..._coolDown.map((e) => ProgramExercise(id: e.id, name: e.name)),
+      ],
     );
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => WorkoutDayExercisesView(dayWorkout: day),
+        builder: (_) => WorkoutDayExercisesView(day: day),
       ),
     );
   }

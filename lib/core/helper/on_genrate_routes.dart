@@ -23,6 +23,8 @@ import 'package:athletica/features/coach/home/presentation/views/coach_home_view
 import 'package:athletica/features/coach/messages/presentation/views/coach_messages_view.dart';
 import 'package:athletica/features/coach/plan/domain/entities/coach_plan_client.dart';
 import 'package:athletica/features/coach/plan/presentation/views/client_plan_detail_view.dart';
+import 'package:athletica/features/coach/plan/presentation/views/nutrition_plan_detail_view.dart';
+import 'package:athletica/features/coach/plan/presentation/views/nutrition_plans_list_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_plans_list_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_edit_profile_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_photo_view.dart';
@@ -53,6 +55,14 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case WorkoutPlansListView.routeName:
       return MaterialPageRoute(
         builder: (context) => const WorkoutPlansListView(),
+      );
+    case NutritionPlansListView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const NutritionPlansListView(),
+      );
+    case NutritionPlanDetailView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const NutritionPlansListView(),
       );
     case CoachClientsView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachClientsView());

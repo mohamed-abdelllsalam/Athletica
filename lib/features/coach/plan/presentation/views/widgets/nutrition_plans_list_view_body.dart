@@ -1,40 +1,40 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
-import 'package:athletica/features/coach/plan/presentation/views/workout_plan_detail_view.dart';
+import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
+import 'package:athletica/features/coach/plan/presentation/views/nutrition_plan_detail_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class WorkoutPlansListViewBody extends StatefulWidget {
-  const WorkoutPlansListViewBody({super.key});
+class NutritionPlansListViewBody extends StatefulWidget {
+  const NutritionPlansListViewBody({super.key});
 
   @override
-  State<WorkoutPlansListViewBody> createState() =>
-      _WorkoutPlansListViewBodyState();
+  State<NutritionPlansListViewBody> createState() =>
+      _NutritionPlansListViewBodyState();
 }
 
-class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
+class _NutritionPlansListViewBodyState
+    extends State<NutritionPlansListViewBody> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   String _selectedCategory = 'All';
-  final List<WorkoutProgram> _extraPrograms = [];
 
   static const List<String> _categories = [
     'All',
-    'Strength',
     'Fat loss',
-    'Boxing',
-    'Mobility',
+    'Muscle Gain',
+    'Vegan',
     'Custom',
   ];
 
   static const List<Color> _iconColors = [
     Color(0xFF5A0BFC),
-    Color(0xFF2E8A4A),
+    Color(0xFF3D6BC2),
     Color(0xFFB5541C),
     Color(0xFF1B6E6A),
     Color(0xFF8A2E4A),
+    Color(0xFF8A6A2E),
   ];
 
   @override
@@ -43,9 +43,9 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
     super.dispose();
   }
 
-  List<WorkoutProgram> get _filtered {
-    final programs = [...WorkoutProgramsData.programs, ..._extraPrograms];
-    return programs.where((p) {
+  List<NutritionPlan> get _filtered {
+    final plans = NutritionPlansData.plans;
+    return plans.where((p) {
       final matchesCategory =
           _selectedCategory == 'All' || p.category == _selectedCategory;
       final matchesQuery = _query.isEmpty ||
@@ -54,35 +54,9 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
     }).toList();
   }
 
-  Future<void> _createNewPlan() async {
-    final program = WorkoutProgram(
-      id: 'wp_${DateTime.now().millisecondsSinceEpoch}',
-      name: '',
-      category: 'Custom',
-      splitType: '0 Days Split',
-      updatedAgo: 'Just created',
-      clientCount: 0,
-      iconAsset: 'assets/images/plan/upper_body_icon.svg',
-      description: '',
-      days: [],
-    );
-    final result = await Navigator.push<WorkoutProgram>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => WorkoutPlanDetailView(
-          program: program,
-          isCreateMode: true,
-        ),
-      ),
-    );
-    if (result != null) {
-      setState(() => _extraPrograms.add(result));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final programs = _filtered;
+    final plans = _filtered;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -101,7 +75,7 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
               ),
               SizedBox(width: 8.w),
               Text(
-                'My Workout plans',
+                "My Nutrition's plans",
                 style: AppTextStyles.semiBold15(context).copyWith(
                   color: AppColors.textPrimary,
                 ),
@@ -113,7 +87,7 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Text(
-            'Your program Templates Library',
+            'Your Nutrition Plan Templates Library',
             style: AppTextStyles.meduim12(context).copyWith(
               color: AppColors.textSecondary,
             ),
@@ -127,12 +101,12 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
               Expanded(
                 child: _SearchBar(
                   controller: _searchController,
-                  hint: 'Search Templates..',
+                  hint: 'Search Nutrition Plans..',
                   onChanged: (v) => setState(() => _query = v),
                 ),
               ),
               SizedBox(width: 10.w),
-              _CreateButton(onTap: _createNewPlan),
+              _CreateButton(onTap: () {}),
             ],
           ),
         ),
@@ -158,10 +132,10 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
         ),
         SizedBox(height: 14.h),
         Expanded(
-          child: programs.isEmpty
+          child: plans.isEmpty
               ? Center(
                   child: Text(
-                    'No programs found',
+                    'No plans found',
                     style: AppTextStyles.medium14(context).copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -171,19 +145,19 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(
                       horizontal: 20.w, vertical: 4.h),
-                  itemCount: programs.length,
+                  itemCount: plans.length,
                   separatorBuilder: (_, _) => SizedBox(height: 12.h),
                   itemBuilder: (context, index) {
-                    final program = programs[index];
+                    final plan = plans[index];
                     final color = _iconColors[index % _iconColors.length];
-                    return _ProgramCard(
-                      program: program,
+                    return _NutritionPlanCard(
+                      plan: plan,
                       iconColor: color,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              WorkoutPlanDetailView(program: program),
+                              NutritionPlanDetailView(plan: plan),
                         ),
                       ),
                     );
@@ -249,7 +223,7 @@ class _CreateButton extends StatelessWidget {
         height: 44.h,
         padding: EdgeInsets.symmetric(horizontal: 14.w),
         decoration: BoxDecoration(
-          color: AppColors.buttonColor,
+          color: AppColors.primaryBlue,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Row(
@@ -258,9 +232,8 @@ class _CreateButton extends StatelessWidget {
             SizedBox(width: 4.w),
             Text(
               'Create New Plan',
-              style: AppTextStyles.meduim12(context).copyWith(
-                color: Colors.white,
-              ),
+              style: AppTextStyles.meduim12(context)
+                  .copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -287,7 +260,7 @@ class _CategoryChip extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.buttonColor : AppColors.cardBackground,
+          color: isSelected ? AppColors.primaryBlue : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(20.r),
         ),
         alignment: Alignment.center,
@@ -302,14 +275,14 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _ProgramCard extends StatelessWidget {
-  const _ProgramCard({
-    required this.program,
+class _NutritionPlanCard extends StatelessWidget {
+  const _NutritionPlanCard({
+    required this.plan,
     required this.iconColor,
     required this.onTap,
   });
 
-  final WorkoutProgram program;
+  final NutritionPlan plan;
   final Color iconColor;
   final VoidCallback onTap;
 
@@ -335,7 +308,7 @@ class _ProgramCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14.r),
               ),
               child: SvgPicture.asset(
-                program.iconAsset,
+                plan.iconAsset,
                 fit: BoxFit.contain,
               ),
             ),
@@ -348,14 +321,14 @@ class _ProgramCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          program.name.isEmpty ? 'Unnamed Plan' : program.name,
+                          plan.name,
                           style: AppTextStyles.semiBold14(context).copyWith(
                             color: AppColors.textPrimary,
                           ),
                         ),
                       ),
                       SizedBox(width: 8.w),
-                      _CategoryBadge(category: program.category),
+                      _CategoryBadge(category: plan.category),
                     ],
                   ),
                   SizedBox(height: 6.h),
@@ -368,7 +341,7 @@ class _ProgramCard extends StatelessWidget {
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        program.splitType,
+                        plan.planDuration,
                         style: AppTextStyles.meduim12(context).copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -381,7 +354,7 @@ class _ProgramCard extends StatelessWidget {
                       ),
                       Expanded(
                         child: Text(
-                          program.updatedAgo,
+                          plan.updatedAgo,
                           style: AppTextStyles.meduim12(context).copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -400,7 +373,7 @@ class _ProgramCard extends StatelessWidget {
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        'Used by ${program.clientCount} clients',
+                        'Used by ${plan.clientCount} clients',
                         style: AppTextStyles.meduim12(context).copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -423,12 +396,10 @@ class _CategoryBadge extends StatelessWidget {
   final String category;
 
   Color get _color => switch (category) {
-        'Strength' => const Color(0xFF7B4FE8),
         'Fat loss' => const Color(0xFF7B4FE8),
-        'Boxing' => const Color(0xFFD4752A),
-        'Mobility' => const Color(0xFF2E6DB4),
-        'Custom' => const Color(0xFFB22A4A),
+        'Muscle Gain' => const Color(0xFF3D6BC2),
         'Vegan' => const Color(0xFF2E8A4A),
+        'Custom' => const Color(0xFFB22A4A),
         _ => AppColors.primaryBlue,
       };
 
