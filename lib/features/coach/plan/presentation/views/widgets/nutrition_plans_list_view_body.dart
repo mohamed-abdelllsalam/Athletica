@@ -19,6 +19,7 @@ class _NutritionPlansListViewBodyState
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   String _selectedCategory = 'All';
+  final List<NutritionPlan> _extraPlans = [];
 
   static const List<String> _categories = [
     'All',
@@ -44,14 +45,41 @@ class _NutritionPlansListViewBodyState
   }
 
   List<NutritionPlan> get _filtered {
-    final plans = NutritionPlansData.plans;
+    final plans = [...NutritionPlansData.plans, ..._extraPlans];
     return plans.where((p) {
       final matchesCategory =
           _selectedCategory == 'All' || p.category == _selectedCategory;
-      final matchesQuery = _query.isEmpty ||
-          p.name.toLowerCase().contains(_query.toLowerCase());
+      final matchesQuery =
+          _query.isEmpty || p.name.toLowerCase().contains(_query.toLowerCase());
       return matchesCategory && matchesQuery;
     }).toList();
+  }
+
+  Future<void> _createNewPlan() async {
+    final plan = NutritionPlan(
+      id: 'np_${DateTime.now().millisecondsSinceEpoch}',
+      name: '',
+      category: 'Custom',
+      calories: 0,
+      proteinGrams: 0,
+      fatGrams: 0,
+      carbsGrams: 0,
+      planDuration: '4 Week Plan',
+      updatedAgo: 'Just created',
+      clientCount: 0,
+      meals: [],
+      description: '',
+      iconAsset: 'assets/images/plan/nutrition_icon.svg',
+    );
+    final result = await Navigator.push<NutritionPlan>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NutritionPlanDetailView(plan: plan, isCreateMode: true),
+      ),
+    );
+    if (result != null) {
+      setState(() => _extraPlans.add(result));
+    }
   }
 
   @override
@@ -76,9 +104,9 @@ class _NutritionPlansListViewBodyState
               SizedBox(width: 8.w),
               Text(
                 "My Nutrition's plans",
-                style: AppTextStyles.semiBold15(context).copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTextStyles.semiBold15(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -88,9 +116,9 @@ class _NutritionPlansListViewBodyState
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Text(
             'Your Nutrition Plan Templates Library',
-            style: AppTextStyles.meduim12(context).copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTextStyles.meduim12(
+              context,
+            ).copyWith(color: AppColors.textSecondary),
           ),
         ),
         SizedBox(height: 16.h),
@@ -106,7 +134,7 @@ class _NutritionPlansListViewBodyState
                 ),
               ),
               SizedBox(width: 10.w),
-              _CreateButton(onTap: () {}),
+              _CreateButton(onTap: _createNewPlan),
             ],
           ),
         ),
@@ -136,15 +164,17 @@ class _NutritionPlansListViewBodyState
               ? Center(
                   child: Text(
                     'No plans found',
-                    style: AppTextStyles.medium14(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
                   ),
                 )
               : ListView.separated(
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(
-                      horizontal: 20.w, vertical: 4.h),
+                    horizontal: 20.w,
+                    vertical: 4.h,
+                  ),
                   itemCount: plans.length,
                   separatorBuilder: (_, _) => SizedBox(height: 12.h),
                   itemBuilder: (context, index) {
@@ -156,8 +186,7 @@ class _NutritionPlansListViewBodyState
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              NutritionPlanDetailView(plan: plan),
+                          builder: (_) => NutritionPlanDetailView(plan: plan),
                         ),
                       ),
                     );
@@ -191,12 +220,14 @@ class _SearchBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: AppTextStyles.medium14(context)
-            .copyWith(color: AppColors.textPrimary),
+        style: AppTextStyles.medium14(
+          context,
+        ).copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: AppTextStyles.medium14(context)
-              .copyWith(color: AppColors.textSecondary),
+          hintStyle: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
           prefixIcon: Icon(
             Icons.search,
             color: AppColors.textSecondary,
@@ -232,8 +263,9 @@ class _CreateButton extends StatelessWidget {
             SizedBox(width: 4.w),
             Text(
               'Create New Plan',
-              style: AppTextStyles.meduim12(context)
-                  .copyWith(color: Colors.white),
+              style: AppTextStyles.meduim12(
+                context,
+              ).copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -307,10 +339,7 @@ class _NutritionPlanCard extends StatelessWidget {
                 color: iconColor,
                 borderRadius: BorderRadius.circular(14.r),
               ),
-              child: SvgPicture.asset(
-                plan.iconAsset,
-                fit: BoxFit.contain,
-              ),
+              child: SvgPicture.asset(plan.iconAsset, fit: BoxFit.contain),
             ),
             SizedBox(width: 14.w),
             Expanded(
@@ -322,9 +351,9 @@ class _NutritionPlanCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           plan.name,
-                          style: AppTextStyles.semiBold14(context).copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                          style: AppTextStyles.semiBold14(
+                            context,
+                          ).copyWith(color: AppColors.textPrimary),
                         ),
                       ),
                       SizedBox(width: 8.w),
@@ -342,22 +371,22 @@ class _NutritionPlanCard extends StatelessWidget {
                       SizedBox(width: 4.w),
                       Text(
                         plan.planDuration,
-                        style: AppTextStyles.meduim12(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                       Text(
                         '  •  ',
-                        style: AppTextStyles.meduim12(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                       Expanded(
                         child: Text(
                           plan.updatedAgo,
-                          style: AppTextStyles.meduim12(context).copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: AppTextStyles.meduim12(
+                            context,
+                          ).copyWith(color: AppColors.textSecondary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -374,9 +403,9 @@ class _NutritionPlanCard extends StatelessWidget {
                       SizedBox(width: 4.w),
                       Text(
                         'Used by ${plan.clientCount} clients',
-                        style: AppTextStyles.meduim12(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -396,12 +425,12 @@ class _CategoryBadge extends StatelessWidget {
   final String category;
 
   Color get _color => switch (category) {
-        'Fat loss' => const Color(0xFF7B4FE8),
-        'Muscle Gain' => const Color(0xFF3D6BC2),
-        'Vegan' => const Color(0xFF2E8A4A),
-        'Custom' => const Color(0xFFB22A4A),
-        _ => AppColors.primaryBlue,
-      };
+    'Fat loss' => const Color(0xFF7B4FE8),
+    'Muscle Gain' => const Color(0xFF3D6BC2),
+    'Vegan' => const Color(0xFF2E8A4A),
+    'Custom' => const Color(0xFFB22A4A),
+    _ => AppColors.primaryBlue,
+  };
 
   @override
   Widget build(BuildContext context) {

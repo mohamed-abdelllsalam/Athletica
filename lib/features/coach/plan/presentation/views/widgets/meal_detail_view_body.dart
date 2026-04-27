@@ -1,6 +1,8 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/coach/plan/domain/entities/food_item.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
+import 'package:athletica/features/coach/plan/presentation/views/food_search_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -17,6 +19,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late List<Ingredient> _ingredients;
+  late TextEditingController _nameController;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _mealNoteController = TextEditingController();
   final TextEditingController _noteTabController = TextEditingController();
@@ -27,11 +30,13 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _ingredients = List.from(widget.meal.ingredients);
+    _nameController = TextEditingController(text: widget.meal.name);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _nameController.dispose();
     _searchController.dispose();
     _mealNoteController.dispose();
     _noteTabController.dispose();
@@ -45,16 +50,52 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
         .toList();
   }
 
-  int get _totalCalories =>
-      _ingredients.fold(0, (sum, i) => sum + i.calories);
+  int get _totalCalories => _ingredients.fold(0, (sum, i) => sum + i.calories);
   int get _totalProtein =>
       _ingredients.fold(0, (sum, i) => sum + i.proteinGrams);
   int get _totalFat => _ingredients.fold(0, (sum, i) => sum + i.fatGrams);
-  int get _totalCarbs =>
-      _ingredients.fold(0, (sum, i) => sum + i.carbsGrams);
+  int get _totalCarbs => _ingredients.fold(0, (sum, i) => sum + i.carbsGrams);
+
+  Meal _buildMeal() {
+    final name = _nameController.text.trim();
+    return Meal(
+      id: widget.meal.id,
+      type: widget.meal.type,
+      name: name.isEmpty ? widget.meal.name : name,
+      calories: _totalCalories,
+      proteinGrams: _totalProtein,
+      fatGrams: _totalFat,
+      carbsGrams: _totalCarbs,
+      ingredients: List<Ingredient>.from(_ingredients),
+    );
+  }
 
   void _removeIngredient(Ingredient ingredient) {
     setState(() => _ingredients.removeWhere((i) => i.id == ingredient.id));
+  }
+
+  Future<void> _addIngredients() async {
+    final result = await Navigator.push<List<FoodItem>>(
+      context,
+      MaterialPageRoute(builder: (_) => const FoodSearchView()),
+    );
+    if (result == null || result.isEmpty) return;
+    setState(() {
+      for (final item in result) {
+        _ingredients.add(
+          Ingredient(
+            id: 'ing_${DateTime.now().millisecondsSinceEpoch}_${item.id}',
+            name: item.name,
+            emoji: item.emoji,
+            serving: item.serving,
+            calories: item.calories,
+            proteinGrams: item.proteinGrams,
+            carbsGrams: item.carbsGrams,
+            fatGrams: item.fatGrams,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -79,19 +120,27 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
         SizedBox(height: 10.h),
         Text(
           widget.meal.type,
-          style: AppTextStyles.medium14(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
         ),
         SizedBox(height: 2.h),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Text(
-            widget.meal.name,
+          child: TextField(
+            controller: _nameController,
             textAlign: TextAlign.center,
-            style: AppTextStyles.bold24(context).copyWith(
-              color: AppColors.textPrimary,
-              fontSize: 22.sp,
+            style: AppTextStyles.bold24(
+              context,
+            ).copyWith(color: AppColors.textPrimary, fontSize: 22.sp),
+            decoration: InputDecoration(
+              hintText: 'Meal name',
+              hintStyle: AppTextStyles.bold24(
+                context,
+              ).copyWith(color: AppColors.textSecondary, fontSize: 22.sp),
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
             ),
           ),
         ),
@@ -110,25 +159,21 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
               Text('🔥', style: TextStyle(fontSize: 16.sp)),
               SizedBox(width: 6.w),
               Text(
-                '${widget.meal.calories} Calories',
-                style: AppTextStyles.semiBold14(context).copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                '$_totalCalories Calories',
+                style: AppTextStyles.semiBold14(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               ),
               SizedBox(width: 16.w),
-              Container(
-                width: 1,
-                height: 16.h,
-                color: AppColors.surfaceDark,
-              ),
+              Container(width: 1, height: 16.h, color: AppColors.surfaceDark),
               SizedBox(width: 16.w),
               Text('🎯', style: TextStyle(fontSize: 16.sp)),
               SizedBox(width: 6.w),
               Text(
-                'p:${widget.meal.proteinGrams}g . c:${widget.meal.carbsGrams}g . f:${widget.meal.fatGrams}g',
-                style: AppTextStyles.meduim12(context).copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                'p:${_totalProtein}g . c:${_totalCarbs}g . f:${_totalFat}g',
+                style: AppTextStyles.meduim12(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -144,7 +189,10 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
             unselectedLabelStyle: AppTextStyles.medium14(context),
             labelColor: AppColors.primaryBlue,
             unselectedLabelColor: AppColors.textSecondary,
-            tabs: const [Tab(text: 'Meal Details'), Tab(text: 'Note')],
+            tabs: const [
+              Tab(text: 'Meal Details'),
+              Tab(text: 'Note'),
+            ],
           ),
         ),
         Expanded(
@@ -158,11 +206,12 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
                 query: _query,
                 onQueryChanged: (v) => setState(() => _query = v),
                 onRemove: _removeIngredient,
+                onAddIngredients: _addIngredients,
                 totalCalories: _totalCalories,
                 totalProtein: _totalProtein,
                 totalFat: _totalFat,
                 totalCarbs: _totalCarbs,
-                onSave: () => Navigator.pop(context),
+                onSave: () => Navigator.pop(context, _buildMeal()),
               ),
               _NoteTab(controller: _noteTabController),
             ],
@@ -173,7 +222,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
   }
 }
 
-// ── Meal Details Tab ──────────────────────────────────────────────────────────
+// ── Meal Details Tab ─────────────────────────────────────────────────────────-
 
 class _MealDetailsTab extends StatelessWidget {
   const _MealDetailsTab({
@@ -183,6 +232,7 @@ class _MealDetailsTab extends StatelessWidget {
     required this.query,
     required this.onQueryChanged,
     required this.onRemove,
+    required this.onAddIngredients,
     required this.totalCalories,
     required this.totalProtein,
     required this.totalFat,
@@ -196,6 +246,7 @@ class _MealDetailsTab extends StatelessWidget {
   final String query;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<Ingredient> onRemove;
+  final VoidCallback onAddIngredients;
   final int totalCalories;
   final int totalProtein;
   final int totalFat;
@@ -210,9 +261,9 @@ class _MealDetailsTab extends StatelessWidget {
       children: [
         Text(
           'Ingredients',
-          style: AppTextStyles.semiBold14(context).copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 10.h),
         Row(
@@ -227,14 +278,19 @@ class _MealDetailsTab extends StatelessWidget {
                 child: TextField(
                   controller: searchController,
                   onChanged: onQueryChanged,
-                  style: AppTextStyles.medium14(context)
-                      .copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Search',
-                    hintStyle: AppTextStyles.medium14(context)
-                        .copyWith(color: AppColors.textSecondary),
-                    prefixIcon: Icon(Icons.search,
-                        color: AppColors.textSecondary, size: 20.sp),
+                    hintStyle: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: AppColors.textSecondary,
+                      size: 20.sp,
+                    ),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 12.h),
                   ),
@@ -249,8 +305,14 @@ class _MealDetailsTab extends StatelessWidget {
                 color: AppColors.cardBackground,
                 borderRadius: BorderRadius.circular(12.r),
               ),
-              child: Icon(Icons.filter_list,
-                  color: AppColors.textSecondary, size: 20.sp),
+              child: IconButton(
+                onPressed: onAddIngredients,
+                icon: Icon(
+                  Icons.add,
+                  color: AppColors.textSecondary,
+                  size: 20.sp,
+                ),
+              ),
             ),
           ],
         ),
@@ -261,8 +323,9 @@ class _MealDetailsTab extends StatelessWidget {
             child: Center(
               child: Text(
                 'No ingredients added',
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
               ),
             ),
           )
@@ -289,9 +352,9 @@ class _MealDetailsTab extends StatelessWidget {
             children: [
               Text(
                 'Nutrition Summary',
-                style: AppTextStyles.semiBold14(context).copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTextStyles.semiBold14(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               ),
               SizedBox(height: 12.h),
               Row(
@@ -325,9 +388,9 @@ class _MealDetailsTab extends StatelessWidget {
         SizedBox(height: 16.h),
         Text(
           'Meal Notes (Optional)',
-          style: AppTextStyles.semiBold14(context).copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 8.h),
         Container(
@@ -341,13 +404,14 @@ class _MealDetailsTab extends StatelessWidget {
             maxLines: null,
             expands: true,
             textAlignVertical: TextAlignVertical.top,
-            style: AppTextStyles.medium14(context)
-                .copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Add notes about this meal ..',
-              hintStyle: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textSecondary,
-              ),
+              hintStyle: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(14.r),
             ),
@@ -367,10 +431,9 @@ class _MealDetailsTab extends StatelessWidget {
             ),
             child: Text(
               'Save Changes',
-              style: AppTextStyles.medium14(context).copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -381,10 +444,7 @@ class _MealDetailsTab extends StatelessWidget {
 }
 
 class _IngredientCard extends StatelessWidget {
-  const _IngredientCard({
-    required this.ingredient,
-    required this.onRemove,
-  });
+  const _IngredientCard({required this.ingredient, required this.onRemove});
 
   final Ingredient ingredient;
   final VoidCallback onRemove;
@@ -400,7 +460,6 @@ class _IngredientCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Emoji in circle
           Container(
             width: 52.r,
             height: 52.r,
@@ -409,10 +468,7 @@ class _IngredientCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Center(
-              child: Text(
-                ingredient.emoji,
-                style: TextStyle(fontSize: 28.sp),
-              ),
+              child: Text(ingredient.emoji, style: TextStyle(fontSize: 28.sp)),
             ),
           ),
           SizedBox(width: 12.w),
@@ -425,16 +481,16 @@ class _IngredientCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         ingredient.name,
-                        style: AppTextStyles.semiBold14(context).copyWith(
-                          color: AppColors.textPrimary,
-                        ),
+                        style: AppTextStyles.semiBold14(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
                       ),
                     ),
                     Text(
                       '${ingredient.calories} Cal',
-                      style: AppTextStyles.semiBold14(context).copyWith(
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTextStyles.semiBold14(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
                     ),
                   ],
                 ),
@@ -443,24 +499,26 @@ class _IngredientCard extends StatelessWidget {
                   children: [
                     Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: 10.w, vertical: 3.h),
+                        horizontal: 10.w,
+                        vertical: 3.h,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceDark,
                         borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Text(
                         ingredient.serving,
-                        style: AppTextStyles.meduim11(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.meduim11(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                     ),
                     const Spacer(),
                     Text(
                       'P:${ingredient.proteinGrams}G  C:${ingredient.carbsGrams}g  F:${ingredient.fatGrams}g',
-                      style: AppTextStyles.meduim11(context).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppTextStyles.meduim11(
+                        context,
+                      ).copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -470,7 +528,11 @@ class _IngredientCard extends StatelessWidget {
           SizedBox(width: 8.w),
           GestureDetector(
             onTap: onRemove,
-            child: Icon(Icons.close, color: AppColors.textSecondary, size: 18.sp),
+            child: Icon(
+              Icons.close,
+              color: AppColors.textSecondary,
+              size: 18.sp,
+            ),
           ),
         ],
       ),
@@ -495,24 +557,23 @@ class _MacroStat extends StatelessWidget {
       children: [
         Text(
           value,
-          style: AppTextStyles.bold24(context).copyWith(
-            color: color,
-            fontSize: 18.sp,
-          ),
+          style: AppTextStyles.bold24(
+            context,
+          ).copyWith(color: color, fontSize: 18.sp),
         ),
         SizedBox(height: 2.h),
         Text(
           label,
-          style: AppTextStyles.meduim12(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.meduim12(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
         ),
       ],
     );
   }
 }
 
-// ── Note Tab ──────────────────────────────────────────────────────────────────
+// ── Note Tab ─────────────────────────────────────────────────────────────────-
 
 class _NoteTab extends StatelessWidget {
   const _NoteTab({required this.controller});
@@ -528,9 +589,9 @@ class _NoteTab extends StatelessWidget {
         children: [
           Text(
             'Write Note',
-            style: AppTextStyles.semiBold14(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
+            style: AppTextStyles.semiBold14(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
           SizedBox(height: 10.h),
           Expanded(
@@ -544,13 +605,14 @@ class _NoteTab extends StatelessWidget {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Type Your Note !',
-                  hintStyle: AppTextStyles.medium14(context).copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                  hintStyle: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(14.r),
                 ),
@@ -571,8 +633,9 @@ class _NoteTab extends StatelessWidget {
               ),
               child: Text(
                 'Submit',
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: Colors.white),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: Colors.white),
               ),
             ),
           ),
