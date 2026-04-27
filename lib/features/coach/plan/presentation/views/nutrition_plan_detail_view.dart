@@ -4,17 +4,27 @@ import 'package:athletica/features/coach/plan/presentation/views/widgets/nutriti
 import 'package:flutter/material.dart';
 
 class NutritionPlanDetailView extends StatelessWidget {
-  const NutritionPlanDetailView({super.key, required this.plan});
+  const NutritionPlanDetailView({
+    super.key,
+    required this.plan,
+    this.isCreateMode = false,
+  });
 
   static const String routeName = 'nutrition-plan-detail';
 
   final NutritionPlan plan;
+  final bool isCreateMode;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryAppColor,
-      body: SafeArea(child: NutritionPlanDetailViewBody(plan: plan)),
+      body: SafeArea(
+        child: NutritionPlanDetailViewBody(
+          plan: plan,
+          isCreateMode: isCreateMode,
+        ),
+      ),
     );
   }
 }
