@@ -222,7 +222,7 @@ class _WorkoutDayExercisesViewBodyState
                 onQueryChanged: (v) => setState(() => _query = v),
                 onEdit: _showEditDialog,
                 onDelete: _removeExercise,
-                onSave: () => Navigator.pop(context),
+                onSave: () => Navigator.pop(context, _exercises),
                 onOpenPicker: _openExercisePicker,
                 onClearAll: _clearAllExercises,
               ),

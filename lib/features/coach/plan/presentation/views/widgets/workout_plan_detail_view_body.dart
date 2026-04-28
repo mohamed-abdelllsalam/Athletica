@@ -362,12 +362,25 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
                   dayColors: _dayColors,
                   onAddDay: _addDay,
                   onRemoveDay: _removeDay,
-                  onNavigateDay: (day) => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => WorkoutDayExercisesView(day: day),
-                    ),
-                  ),
+                  onNavigateDay: (day) async {
+                    final updatedExercises =
+                        await Navigator.push<List<ProgramExercise>>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => WorkoutDayExercisesView(day: day),
+                      ),
+                    );
+                    if (updatedExercises != null && mounted) {
+                      setState(() {
+                        final index = _days
+                            .indexWhere((d) => d.dayNumber == day.dayNumber);
+                        if (index != -1) {
+                          _days[index] =
+                              _days[index].copyWith(exercises: updatedExercises);
+                        }
+                      });
+                    }
+                  },
                 ),
                 _NoteTab(controller: _noteController),
               ],
