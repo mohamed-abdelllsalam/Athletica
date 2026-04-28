@@ -42,8 +42,8 @@ class MealSection extends StatelessWidget {
           _buildMealGroup(
             context,
             title: 'Breakfast',
-            meals: const [
-              MealCard(
+            meals: [
+              const MealCard(
                 emoji: '🥣',
                 name: 'oats&banana',
                 calories: 478,
@@ -59,8 +59,8 @@ class MealSection extends StatelessWidget {
           _buildMealGroup(
             context,
             title: 'Lunch',
-            meals: const [
-              MealCard(
+            meals: [
+              const MealCard(
                 emoji: '🥩',
                 name: 'Steak &potatoes',
                 calories: 700,
@@ -76,8 +76,8 @@ class MealSection extends StatelessWidget {
           _buildMealGroup(
             context,
             title: 'Snacks',
-            meals: const [
-              MealCard(
+            meals: [
+              const MealCard(
                 emoji: '🥜',
                 name: 'Nuts',
                 calories: 607,
@@ -93,8 +93,8 @@ class MealSection extends StatelessWidget {
           _buildMealGroup(
             context,
             title: 'Dinner',
-            meals: const [
-              MealCard(
+            meals: [
+              const MealCard(
                 emoji: '🍳',
                 name: 'Eggs',
                 calories: 308,
