@@ -19,19 +19,22 @@ class InfoQuestionsPage extends StatefulWidget {
 }
 
 class InfoQuestionsPageState extends State<InfoQuestionsPage> {
-  late final Map<int, String?> _answers;
+  late final Map<String, String?> _answers;
 
   @override
   void initState() {
     super.initState();
-    _answers = {for (var i = 0; i < widget.questions.length; i++) i: null};
+    _answers = {for (final q in widget.questions) q.key: null};
   }
 
   bool get allAnswered =>
       _answers.values.every((v) => v != null && v.trim().isNotEmpty);
 
-  void _onQuestionChanged(int index, String? value) {
-    setState(() => _answers[index] = value?.trim().isEmpty == true ? null : value);
+  Map<String, String> get answers =>
+      Map.fromEntries(_answers.entries.where((e) => e.value != null).map((e) => MapEntry(e.key, e.value!)));
+
+  void _onQuestionChanged(String key, String? value) {
+    setState(() => _answers[key] = value?.trim().isEmpty == true ? null : value);
   }
 
   @override
@@ -54,7 +57,7 @@ class InfoQuestionsPageState extends State<InfoQuestionsPage> {
           for (int i = 0; i < widget.questions.length; i++) ...[
             InfoQuestionItem(
               question: widget.questions[i],
-              onChanged: (value) => _onQuestionChanged(i, value),
+              onChanged: (value) => _onQuestionChanged(widget.questions[i].key, value),
             ),
             if (i != widget.questions.length - 1) SizedBox(height: 14.h),
           ],

@@ -44,7 +44,12 @@ class _InfoViewBodyState extends State<InfoViewBody> {
         curve: Curves.easeInOut,
       );
     } else {
-      context.read<InfoCubit>().markComplete();
+      final allAnswers = <String, String>{};
+      for (int i = 0; i < kInfoQuestionPages.length; i++) {
+        final pageAnswers = _keyFor(i).currentState?.answers ?? {};
+        allAnswers.addAll(pageAnswers);
+      }
+      context.read<InfoCubit>().submitAnswers(allAnswers);
     }
   }
 
