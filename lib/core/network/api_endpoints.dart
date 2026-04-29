@@ -10,6 +10,4 @@ class ApiEndpoints {
   static const String login = 'auth/login';
   static const String logout = 'auth/logout';
   static const String clientIntakeAnswers = 'client-intake/answers';
-  static const String clientIntakeQuestions = 'client-intake/questions';
-  static const String clientProfile = 'client-profiles/me';
 }

@@ -19,10 +19,10 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late List<Ingredient> _ingredients;
-  late TextEditingController _nameController;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _mealNoteController = TextEditingController();
   final TextEditingController _noteTabController = TextEditingController();
+  late TextEditingController _nameController;
   String _query = '';
 
   @override
@@ -36,10 +36,10 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
   @override
   void dispose() {
     _tabController.dispose();
-    _nameController.dispose();
     _searchController.dispose();
     _mealNoteController.dispose();
     _noteTabController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -50,25 +50,25 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
         .toList();
   }
 
-  int get _totalCalories => _ingredients.fold(0, (sum, i) => sum + i.calories);
-  int get _totalProtein =>
-      _ingredients.fold(0, (sum, i) => sum + i.proteinGrams);
-  int get _totalFat => _ingredients.fold(0, (sum, i) => sum + i.fatGrams);
-  int get _totalCarbs => _ingredients.fold(0, (sum, i) => sum + i.carbsGrams);
-
   Meal _buildMeal() {
     final name = _nameController.text.trim();
     return Meal(
       id: widget.meal.id,
       type: widget.meal.type,
       name: name.isEmpty ? widget.meal.name : name,
-      calories: _totalCalories,
-      proteinGrams: _totalProtein,
-      fatGrams: _totalFat,
-      carbsGrams: _totalCarbs,
+      calories: widget.meal.calories,
+      proteinGrams: widget.meal.proteinGrams,
+      fatGrams: widget.meal.fatGrams,
+      carbsGrams: widget.meal.carbsGrams,
       ingredients: List<Ingredient>.from(_ingredients),
     );
   }
+
+  int get _totalCalories => _ingredients.fold(0, (sum, i) => sum + i.calories);
+  int get _totalProtein =>
+      _ingredients.fold(0, (sum, i) => sum + i.proteinGrams);
+  int get _totalFat => _ingredients.fold(0, (sum, i) => sum + i.fatGrams);
+  int get _totalCarbs => _ingredients.fold(0, (sum, i) => sum + i.carbsGrams);
 
   void _removeIngredient(Ingredient ingredient) {
     setState(() => _ingredients.removeWhere((i) => i.id == ingredient.id));
@@ -130,14 +130,16 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
           child: TextField(
             controller: _nameController,
             textAlign: TextAlign.center,
-            style: AppTextStyles.bold24(
-              context,
-            ).copyWith(color: AppColors.textPrimary, fontSize: 22.sp),
+            style: AppTextStyles.bold24(context).copyWith(
+              color: AppColors.textPrimary,
+              fontSize: 22.sp,
+            ),
             decoration: InputDecoration(
               hintText: 'Meal name',
-              hintStyle: AppTextStyles.bold24(
-                context,
-              ).copyWith(color: AppColors.textSecondary, fontSize: 22.sp),
+              hintStyle: AppTextStyles.bold24(context).copyWith(
+                color: AppColors.textSecondary,
+                fontSize: 22.sp,
+              ),
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
@@ -145,7 +147,6 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
           ),
         ),
         SizedBox(height: 12.h),
-        // Stats bar
         Container(
           margin: EdgeInsets.symmetric(horizontal: 20.w),
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
@@ -159,7 +160,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
               Text('🔥', style: TextStyle(fontSize: 16.sp)),
               SizedBox(width: 6.w),
               Text(
-                '$_totalCalories Calories',
+                '${widget.meal.calories} Calories',
                 style: AppTextStyles.semiBold14(
                   context,
                 ).copyWith(color: AppColors.textPrimary),
@@ -170,7 +171,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
               Text('🎯', style: TextStyle(fontSize: 16.sp)),
               SizedBox(width: 6.w),
               Text(
-                'p:${_totalProtein}g . c:${_totalCarbs}g . f:${_totalFat}g',
+                'p:${widget.meal.proteinGrams}g . c:${widget.meal.carbsGrams}g . f:${widget.meal.fatGrams}g',
                 style: AppTextStyles.meduim12(
                   context,
                 ).copyWith(color: AppColors.textSecondary),
@@ -222,7 +223,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
   }
 }
 
-// ── Meal Details Tab ─────────────────────────────────────────────────────────-
+// ── Meal Details Tab ──────────────────────────────────────────────────────────
 
 class _MealDetailsTab extends StatelessWidget {
   const _MealDetailsTab({
@@ -340,7 +341,6 @@ class _MealDetailsTab extends StatelessWidget {
             ),
           ),
         SizedBox(height: 8.h),
-        // Nutrition Summary
         Container(
           padding: EdgeInsets.all(16.r),
           decoration: BoxDecoration(
@@ -573,7 +573,7 @@ class _MacroStat extends StatelessWidget {
   }
 }
 
-// ── Note Tab ─────────────────────────────────────────────────────────────────-
+// ── Note Tab ──────────────────────────────────────────────────────────────────
 
 class _NoteTab extends StatelessWidget {
   const _NoteTab({required this.controller});

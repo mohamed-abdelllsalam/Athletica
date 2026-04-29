@@ -1,4 +1,4 @@
-enum InfoQuestionType { text, dropdown }
+enum InfoQuestionType { text, dropdown, multiselect, textarea }
 
 class InfoQuestion {
   const InfoQuestion({

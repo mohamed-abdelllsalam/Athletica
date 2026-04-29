@@ -46,7 +46,8 @@ class _InfoViewBodyState extends State<InfoViewBody> {
     } else {
       final allAnswers = <String, String>{};
       for (int i = 0; i < kInfoQuestionPages.length; i++) {
-        allAnswers.addAll(_keyFor(i).currentState?.answers ?? {});
+        final pageAnswers = _keyFor(i).currentState?.answers ?? {};
+        allAnswers.addAll(pageAnswers);
       }
       context.read<InfoCubit>().submitAnswers(allAnswers);
     }

@@ -38,9 +38,6 @@ void setupDependencies() {
   sl.registerLazySingleton<InfoRemoteDataSource>(
     () => InfoRemoteDataSourceImpl(sl()),
   );
-  sl.registerLazySingleton<ProfileRemoteDataSource>(
-    () => ProfileRemoteDataSourceImpl(sl()),
-  );
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(
@@ -48,9 +45,6 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<InfoRepository>(
     () => InfoRepositoryImpl(sl()),
-  );
-  sl.registerLazySingleton<ProfileRepository>(
-    () => ProfileRepositoryImpl(sl()),
   );
 
   // Use cases
@@ -61,7 +55,6 @@ void setupDependencies() {
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
   sl.registerLazySingleton(() => MarkProfileCompleteUseCase(sl()));
   sl.registerLazySingleton(() => SubmitIntakeAnswersUseCase(sl()));
-  sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
 
   // Cubits — factory so each screen gets a fresh instance
   sl.registerFactory(
@@ -77,5 +70,4 @@ void setupDependencies() {
   sl.registerFactory(() => CompleteProfileCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl()));
-  sl.registerLazySingleton(() => ProfileCubit(sl()));
 }
