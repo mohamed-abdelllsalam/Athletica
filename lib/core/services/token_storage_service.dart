@@ -42,6 +42,7 @@ class TokenStorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
-    await prefs.remove(_profileCompleteKey);
+    // is_profile_complete is intentionally preserved — profile completion is
+    // permanent and should survive logout/login on the same device.
   }
 }

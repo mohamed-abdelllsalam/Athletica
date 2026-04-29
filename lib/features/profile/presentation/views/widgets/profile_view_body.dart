@@ -1,8 +1,11 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_info_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileViewBody extends StatefulWidget {
@@ -88,11 +91,18 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
             ),
           ),
           SizedBox(width: 8.w),
-          Text(
-            'Ali Ahmed',
-            style: AppTextStyles.semiBold15(
-              context,
-            ).copyWith(color: AppColors.textPrimary),
+          BlocBuilder<ProfileCubit, ProfileState>(
+            buildWhen: (prev, curr) =>
+                curr is ProfileLoaded || curr is ProfileLoading,
+            builder: (context, state) {
+              final name =
+                  state is ProfileLoaded ? state.profile.client.name : '...';
+              return Text(
+                name,
+                style: AppTextStyles.semiBold15(context)
+                    .copyWith(color: AppColors.textPrimary),
+              );
+            },
           ),
         ],
       ),
@@ -100,42 +110,75 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
   }
 
   Widget _buildProfileSection(BuildContext context) {
-    return Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(50.r),
-          child: Container(
-            width: 90.r,
-            height: 90.r,
-            color: AppColors.surfaceDark,
-            child: Icon(
-              Icons.person,
-              color: AppColors.textSecondary,
-              size: 40.sp,
-            ),
-          ),
-        ),
-        SizedBox(width: 16.w),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return BlocBuilder<ProfileCubit, ProfileState>(
+      buildWhen: (prev, curr) =>
+          curr is ProfileLoaded || curr is ProfileLoading,
+      builder: (context, state) {
+        final profile = state is ProfileLoaded ? state.profile : null;
+        final name = profile?.client.name ?? '—';
+        final imageUrl = profile?.client.profileImage;
+        final height = profile?.heightCm != null
+            ? '${profile!.heightCm} Cm'
+            : '—';
+        final weight = profile?.weightKg != null
+            ? '${profile!.weightKg} Kg'
+            : '—';
+
+        return Row(
           children: [
-            Text(
-              'Ali Ahmed',
-              style: AppTextStyles.bold20(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.r),
+              child: Container(
+                width: 90.r,
+                height: 90.r,
+                color: AppColors.surfaceDark,
+                child: imageUrl != null
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Icon(
+                          Icons.person,
+                          color: AppColors.textSecondary,
+                          size: 40.sp,
+                        ),
+                      )
+                    : Icon(
+                        Icons.person,
+                        color: AppColors.textSecondary,
+                        size: 40.sp,
+                      ),
+              ),
             ),
-            SizedBox(height: 8.h),
-            Row(
+            SizedBox(width: 16.w),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _StatItem(label: 'Height', value: '180 Cm', context: context),
-                SizedBox(width: 24.w),
-                _StatItem(label: 'Weight', value: '80 Kg', context: context),
+                Text(
+                  name,
+                  style: AppTextStyles.bold20(context)
+                      .copyWith(color: AppColors.textPrimary),
+                ),
+                SizedBox(height: 8.h),
+                Row(
+                  children: [
+                    _StatItem(
+                      label: 'Height',
+                      value: height,
+                      context: context,
+                    ),
+                    SizedBox(width: 24.w),
+                    _StatItem(
+                      label: 'Weight',
+                      value: weight,
+                      context: context,
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
