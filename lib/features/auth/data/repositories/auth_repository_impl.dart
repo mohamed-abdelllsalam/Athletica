@@ -95,7 +95,11 @@ class AuthRepositoryImpl implements AuthRepository {
     final token = await TokenStorageService.instance.getToken();
     if (token == null) return const Unauthenticated();
     final role = await TokenStorageService.instance.getRole();
-    final isComplete = await TokenStorageService.instance.isProfileComplete();
+    bool isComplete = await TokenStorageService.instance.isProfileComplete();
+    if (!isComplete) {
+      isComplete = await _remoteDataSource.hasSubmittedIntakeAnswers();
+      if (isComplete) await TokenStorageService.instance.saveProfileComplete();
+    }
     if (role == 'TRAINER') {
       return isComplete ? const CoachReady() : const CoachProfileIncomplete();
     }

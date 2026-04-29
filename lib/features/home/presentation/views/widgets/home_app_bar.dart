@@ -1,9 +1,12 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/profile/presentation/views/profile_view.dart';
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HomeAppBar extends StatelessWidget {
@@ -15,29 +18,47 @@ class HomeAppBar extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, ProfileView.routeName);
+          BlocBuilder<ProfileCubit, ProfileState>(
+            buildWhen: (prev, curr) =>
+                curr is ProfileLoaded || curr is ProfileLoading,
+            builder: (context, state) {
+              final imageUrl =
+                  state is ProfileLoaded
+                      ? state.profile.client.profileImage
+                      : null;
+              final name =
+                  state is ProfileLoaded ? state.profile.client.name : '...';
+
+              return Row(
+                children: [
+                  GestureDetector(
+                    onTap: () =>
+                        Navigator.pushNamed(context, ProfileView.routeName),
+                    child: CircleAvatar(
+                      radius: 22.r,
+                      backgroundColor: AppColors.cardBackgroundLight,
+                      backgroundImage:
+                          imageUrl != null ? NetworkImage(imageUrl) : null,
+                      child: imageUrl == null
+                          ? Icon(
+                              Icons.person,
+                              color: AppColors.textSecondary,
+                              size: 24.sp,
+                            )
+                          : null,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Text(
+                    name,
+                    style: AppTextStyles.semiBold15(context)
+                        .copyWith(color: AppColors.textPrimary),
+                  ),
+                ],
+              );
             },
-            child: CircleAvatar(
-              radius: 22.r,
-              backgroundColor: AppColors.cardBackgroundLight,
-              child: Icon(
-                Icons.person,
-                color: AppColors.textSecondary,
-                size: 24.sp,
-              ),
-            ),
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              'Ahmed Mohamed',
-              style: AppTextStyles.semiBold15(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-          ),
+          const Spacer(),
           _buildIconButton(
             icon: Icons.mail_outline_rounded,
             badgeCount: 0,

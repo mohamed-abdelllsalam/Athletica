@@ -30,6 +30,17 @@ class InfoQuestionsPageState extends State<InfoQuestionsPage> {
   bool get allAnswered =>
       _answers.values.every((v) => v != null && v.trim().isNotEmpty);
 
+  Map<String, String> get answers {
+    final result = <String, String>{};
+    for (int i = 0; i < widget.questions.length; i++) {
+      final value = _answers[i];
+      if (value != null && value.isNotEmpty) {
+        result[widget.questions[i].key] = value;
+      }
+    }
+    return result;
+  }
+
   void _onQuestionChanged(int index, String? value) {
     setState(() => _answers[index] = value?.trim().isEmpty == true ? null : value);
   }
