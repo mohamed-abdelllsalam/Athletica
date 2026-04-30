@@ -13,5 +13,5 @@ class ApiEndpoints {
   static const String clientIntakeAnswers = 'client-intake/answers';
   static String clientIntakeAnswersByClient(String clientId) =>
       'client-intake/answers/client/$clientId';
-  static const String clientProfile = 'client/profile';
+  static const String clientProfile = 'client-profiles/me';
 }

@@ -160,7 +160,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case EditProfileView.routeName:
       return MaterialPageRoute(builder: (context) => const EditProfileView());
     case ProfileInfoView.routeName:
-      return MaterialPageRoute(builder: (context) => const ProfileInfoView());
+      final clientId = settings.arguments! as String;
+      return MaterialPageRoute(
+        builder: (context) => ProfileInfoView(clientId: clientId),
+      );
     case WorkoutSessionView.routeName:
       final args =
           settings.arguments!

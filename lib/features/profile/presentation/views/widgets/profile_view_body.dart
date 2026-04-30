@@ -256,8 +256,15 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
       width: double.infinity,
       height: 50.h,
       child: OutlinedButton(
-        onPressed: () =>
-            Navigator.pushNamed(context, ProfileInfoView.routeName),
+        onPressed: () {
+          final state = context.read<ProfileCubit>().state;
+          if (state is! ProfileLoaded) return;
+          Navigator.pushNamed(
+            context,
+            ProfileInfoView.routeName,
+            arguments: state.profile.clientId,
+          );
+        },
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.surfaceDark, width: 1.5),
           shape: RoundedRectangleBorder(

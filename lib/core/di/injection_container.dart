@@ -23,6 +23,7 @@ import 'package:athletica/features/profile/data/repositories/profile_repository_
 import 'package:athletica/features/profile/domain/repositories/profile_repository.dart';
 import 'package:athletica/features/profile/domain/usecases/get_client_profile_usecase.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_info_cubit.dart';
 import 'package:athletica/features/splash/presentation/cubits/splash_cubit.dart';
 import 'package:get_it/get_it.dart';
 
@@ -81,5 +82,6 @@ void setupDependencies() {
   sl.registerFactory(() => CompleteProfileCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl()));
-  sl.registerFactory(() => ProfileCubit(sl()));
+  sl.registerLazySingleton(() => ProfileCubit(sl()));
+  sl.registerFactory(() => ProfileInfoCubit(sl()));
 }
