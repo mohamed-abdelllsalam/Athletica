@@ -20,7 +20,7 @@ class ProfileInfoViewBody extends StatelessWidget {
             Expanded(
               child: BlocBuilder<ProfileInfoCubit, ProfileInfoState>(
                 builder: (context, state) => switch (state) {
-                  ProfileInfoLoading() => const Center(
+                  ProfileInfoInitial() || ProfileInfoLoading() => const Center(
                       child: CircularProgressIndicator(),
                     ),
                   ProfileInfoLoaded(:final answers) when answers.isEmpty =>
@@ -28,7 +28,7 @@ class ProfileInfoViewBody extends StatelessWidget {
                       child: Text(
                         'No intake answers found.',
                         style: AppTextStyles.medium14(context)
-                            .copyWith(color: AppColors.textSecondary),
+                            .copyWith(color: AppColors.textPrimary),
                       ),
                     ),
                   ProfileInfoLoaded(:final answers) => ListView.separated(
@@ -49,14 +49,16 @@ class ProfileInfoViewBody extends StatelessWidget {
                       },
                     ),
                   ProfileInfoError(:final message) => Center(
-                      child: Text(
-                        message,
-                        style: AppTextStyles.medium14(context)
-                            .copyWith(color: AppColors.textSecondary),
-                        textAlign: TextAlign.center,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: Text(
+                          message,
+                          style: AppTextStyles.medium14(context)
+                              .copyWith(color: AppColors.textPrimary),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
-                  ProfileInfoInitial() => const SizedBox.shrink(),
                 },
               ),
             ),
@@ -78,6 +80,12 @@ class ProfileInfoViewBody extends StatelessWidget {
               color: AppColors.textPrimary,
               size: 20.sp,
             ),
+          ),
+          SizedBox(width: 12.w),
+          Text(
+            'Information',
+            style: AppTextStyles.bold20(context)
+                .copyWith(color: AppColors.textPrimary),
           ),
         ],
       ),

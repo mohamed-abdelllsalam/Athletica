@@ -6,6 +6,7 @@ import 'package:athletica/features/profile/presentation/views/edit_profile_view.
 import 'package:athletica/features/profile/presentation/views/profile_info_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileViewBody extends StatefulWidget {
@@ -256,15 +257,8 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
       width: double.infinity,
       height: 50.h,
       child: OutlinedButton(
-        onPressed: () {
-          final state = context.read<ProfileCubit>().state;
-          if (state is! ProfileLoaded) return;
-          Navigator.pushNamed(
-            context,
-            ProfileInfoView.routeName,
-            arguments: state.profile.clientId,
-          );
-        },
+        onPressed: () =>
+            Navigator.pushNamed(context, ProfileInfoView.routeName),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.surfaceDark, width: 1.5),
           shape: RoundedRectangleBorder(

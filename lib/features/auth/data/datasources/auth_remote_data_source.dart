@@ -91,8 +91,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         ApiEndpoints.clientIntakeAnswersByClient(clientId),
       );
       final data = response.data['data'] as Map<String, dynamic>?;
-      final answers = data?['answers'];
-      return answers is List && answers.isNotEmpty;
+      if (data == null) return false;
+
+      final status = data['status'] as Map<String, dynamic>?;
+      if (status != null && status['isComplete'] == true) return true;
+
+      final questionAnswers = data['questionAnswers'];
+      return questionAnswers is List && questionAnswers.isNotEmpty;
     } catch (_) {
       return false;
     }
