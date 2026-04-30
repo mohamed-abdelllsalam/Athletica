@@ -6,6 +6,6 @@ class SubmitIntakeAnswersUseCase {
 
   final InfoRepository _repository;
 
-  Future<ApiResult<void>> call(Map<String, String> answers) =>
+  Future<ApiResult<void>> call(Map<String, dynamic> answers) =>
       _repository.submitAnswers(answers);
 }

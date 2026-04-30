@@ -11,12 +11,12 @@ class InfoCubit extends Cubit<InfoState> {
   final SubmitIntakeAnswersUseCase _submitAnswers;
   final MarkProfileCompleteUseCase _markProfileComplete;
 
-  Future<void> submitAnswers(Map<String, String> answers) async {
+  Future<void> submitAnswers(Map<String, dynamic> answers) async {
     emit(const InfoLoading());
 
     final result = await _submitAnswers(answers);
-    if (result is ApiError<void>) {
-      emit(InfoError(result.failure.message));
+    if (result case ApiError(:final failure)) {
+      emit(InfoError(failure.message));
       return;
     }
 

@@ -15,6 +15,6 @@ final class InfoSuccess extends InfoState {
 }
 
 final class InfoError extends InfoState {
-  final String message;
   const InfoError(this.message);
+  final String message;
 }

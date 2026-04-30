@@ -14,6 +14,8 @@ import 'package:athletica/features/complete_profile/presentation/cubits/complete
 import 'package:athletica/features/info/data/datasources/info_remote_data_source.dart';
 import 'package:athletica/features/info/data/repositories/info_repository_impl.dart';
 import 'package:athletica/features/info/domain/repositories/info_repository.dart';
+import 'package:athletica/features/info/domain/usecases/get_client_intake_answers_usecase.dart';
+import 'package:athletica/features/info/domain/usecases/get_intake_questions_usecase.dart';
 import 'package:athletica/features/info/domain/usecases/submit_intake_answers_usecase.dart';
 import 'package:athletica/features/info/presentation/cubits/info_cubit.dart';
 import 'package:athletica/features/profile/data/datasources/profile_remote_data_source.dart';
@@ -38,6 +40,9 @@ void setupDependencies() {
   sl.registerLazySingleton<InfoRemoteDataSource>(
     () => InfoRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(sl()),
+  );
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(
@@ -45,6 +50,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<InfoRepository>(
     () => InfoRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(sl()),
   );
 
   // Use cases
@@ -54,7 +62,10 @@ void setupDependencies() {
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
   sl.registerLazySingleton(() => MarkProfileCompleteUseCase(sl()));
+  sl.registerLazySingleton(() => GetIntakeQuestionsUseCase(sl()));
   sl.registerLazySingleton(() => SubmitIntakeAnswersUseCase(sl()));
+  sl.registerLazySingleton(() => GetClientIntakeAnswersUseCase(sl()));
+  sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
 
   // Cubits — factory so each screen gets a fresh instance
   sl.registerFactory(
@@ -70,4 +81,5 @@ void setupDependencies() {
   sl.registerFactory(() => CompleteProfileCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl()));
+  sl.registerFactory(() => ProfileCubit(sl()));
 }

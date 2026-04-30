@@ -44,7 +44,7 @@ class _InfoViewBodyState extends State<InfoViewBody> {
         curve: Curves.easeInOut,
       );
     } else {
-      final allAnswers = <String, String>{};
+      final allAnswers = <String, dynamic>{};
       for (int i = 0; i < kInfoQuestionPages.length; i++) {
         final pageAnswers = _keyFor(i).currentState?.answers ?? {};
         allAnswers.addAll(pageAnswers);

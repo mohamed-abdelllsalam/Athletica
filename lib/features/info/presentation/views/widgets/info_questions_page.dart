@@ -18,7 +18,10 @@ class InfoQuestionsPage extends StatefulWidget {
   InfoQuestionsPageState createState() => InfoQuestionsPageState();
 }
 
-class InfoQuestionsPageState extends State<InfoQuestionsPage> {
+class InfoQuestionsPageState extends State<InfoQuestionsPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   late final Map<String, String?> _answers;
 
   @override
@@ -30,15 +33,28 @@ class InfoQuestionsPageState extends State<InfoQuestionsPage> {
   bool get allAnswered =>
       _answers.values.every((v) => v != null && v.trim().isNotEmpty);
 
-  Map<String, String> get answers =>
-      Map.fromEntries(_answers.entries.where((e) => e.value != null).map((e) => MapEntry(e.key, e.value!)));
+  Map<String, dynamic> get answers {
+    return Map.fromEntries(
+      _answers.entries.where((e) => e.value != null).map((e) {
+        final q = widget.questions.firstWhere((q) => q.key == e.key);
+        final value = e.value!;
+        if (q.type == InfoQuestionType.number) {
+          return MapEntry(e.key, num.tryParse(value) ?? value);
+        }
+        return MapEntry(e.key, value);
+      }),
+    );
+  }
 
   void _onQuestionChanged(String key, String? value) {
-    setState(() => _answers[key] = value?.trim().isEmpty == true ? null : value);
+    setState(
+      () => _answers[key] = value?.trim().isEmpty == true ? null : value,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
       child: Column(
@@ -57,7 +73,8 @@ class InfoQuestionsPageState extends State<InfoQuestionsPage> {
           for (int i = 0; i < widget.questions.length; i++) ...[
             InfoQuestionItem(
               question: widget.questions[i],
-              onChanged: (value) => _onQuestionChanged(widget.questions[i].key, value),
+              onChanged: (value) =>
+                  _onQuestionChanged(widget.questions[i].key, value),
             ),
             if (i != widget.questions.length - 1) SizedBox(height: 14.h),
           ],
@@ -95,8 +112,9 @@ class _InfoPageHeader extends StatelessWidget {
         SizedBox(height: 12.h),
         Text(
           'Welcome Q&A',
-          style:
-              AppTextStyles.semiBold15(context).copyWith(color: Colors.white),
+          style: AppTextStyles.semiBold15(
+            context,
+          ).copyWith(color: Colors.white),
         ),
       ],
     );

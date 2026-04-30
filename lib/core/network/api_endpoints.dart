@@ -9,5 +9,9 @@ class ApiEndpoints {
   static const String registerTrainer = 'auth/register/trainer';
   static const String login = 'auth/login';
   static const String logout = 'auth/logout';
+  static const String clientIntakeQuestions = 'client-intake/questions';
   static const String clientIntakeAnswers = 'client-intake/answers';
+  static String clientIntakeAnswersByClient(String clientId) =>
+      'client-intake/answers/client/$clientId';
+  static const String clientProfile = 'client/profile';
 }
