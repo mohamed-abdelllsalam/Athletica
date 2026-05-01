@@ -74,6 +74,48 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     setState(() => _ingredients.removeWhere((i) => i.id == ingredient.id));
   }
 
+  Future<void> _editIngredientGrams(Ingredient ingredient) async {
+    final currentGrams = _parseGrams(ingredient.serving);
+    final newGrams = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: AppColors.cardBackground,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => _GramsEditSheet(
+        ingredientName: ingredient.name,
+        currentGrams: currentGrams,
+      ),
+    );
+    if (newGrams == null || newGrams <= 0) return;
+    final ratio = newGrams / currentGrams;
+    final updated = Ingredient(
+      id: ingredient.id,
+      name: ingredient.name,
+      emoji: ingredient.emoji,
+      serving: '${newGrams}g',
+      calories: (ingredient.calories * ratio).round(),
+      proteinGrams: (ingredient.proteinGrams * ratio).round(),
+      carbsGrams: (ingredient.carbsGrams * ratio).round(),
+      fatGrams: (ingredient.fatGrams * ratio).round(),
+    );
+    setState(() {
+      final index = _ingredients.indexWhere((i) => i.id == ingredient.id);
+      if (index != -1) _ingredients[index] = updated;
+    });
+  }
+
+  int _parseGrams(String serving) {
+    final gMatch = RegExp(r'^(\d+)g$').firstMatch(serving.trim());
+    if (gMatch != null) return int.parse(gMatch.group(1)!);
+    final parenMatch = RegExp(r'\((\d+)\)').firstMatch(serving);
+    if (parenMatch != null) return int.parse(parenMatch.group(1)!);
+    final numMatch = RegExp(r'(\d+)').firstMatch(serving);
+    if (numMatch != null) return int.parse(numMatch.group(1)!);
+    return 100;
+  }
+
   Future<void> _addIngredients() async {
     final result = await Navigator.push<List<FoodItem>>(
       context,
@@ -207,6 +249,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
                 query: _query,
                 onQueryChanged: (v) => setState(() => _query = v),
                 onRemove: _removeIngredient,
+                onEditGrams: _editIngredientGrams,
                 onAddIngredients: _addIngredients,
                 totalCalories: _totalCalories,
                 totalProtein: _totalProtein,
@@ -233,6 +276,7 @@ class _MealDetailsTab extends StatelessWidget {
     required this.query,
     required this.onQueryChanged,
     required this.onRemove,
+    required this.onEditGrams,
     required this.onAddIngredients,
     required this.totalCalories,
     required this.totalProtein,
@@ -247,6 +291,7 @@ class _MealDetailsTab extends StatelessWidget {
   final String query;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<Ingredient> onRemove;
+  final ValueChanged<Ingredient> onEditGrams;
   final VoidCallback onAddIngredients;
   final int totalCalories;
   final int totalProtein;
@@ -337,6 +382,7 @@ class _MealDetailsTab extends StatelessWidget {
               child: _IngredientCard(
                 ingredient: ingredient,
                 onRemove: () => onRemove(ingredient),
+                onEditGrams: () => onEditGrams(ingredient),
               ),
             ),
           ),
@@ -444,10 +490,15 @@ class _MealDetailsTab extends StatelessWidget {
 }
 
 class _IngredientCard extends StatelessWidget {
-  const _IngredientCard({required this.ingredient, required this.onRemove});
+  const _IngredientCard({
+    required this.ingredient,
+    required this.onRemove,
+    required this.onEditGrams,
+  });
 
   final Ingredient ingredient;
   final VoidCallback onRemove;
+  final VoidCallback onEditGrams;
 
   @override
   Widget build(BuildContext context) {
@@ -497,20 +548,36 @@ class _IngredientCard extends StatelessWidget {
                 SizedBox(height: 6.h),
                 Row(
                   children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceDark,
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      child: Text(
-                        ingredient.serving,
-                        style: AppTextStyles.meduim11(
-                          context,
-                        ).copyWith(color: AppColors.textSecondary),
+                    GestureDetector(
+                      onTap: onEditGrams,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryBlue.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6.r),
+                          border: Border.all(
+                            color: AppColors.primaryBlue.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              ingredient.serving,
+                              style: AppTextStyles.meduim11(context)
+                                  .copyWith(color: AppColors.primaryBlue),
+                            ),
+                            SizedBox(width: 4.w),
+                            Icon(
+                              Icons.edit,
+                              color: AppColors.primaryBlue,
+                              size: 10.sp,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -569,6 +636,141 @@ class _MacroStat extends StatelessWidget {
           ).copyWith(color: AppColors.textSecondary),
         ),
       ],
+    );
+  }
+}
+
+// ── Grams Edit Sheet ──────────────────────────────────────────────────────────
+
+class _GramsEditSheet extends StatefulWidget {
+  const _GramsEditSheet({
+    required this.ingredientName,
+    required this.currentGrams,
+  });
+
+  final String ingredientName;
+  final int currentGrams;
+
+  @override
+  State<_GramsEditSheet> createState() => _GramsEditSheetState();
+}
+
+class _GramsEditSheetState extends State<_GramsEditSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentGrams.toString());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final value = int.tryParse(_controller.text.trim());
+    if (value == null || value <= 0) return;
+    Navigator.pop(context, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 28.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDark,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              widget.ingredientName,
+              style: AppTextStyles.semiBold15(context)
+                  .copyWith(color: AppColors.textPrimary),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              'Edit serving size in grams',
+              style: AppTextStyles.meduim12(context)
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 16.h),
+            Container(
+              height: 52.h,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bold24(context).copyWith(
+                        color: AppColors.textPrimary,
+                        fontSize: 20.sp,
+                      ),
+                      onSubmitted: (_) => _confirm(),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 14.h),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(right: 16.w),
+                    child: Text(
+                      'g',
+                      style: AppTextStyles.semiBold14(context)
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16.h),
+            SizedBox(
+              width: double.infinity,
+              height: 50.h,
+              child: ElevatedButton(
+                onPressed: _confirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.buttonColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                child: Text(
+                  'Confirm',
+                  style: AppTextStyles.medium14(context)
+                      .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

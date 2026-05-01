@@ -32,4 +32,9 @@ class ApiEndpoints {
 
   static const String foods = 'foods/getAll';
   static const String foodCategories = 'foods/categories';
+
+  static const String mealTemplates = 'templates';
+  static String mealTemplateDays(String templateId) =>
+      'templates/days/$templateId';
+  static String mealTemplateItems(String dayId) => 'templates/items/$dayId';
 }

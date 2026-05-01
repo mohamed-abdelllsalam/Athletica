@@ -40,6 +40,15 @@ import 'package:athletica/features/coach/workout_templates/domain/usecases/creat
 import 'package:athletica/features/coach/workout_templates/domain/usecases/create_workout_template_item_usecase.dart';
 import 'package:athletica/features/coach/workout_templates/domain/usecases/create_workout_template_usecase.dart';
 import 'package:athletica/features/coach/workout_templates/domain/usecases/get_workout_templates_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/data/datasources/nutrition_templates_remote_data_source.dart';
+import 'package:athletica/features/coach/nutrition_templates/data/repositories/nutrition_templates_repository_impl.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/repositories/nutrition_templates_repository.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/create_nutrition_template_day_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/create_nutrition_template_item_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/create_nutrition_template_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/get_nutrition_templates_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_templates_list_cubit.dart';
+import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/save_nutrition_plan_cubit.dart';
 import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_cubit.dart';
 import 'package:athletica/features/coach/workout_templates/presentation/cubits/workout_templates_list_cubit.dart';
 import 'package:athletica/features/complete_profile/presentation/cubits/complete_profile_cubit.dart';
@@ -91,6 +100,9 @@ void setupDependencies() {
   sl.registerLazySingleton<WorkoutTemplatesRemoteDataSource>(
     () => WorkoutTemplatesRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<NutritionTemplatesRemoteDataSource>(
+    () => NutritionTemplatesRemoteDataSourceImpl(sl()),
+  );
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(sl()));
@@ -112,6 +124,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<WorkoutTemplatesRepository>(
     () => WorkoutTemplatesRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<NutritionTemplatesRepository>(
+    () => NutritionTemplatesRepositoryImpl(sl()),
   );
 
   // Use cases
@@ -135,6 +150,10 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetWorkoutTemplatesUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateDayUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateItemUseCase(sl()));
+  sl.registerLazySingleton(() => GetNutritionTemplatesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateNutritionTemplateUseCase(sl()));
+  sl.registerLazySingleton(() => CreateNutritionTemplateDayUseCase(sl()));
+  sl.registerLazySingleton(() => CreateNutritionTemplateItemUseCase(sl()));
 
   // Cubits — factory so each screen gets a fresh instance
   sl.registerFactory(
@@ -158,5 +177,7 @@ void setupDependencies() {
   sl.registerFactory(() => FoodsCubit(sl(), sl()));
   sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl()));
   sl.registerFactory(() => WorkoutTemplatesListCubit(sl()));
+  sl.registerFactory(() => NutritionTemplatesListCubit(sl()));
+  sl.registerFactory(() => SaveNutritionPlanCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileInfoCubit(sl()));
 }
