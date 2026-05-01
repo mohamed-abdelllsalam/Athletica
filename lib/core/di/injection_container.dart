@@ -15,6 +15,8 @@ import 'package:athletica/features/coach/clients/domain/repositories/coach_clien
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_clients_usecase.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/coach_subscription_cubit.dart';
+import 'package:athletica/features/coach/home/domain/usecases/get_coach_home_stats_usecase.dart';
+import 'package:athletica/features/coach/home/presentation/cubits/coach_home_stats_cubit.dart';
 import 'package:athletica/features/coach/profile/data/datasources/coach_profile_remote_data_source.dart';
 import 'package:athletica/features/coach/profile/data/repositories/coach_profile_repository_impl.dart';
 import 'package:athletica/features/coach/profile/domain/repositories/coach_profile_repository.dart';
@@ -102,6 +104,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
+  sl.registerLazySingleton(() => GetCoachHomeStatsUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateUseCase(sl()));
   sl.registerLazySingleton(() => GetWorkoutTemplatesUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateDayUseCase(sl()));
@@ -124,6 +127,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => ProfileCubit(sl()));
   sl.registerFactory(() => CoachProfileCubit(sl()));
   sl.registerFactory(() => CoachClientsCubit(sl()));
+  sl.registerFactory(() => CoachHomeStatsCubit(sl()));
   sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl()));
   sl.registerFactory(() => WorkoutTemplatesListCubit(sl()));
   sl.registerLazySingleton(() => ProfileInfoCubit(sl()));
