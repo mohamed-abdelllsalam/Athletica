@@ -1,6 +1,8 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
+import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_clients_view_body.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_plan_view_body.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_bottom_nav_bar.dart';
@@ -59,10 +61,18 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
           index: _selectedNavIndex,
           children: [
             _buildHomeTab(),
-            const CoachClientsViewBody(),
-            const CoachPlanViewBody(),
             BlocProvider(
-              create: (_) => sl<AuthCubit>(),
+              create: (_) => sl<CoachClientsCubit>(),
+              child: const CoachClientsViewBody(),
+            ),
+            const CoachPlanViewBody(),
+            MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (_) => sl<AuthCubit>()),
+                BlocProvider(
+                  create: (_) => sl<CoachProfileCubit>()..loadProfile(),
+                ),
+              ],
               child: const CoachProfileViewBody(),
             ),
           ],

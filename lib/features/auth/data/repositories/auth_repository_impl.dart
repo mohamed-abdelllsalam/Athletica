@@ -23,10 +23,14 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
       final entity = model.toEntity();
+      await TokenStorageService.instance.clearAll();
       await TokenStorageService.instance.saveToken(entity.token);
       await TokenStorageService.instance.saveRole(entity.user.primaryRole);
       if (entity.user.clientId != null) {
         await TokenStorageService.instance.saveClientId(entity.user.clientId!);
+      }
+      if (entity.user.primaryRole == 'TRAINER') {
+        await TokenStorageService.instance.saveTrainerId(entity.user.id);
       }
       return ApiSuccess(entity);
     } on DioException catch (e) {

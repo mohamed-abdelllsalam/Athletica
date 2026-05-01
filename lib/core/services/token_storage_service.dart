@@ -7,6 +7,7 @@ class TokenStorageService {
   static const String _tokenKey = 'auth_token';
   static const String _roleKey = 'user_role';
   static const String _clientIdKey = 'client_id';
+  static const String _trainerIdKey = 'trainer_id';
   static const String _profileCompleteKey = 'is_profile_complete';
 
   Future<void> saveToken(String token) async {
@@ -39,6 +40,16 @@ class TokenStorageService {
     return prefs.getString(_clientIdKey);
   }
 
+  Future<void> saveTrainerId(String trainerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_trainerIdKey, trainerId);
+  }
+
+  Future<String?> getTrainerId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_trainerIdKey);
+  }
+
   Future<void> saveProfileComplete() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_profileCompleteKey, true);
@@ -49,12 +60,17 @@ class TokenStorageService {
     return prefs.getBool(_profileCompleteKey) ?? false;
   }
 
+  Future<void> clearProfileComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_profileCompleteKey);
+  }
+
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
     await prefs.remove(_clientIdKey);
-    // is_profile_complete intentionally preserved — survives logout/login
-    // so the same user is not forced to answer intake again after logout
+    await prefs.remove(_trainerIdKey);
+    await prefs.remove(_profileCompleteKey);
   }
 }

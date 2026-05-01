@@ -14,4 +14,18 @@ class ApiEndpoints {
   static String clientIntakeAnswersByClient(String clientId) =>
       'client-intake/answers/client/$clientId';
   static const String clientProfile = 'client-profiles/me';
+  static String trainerProfile(String trainerId) =>
+      'trainer-profiles/getById/$trainerId';
+  static String trainerClients(String trainerId) =>
+      'trainer-clients/getAllByTrainerId/$trainerId';
+
+  static const String createWorkoutTemplate = 'workout-templates/create';
+  static String workoutTemplates(String trainerId) =>
+      'workout-templates/getAll/$trainerId';
+
+  static const String workoutTemplateDays = 'workout-template-days';
+  static String workoutTemplateDayById(String dayId) =>
+      'workout-template-days/getById/$dayId';
+
+  static const String workoutTemplateItems = 'workout-template-items';
 }
