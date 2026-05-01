@@ -15,8 +15,13 @@ import 'package:athletica/features/coach/clients/domain/repositories/coach_clien
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_clients_usecase.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/coach_subscription_cubit.dart';
+import 'package:athletica/features/coach/home/data/datasources/coach_invite_remote_data_source.dart';
+import 'package:athletica/features/coach/home/data/repositories/coach_invite_repository_impl.dart';
+import 'package:athletica/features/coach/home/domain/repositories/coach_invite_repository.dart';
+import 'package:athletica/features/coach/home/domain/usecases/create_coach_invite_code_usecase.dart';
 import 'package:athletica/features/coach/home/domain/usecases/get_coach_home_stats_usecase.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_home_stats_cubit.dart';
+import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_cubit.dart';
 import 'package:athletica/features/coach/profile/data/datasources/coach_profile_remote_data_source.dart';
 import 'package:athletica/features/coach/profile/data/repositories/coach_profile_repository_impl.dart';
 import 'package:athletica/features/coach/profile/domain/repositories/coach_profile_repository.dart';
@@ -71,6 +76,9 @@ void setupDependencies() {
   sl.registerLazySingleton<CoachClientsRemoteDataSource>(
     () => CoachClientsRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<CoachInviteRemoteDataSource>(
+    () => CoachInviteRemoteDataSourceImpl(sl()),
+  );
   sl.registerLazySingleton<WorkoutTemplatesRemoteDataSource>(
     () => WorkoutTemplatesRemoteDataSourceImpl(sl()),
   );
@@ -86,6 +94,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<CoachClientsRepository>(
     () => CoachClientsRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<CoachInviteRepository>(
+    () => CoachInviteRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<WorkoutTemplatesRepository>(
     () => WorkoutTemplatesRepositoryImpl(sl()),
@@ -104,6 +115,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
+  sl.registerLazySingleton(() => CreateCoachInviteCodeUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachHomeStatsUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateUseCase(sl()));
   sl.registerLazySingleton(() => GetWorkoutTemplatesUseCase(sl()));
@@ -127,6 +139,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => ProfileCubit(sl()));
   sl.registerFactory(() => CoachProfileCubit(sl()));
   sl.registerFactory(() => CoachClientsCubit(sl()));
+  sl.registerFactory(() => CoachInviteCubit(sl()));
   sl.registerFactory(() => CoachHomeStatsCubit(sl()));
   sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl()));
   sl.registerFactory(() => WorkoutTemplatesListCubit(sl()));

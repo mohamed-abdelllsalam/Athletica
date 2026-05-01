@@ -11,12 +11,14 @@ class CoachStatsGrid extends StatelessWidget {
     required this.activeClients,
     required this.expiringSubscriptions,
     this.onTotalClientsTap,
+    this.onInviteTap,
   });
 
   final String totalClients;
   final String activeClients;
   final String expiringSubscriptions;
   final VoidCallback? onTotalClientsTap;
+  final VoidCallback? onInviteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +65,7 @@ class CoachStatsGrid extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 12.w),
-                const Expanded(child: CoachInviteCard()),
+                Expanded(child: CoachInviteCard(onTap: onInviteTap)),
               ],
             ),
           ),

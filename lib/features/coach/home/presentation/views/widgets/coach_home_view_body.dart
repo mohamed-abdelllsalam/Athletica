@@ -5,6 +5,8 @@ import 'package:athletica/features/coach/clients/presentation/cubits/coach_clien
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_clients_view_body.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_home_stats_cubit.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_home_stats_state.dart';
+import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_cubit.dart';
+import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_state.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_bottom_nav_bar.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_home_app_bar.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_insights_section.dart';
@@ -13,6 +15,7 @@ import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_p
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_profile_view_body.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -28,17 +31,27 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
   int _selectedPeriod = 0; // 0 = Daily, 1 = Monthly
   int _selectedNavIndex = 0;
   late final CoachHomeStatsCubit _statsCubit;
+  late final CoachInviteCubit _inviteCubit;
 
   @override
   void initState() {
     super.initState();
     _statsCubit = sl<CoachHomeStatsCubit>()..loadStats();
+    _inviteCubit = sl<CoachInviteCubit>();
   }
 
   @override
   void dispose() {
     _statsCubit.close();
+    _inviteCubit.close();
     super.dispose();
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildHomeTab() {
@@ -66,6 +79,8 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
                 activeClients: activeClients,
                 expiringSubscriptions: expiringSubscriptions,
                 onTotalClientsTap: () => setState(() => _selectedNavIndex = 1),
+                onInviteTap: () =>
+                    context.read<CoachInviteCubit>().createInviteLink(),
               );
             },
           ),
@@ -84,35 +99,51 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _statsCubit,
-      child: Scaffold(
-        backgroundColor: AppColors.primaryAppColor,
-        body: SafeArea(
-          child: IndexedStack(
-            index: _selectedNavIndex,
-            children: [
-              _buildHomeTab(),
-              BlocProvider(
-                create: (_) => sl<CoachClientsCubit>(),
-                child: const CoachClientsViewBody(),
-              ),
-              const CoachPlanViewBody(),
-              MultiBlocProvider(
-                providers: [
-                  BlocProvider(create: (_) => sl<AuthCubit>()),
-                  BlocProvider(
-                    create: (_) => sl<CoachProfileCubit>()..loadProfile(),
-                  ),
-                ],
-                child: const CoachProfileViewBody(),
-              ),
-            ],
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _statsCubit),
+        BlocProvider.value(value: _inviteCubit),
+      ],
+      child: BlocListener<CoachInviteCubit, CoachInviteState>(
+        listenWhen: (previous, current) =>
+            current is CoachInviteSuccess || current is CoachInviteError,
+        listener: (context, state) async {
+          if (state is CoachInviteSuccess) {
+            await Clipboard.setData(ClipboardData(text: state.inviteLink));
+            if (!context.mounted) return;
+            _showSnackBar(context, 'Invite link copied to clipboard.');
+          } else if (state is CoachInviteError) {
+            _showSnackBar(context, state.message);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.primaryAppColor,
+          body: SafeArea(
+            child: IndexedStack(
+              index: _selectedNavIndex,
+              children: [
+                _buildHomeTab(),
+                BlocProvider(
+                  create: (_) => sl<CoachClientsCubit>(),
+                  child: const CoachClientsViewBody(),
+                ),
+                const CoachPlanViewBody(),
+                MultiBlocProvider(
+                  providers: [
+                    BlocProvider(create: (_) => sl<AuthCubit>()),
+                    BlocProvider(
+                      create: (_) => sl<CoachProfileCubit>()..loadProfile(),
+                    ),
+                  ],
+                  child: const CoachProfileViewBody(),
+                ),
+              ],
+            ),
           ),
-        ),
-        bottomNavigationBar: CoachBottomNavBar(
-          selectedIndex: _selectedNavIndex,
-          onTap: (index) => setState(() => _selectedNavIndex = index),
+          bottomNavigationBar: CoachBottomNavBar(
+            selectedIndex: _selectedNavIndex,
+            onTap: (index) => setState(() => _selectedNavIndex = index),
+          ),
         ),
       ),
     );

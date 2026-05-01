@@ -18,6 +18,7 @@ class ApiEndpoints {
       'trainer-profiles/getById/$trainerId';
   static String trainerClients(String trainerId) =>
       'trainer-clients/getAllByTrainerId/$trainerId';
+  static const String trainerInviteCodes = 'trainer-invite-codes';
 
   static const String createWorkoutTemplate = 'workout-templates/create';
   static String workoutTemplates(String trainerId) =>
