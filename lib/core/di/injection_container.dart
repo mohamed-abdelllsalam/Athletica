@@ -27,6 +27,12 @@ import 'package:athletica/features/coach/profile/data/repositories/coach_profile
 import 'package:athletica/features/coach/profile/domain/repositories/coach_profile_repository.dart';
 import 'package:athletica/features/coach/profile/domain/usecases/get_coach_profile_usecase.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
+import 'package:athletica/features/coach/plan/data/datasources/foods_remote_data_source.dart';
+import 'package:athletica/features/coach/plan/data/repositories/foods_repository_impl.dart';
+import 'package:athletica/features/coach/plan/domain/repositories/foods_repository.dart';
+import 'package:athletica/features/coach/plan/domain/usecases/get_food_categories_usecase.dart';
+import 'package:athletica/features/coach/plan/domain/usecases/get_foods_usecase.dart';
+import 'package:athletica/features/coach/plan/presentation/cubits/foods_cubit.dart';
 import 'package:athletica/features/coach/workout_templates/data/datasources/workout_templates_remote_data_source.dart';
 import 'package:athletica/features/coach/workout_templates/data/repositories/workout_templates_repository_impl.dart';
 import 'package:athletica/features/coach/workout_templates/domain/repositories/workout_templates_repository.dart';
@@ -79,6 +85,9 @@ void setupDependencies() {
   sl.registerLazySingleton<CoachInviteRemoteDataSource>(
     () => CoachInviteRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<FoodsRemoteDataSource>(
+    () => FoodsRemoteDataSourceImpl(sl()),
+  );
   sl.registerLazySingleton<WorkoutTemplatesRemoteDataSource>(
     () => WorkoutTemplatesRemoteDataSourceImpl(sl()),
   );
@@ -97,6 +106,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<CoachInviteRepository>(
     () => CoachInviteRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<FoodsRepository>(
+    () => FoodsRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<WorkoutTemplatesRepository>(
     () => WorkoutTemplatesRepositoryImpl(sl()),
@@ -117,6 +129,8 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
   sl.registerLazySingleton(() => CreateCoachInviteCodeUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachHomeStatsUseCase(sl()));
+  sl.registerLazySingleton(() => GetFoodsUseCase(sl()));
+  sl.registerLazySingleton(() => GetFoodCategoriesUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateUseCase(sl()));
   sl.registerLazySingleton(() => GetWorkoutTemplatesUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateDayUseCase(sl()));
@@ -141,6 +155,7 @@ void setupDependencies() {
   sl.registerFactory(() => CoachClientsCubit(sl()));
   sl.registerFactory(() => CoachInviteCubit(sl()));
   sl.registerFactory(() => CoachHomeStatsCubit(sl()));
+  sl.registerFactory(() => FoodsCubit(sl(), sl()));
   sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl()));
   sl.registerFactory(() => WorkoutTemplatesListCubit(sl()));
   sl.registerLazySingleton(() => ProfileInfoCubit(sl()));

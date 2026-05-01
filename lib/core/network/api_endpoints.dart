@@ -29,4 +29,7 @@ class ApiEndpoints {
       'workout-template-days/getById/$dayId';
 
   static const String workoutTemplateItems = 'workout-template-items';
+
+  static const String foods = 'foods/getAll';
+  static const String foodCategories = 'foods/categories';
 }
