@@ -74,12 +74,8 @@ void setupDependencies() {
   );
 
   // Repositories
-  sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(sl()),
-  );
-  sl.registerLazySingleton<InfoRepository>(
-    () => InfoRepositoryImpl(sl()),
-  );
+  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(sl()));
+  sl.registerLazySingleton<InfoRepository>(() => InfoRepositoryImpl(sl()));
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(sl()),
   );
@@ -130,5 +126,5 @@ void setupDependencies() {
   sl.registerFactory(() => CoachClientsCubit(sl()));
   sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl()));
   sl.registerFactory(() => WorkoutTemplatesListCubit(sl()));
-  sl.registerFactory(() => ProfileInfoCubit(sl()));
+  sl.registerLazySingleton(() => ProfileInfoCubit(sl()));
 }

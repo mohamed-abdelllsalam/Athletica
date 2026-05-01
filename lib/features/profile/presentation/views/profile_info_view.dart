@@ -16,29 +16,42 @@ class ProfileInfoView extends StatefulWidget {
 }
 
 class _ProfileInfoViewState extends State<ProfileInfoView> {
-  late final ProfileInfoCubit _cubit;
+  late final ProfileInfoCubit _infoCubit;
+  late final ProfileCubit _profileCubit;
+  bool _requestedLoad = false;
 
   @override
   void initState() {
     super.initState();
-    _cubit = sl<ProfileInfoCubit>();
-    final profileState = sl<ProfileCubit>().state;
-    if (profileState is ProfileLoaded) {
-      _cubit.loadAnswers(profileState.profile.clientId);
+    _infoCubit = sl<ProfileInfoCubit>();
+    _profileCubit = sl<ProfileCubit>();
+    _maybeLoadAnswers(_profileCubit.state);
+  }
+
+  void _maybeLoadAnswers(ProfileState state) {
+    if (_requestedLoad) return;
+    if (state is ProfileLoaded) {
+      _requestedLoad = true;
+      _infoCubit.loadAnswers(state.profile.clientId);
     }
   }
 
   @override
   void dispose() {
-    _cubit.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _cubit,
-      child: const Scaffold(body: ProfileInfoViewBody()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _profileCubit),
+        BlocProvider.value(value: _infoCubit),
+      ],
+      child: BlocListener<ProfileCubit, ProfileState>(
+        listener: (context, state) => _maybeLoadAnswers(state),
+        child: const Scaffold(body: ProfileInfoViewBody()),
+      ),
     );
   }
 }

@@ -96,8 +96,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final status = data['status'] as Map<String, dynamic>?;
       if (status != null && status['isComplete'] == true) return true;
 
-      final questionAnswers = data['questionAnswers'];
-      return questionAnswers is List && questionAnswers.isNotEmpty;
+      final completedAt = data['completedAt'];
+      return completedAt is String && completedAt.trim().isNotEmpty;
     } catch (_) {
       return false;
     }
