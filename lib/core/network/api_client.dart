@@ -1,7 +1,10 @@
+import 'package:athletica/core/helper/app_navigator_key.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
+import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 class ApiClient {
@@ -28,6 +31,25 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
+        },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            await TokenStorageService.instance.clearAll();
+            final context = appNavigatorKey.currentContext;
+            if (context != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Session expired, please login again.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            appNavigatorKey.currentState?.pushNamedAndRemoveUntil(
+              OnBoardingView.routeName,
+              (_) => false,
+            );
+          }
+          handler.next(error);
         },
       ),
     );

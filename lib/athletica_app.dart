@@ -1,3 +1,4 @@
+import 'package:athletica/core/helper/app_navigator_key.dart';
 import 'package:athletica/core/helper/on_genrate_routes.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
@@ -14,6 +15,7 @@ class AthleticaApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       child: MaterialApp(
+        navigatorKey: appNavigatorKey,
         theme: ThemeData(
           scaffoldBackgroundColor: AppColors.primaryAppColor,
           canvasColor: AppColors.primaryAppColor,
