@@ -5,14 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SignUpView extends StatelessWidget {
-  const SignUpView({super.key});
+  const SignUpView({super.key, this.selectedRole = 'Client'});
   static const String routeName = 'signUpView';
+  final String selectedRole;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<AuthCubit>(),
-      child: const Scaffold(body: SignUpViewBody()),
+      child: Scaffold(body: SignUpViewBody(initialRole: selectedRole)),
     );
   }
 }

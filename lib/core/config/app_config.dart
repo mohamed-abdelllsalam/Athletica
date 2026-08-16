@@ -15,13 +15,13 @@ class AppConfig {
 
   factory AppConfig.dev() => AppConfig._(
         flavor: Flavor.dev,
-        baseUrl: 'https://athletica-six.vercel.app/api/v1/',
+        baseUrl: 'https://athletica-bakend-36ndq12fr-athletica.vercel.app/api/v1/',
         appName: 'Athletica Dev',
       );
 
   factory AppConfig.prod() => AppConfig._(
         flavor: Flavor.prod,
-        baseUrl: 'https://athletica-six.vercel.app/api/v1/',
+        baseUrl: 'https://athletica-bakend-36ndq12fr-athletica.vercel.app/api/v1/',
         appName: 'Athletica',
       );
 

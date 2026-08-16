@@ -1,6 +1,6 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/auth/presentation/views/role_selection_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
-import 'package:athletica/features/auth/presentation/views/sign_up_view.dart';
 import 'package:athletica/features/on_boarding/presentation/views/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 
@@ -29,7 +29,7 @@ class OnboardingBottom extends StatelessWidget {
         const SizedBox(height: 96),
         CustomElveButton(
           onPressed: () {
-            Navigator.pushNamed(context, SignUpView.routeName);
+            Navigator.pushNamed(context, RoleSelectionView.routeName);
           },
         ),
         const SizedBox(height: 42),
