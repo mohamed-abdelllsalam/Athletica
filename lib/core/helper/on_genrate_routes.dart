@@ -1,25 +1,26 @@
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
 import 'package:athletica/features/auth/presentation/views/otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/reset_password_view.dart';
+import 'package:athletica/features/auth/presentation/views/role_selection_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_up_view.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
-import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
-import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
-import 'package:athletica/features/coach/messages/presentation/views/coach_contact_profile_view.dart';
-import 'package:athletica/features/coach/messages/presentation/views/coach_message_requests_view.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_active_clients_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_detail_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_info_view.dart';
-import 'package:athletica/features/coach/clients/presentation/views/coach_active_clients_view.dart';
-import 'package:athletica/features/coach/clients/presentation/views/coach_expiring_subscriptions_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_clients_view.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_expiring_subscriptions_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_join_requests_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_add_certificate_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_contact_profile_view.dart';
+import 'package:athletica/features/coach/messages/presentation/views/coach_message_requests_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_messages_view.dart';
 import 'package:athletica/features/coach/plan/domain/entities/coach_plan_client.dart';
 import 'package:athletica/features/coach/plan/presentation/views/client_plan_detail_view.dart';
@@ -135,8 +136,13 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const OnBoardingView());
     case SignInView.routeName:
       return MaterialPageRoute(builder: (context) => const SignInView());
+    case RoleSelectionView.routeName:
+      return MaterialPageRoute(builder: (context) => const RoleSelectionView());
     case SignUpView.routeName:
-      return MaterialPageRoute(builder: (context) => const SignUpView());
+      final selectedRole = settings.arguments as String? ?? 'Client';
+      return MaterialPageRoute(
+        builder: (context) => SignUpView(selectedRole: selectedRole),
+      );
     case ResetPasswordView.routeName:
       return MaterialPageRoute(builder: (context) => const ResetPasswordView());
     case OtpView.routeName:
@@ -160,9 +166,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case EditProfileView.routeName:
       return MaterialPageRoute(builder: (context) => const EditProfileView());
     case ProfileInfoView.routeName:
-      return MaterialPageRoute(
-        builder: (context) => const ProfileInfoView(),
-      );
+      return MaterialPageRoute(builder: (context) => const ProfileInfoView());
     case WorkoutSessionView.routeName:
       final args =
           settings.arguments!
