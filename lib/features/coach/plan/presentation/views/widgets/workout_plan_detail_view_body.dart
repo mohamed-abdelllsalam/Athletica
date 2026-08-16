@@ -2,7 +2,10 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_day_exercises_view.dart';
+import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_cubit.dart';
+import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -159,7 +162,22 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    return BlocConsumer<SaveWorkoutPlanCubit, SaveWorkoutPlanState>(
+      listener: (context, state) {
+        if (state is SaveWorkoutPlanSuccess) {
+          Navigator.pop(context, _buildProgram());
+        } else if (state is SaveWorkoutPlanError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.cardBackground,
+            ),
+          );
+        }
+      },
+      builder: (context, saveState) {
+        final saving = saveState is SaveWorkoutPlanLoading;
+        return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
@@ -302,20 +320,33 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
               height: 48.h,
               child: widget.isCreateMode
                   ? ElevatedButton(
-                      onPressed: () =>
-                          Navigator.pop(context, _buildProgram()),
+                      onPressed: saving
+                          ? null
+                          : () => context
+                              .read<SaveWorkoutPlanCubit>()
+                              .savePlan(_buildProgram()),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.buttonColor,
+                        disabledBackgroundColor:
+                            AppColors.buttonColor.withValues(alpha: 0.6),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14.r),
                         ),
                       ),
-                      child: Text(
-                        'Save Plan',
-                        style: AppTextStyles.semiBold14(context).copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: saving
+                          ? SizedBox(
+                              width: 20.r,
+                              height: 20.r,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Save Plan',
+                              style: AppTextStyles.semiBold14(context)
+                                  .copyWith(color: Colors.white),
+                            ),
                     )
                   : ElevatedButton.icon(
                       onPressed: () => _showAssignSheet(context),
@@ -388,6 +419,8 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
           ),
         ],
       ),
+    );
+      },
     );
   }
 

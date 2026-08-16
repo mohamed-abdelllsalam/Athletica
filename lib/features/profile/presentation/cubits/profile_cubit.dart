@@ -9,7 +9,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   final GetClientProfileUseCase _getClientProfile;
 
   Future<void> loadProfile({bool forceRefresh = false}) async {
-    if (!forceRefresh && state is ProfileLoaded) return;
+    if (!forceRefresh && (state is ProfileLoaded || state is ProfileLoading)) return;
     emit(ProfileLoading());
     final result = await _getClientProfile();
     switch (result) {

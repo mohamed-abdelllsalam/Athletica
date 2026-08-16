@@ -23,8 +23,15 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
       final entity = model.toEntity();
+      await TokenStorageService.instance.clearAll();
       await TokenStorageService.instance.saveToken(entity.token);
       await TokenStorageService.instance.saveRole(entity.user.primaryRole);
+      if (entity.user.clientId != null) {
+        await TokenStorageService.instance.saveClientId(entity.user.clientId!);
+      }
+      if (entity.user.primaryRole == 'TRAINER') {
+        await TokenStorageService.instance.saveTrainerId(entity.user.id);
+      }
       return ApiSuccess(entity);
     } on DioException catch (e) {
       return ApiError(_mapDioError(e));
@@ -94,14 +101,22 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<AuthStatus> getAuthStatus() async {
     final token = await TokenStorageService.instance.getToken();
     if (token == null) return const Unauthenticated();
+
     final role = await TokenStorageService.instance.getRole();
+
+    if (role == 'TRAINER') {
+      final isComplete = await TokenStorageService.instance.isProfileComplete();
+      return isComplete ? const CoachReady() : const CoachProfileIncomplete();
+    }
+
+    // CLIENT: check local cache first, then verify with API
     bool isComplete = await TokenStorageService.instance.isProfileComplete();
     if (!isComplete) {
-      isComplete = await _remoteDataSource.hasSubmittedIntakeAnswers();
-      if (isComplete) await TokenStorageService.instance.saveProfileComplete();
-    }
-    if (role == 'TRAINER') {
-      return isComplete ? const CoachReady() : const CoachProfileIncomplete();
+      final clientId = await TokenStorageService.instance.getClientId();
+      if (clientId != null) {
+        isComplete = await _remoteDataSource.hasSubmittedIntakeAnswers(clientId);
+        if (isComplete) await TokenStorageService.instance.saveProfileComplete();
+      }
     }
     return isComplete ? const ClientReady() : const ClientProfileIncomplete();
   }

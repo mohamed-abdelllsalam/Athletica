@@ -23,7 +23,7 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<void> logout();
-  Future<bool> hasSubmittedIntakeAnswers();
+  Future<bool> hasSubmittedIntakeAnswers(String clientId);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -85,15 +85,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<bool> hasSubmittedIntakeAnswers() async {
+  Future<bool> hasSubmittedIntakeAnswers(String clientId) async {
     try {
-      final response = await _dio.get(ApiEndpoints.clientIntakeAnswers);
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        final answers = data['data']?['answers'];
-        return answers != null && (answers is Map && answers.isNotEmpty || answers is List && answers.isNotEmpty);
-      }
-      return false;
+      final response = await _dio.get(
+        ApiEndpoints.clientIntakeAnswersByClient(clientId),
+      );
+      final data = response.data['data'] as Map<String, dynamic>?;
+      if (data == null) return false;
+
+      final status = data['status'] as Map<String, dynamic>?;
+      if (status != null && status['isComplete'] == true) return true;
+
+      final completedAt = data['completedAt'];
+      return completedAt is String && completedAt.trim().isNotEmpty;
     } catch (_) {
       return false;
     }

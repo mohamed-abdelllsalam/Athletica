@@ -5,9 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachStatsGrid extends StatelessWidget {
-  const CoachStatsGrid({super.key, this.onTotalClientsTap});
+  const CoachStatsGrid({
+    super.key,
+    required this.totalClients,
+    required this.activeClients,
+    required this.expiringSubscriptions,
+    this.onTotalClientsTap,
+    this.onInviteTap,
+  });
 
+  final String totalClients;
+  final String activeClients;
+  final String expiringSubscriptions;
   final VoidCallback? onTotalClientsTap;
+  final VoidCallback? onInviteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +32,7 @@ class CoachStatsGrid extends StatelessWidget {
                 Expanded(
                   child: CoachStatCard(
                     label: 'Total Clients',
-                    value: '120',
+                    value: totalClients,
                     onTap: onTotalClientsTap,
                   ),
                 ),
@@ -29,7 +40,7 @@ class CoachStatsGrid extends StatelessWidget {
                 Expanded(
                   child: CoachStatCard(
                     label: 'Active Clients',
-                    value: '95',
+                    value: activeClients,
                     onTap: () => Navigator.pushNamed(
                       context,
                       CoachActiveClientsView.routeName,
@@ -46,7 +57,7 @@ class CoachStatsGrid extends StatelessWidget {
                 Expanded(
                   child: CoachStatCard(
                     label: 'Expiring\nSubscription',
-                    value: '6',
+                    value: expiringSubscriptions,
                     onTap: () => Navigator.pushNamed(
                       context,
                       CoachExpiringSubscriptionsView.routeName,
@@ -54,7 +65,7 @@ class CoachStatsGrid extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 12.w),
-                const Expanded(child: CoachInviteCard()),
+                Expanded(child: CoachInviteCard(onTap: onInviteTap)),
               ],
             ),
           ),

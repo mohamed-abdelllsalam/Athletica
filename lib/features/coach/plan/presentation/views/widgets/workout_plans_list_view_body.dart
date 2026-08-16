@@ -2,7 +2,10 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_plan_detail_view.dart';
+import 'package:athletica/features/coach/workout_templates/presentation/cubits/workout_templates_list_cubit.dart';
+import 'package:athletica/features/coach/workout_templates/presentation/cubits/workout_templates_list_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -19,6 +22,8 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
   String _query = '';
   String _selectedCategory = 'All';
   final List<WorkoutProgram> _extraPrograms = [];
+  List<WorkoutProgram> _apiPrograms = [];
+  bool _loading = false;
 
   static const List<String> _categories = [
     'All',
@@ -38,13 +43,19 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    context.read<WorkoutTemplatesListCubit>().loadTemplates();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
   List<WorkoutProgram> get _filtered {
-    final programs = [...WorkoutProgramsData.programs, ..._extraPrograms];
+    final programs = [..._apiPrograms, ..._extraPrograms];
     return programs.where((p) {
       final matchesCategory =
           _selectedCategory == 'All' || p.category == _selectedCategory;
@@ -83,7 +94,23 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
   @override
   Widget build(BuildContext context) {
     final programs = _filtered;
-    return Column(
+    return BlocListener<WorkoutTemplatesListCubit, WorkoutTemplatesListState>(
+      listener: (context, state) {
+        switch (state) {
+          case WorkoutTemplatesListLoading():
+            setState(() => _loading = true);
+          case WorkoutTemplatesListLoaded(:final programs):
+            setState(() {
+              _apiPrograms = programs;
+              _loading = false;
+            });
+          case WorkoutTemplatesListError():
+            setState(() => _loading = false);
+          case WorkoutTemplatesListInitial():
+            break;
+        }
+      },
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 20.h),
@@ -158,15 +185,17 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
         ),
         SizedBox(height: 14.h),
         Expanded(
-          child: programs.isEmpty
-              ? Center(
-                  child: Text(
-                    'No programs found',
-                    style: AppTextStyles.medium14(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                )
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : programs.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No programs found',
+                        style: AppTextStyles.medium14(context).copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    )
               : ListView.separated(
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(
@@ -191,6 +220,7 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                 ),
         ),
       ],
+      ),
     );
   }
 }

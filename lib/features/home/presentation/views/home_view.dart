@@ -4,14 +4,25 @@ import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dar
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class HomeView extends StatelessWidget {
+class HomeView extends StatefulWidget {
   const HomeView({super.key});
   static const String routeName = 'homeView';
 
   @override
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> {
+  @override
+  void initState() {
+    super.initState();
+    sl<ProfileCubit>().loadProfile(forceRefresh: true);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: sl<ProfileCubit>()..loadProfile(),
+      value: sl<ProfileCubit>(),
       child: const Scaffold(body: HomeViewBody()),
     );
   }

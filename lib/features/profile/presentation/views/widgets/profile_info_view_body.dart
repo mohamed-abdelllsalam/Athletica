@@ -1,25 +1,13 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_info_cubit.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_info_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileInfoViewBody extends StatelessWidget {
   const ProfileInfoViewBody({super.key});
-
-  static const _questions = [
-    (
-      q: 'Have you had any past injuries?',
-      a: 'Minor injuries (fully recovered)',
-    ),
-    (
-      q: 'Has a doctor ever advised you not to exercise?',
-      a: 'Yes (specific exercises only)',
-    ),
-    (q: 'Are you currently exercising?', a: '1–2 times/week'),
-    (q: 'How many days per week do you train?', a: '5–6 days'),
-    (q: 'What type of exercise do you do?', a: 'Gym / weight training'),
-    (q: 'How would you rate your fitness level?', a: 'Average'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -30,21 +18,47 @@ class ProfileInfoViewBody extends StatelessWidget {
           children: [
             _buildAppBar(context),
             Expanded(
-              child: ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16.w,
-                  vertical: 16.h,
-                ),
-                itemCount: _questions.length,
-                separatorBuilder: (_, _) => SizedBox(height: 24.h),
-                itemBuilder: (context, index) {
-                  final item = _questions[index];
-                  return _QuestionItem(
-                    number: index + 1,
-                    question: item.q,
-                    answer: item.a,
-                  );
+              child: BlocBuilder<ProfileInfoCubit, ProfileInfoState>(
+                builder: (context, state) => switch (state) {
+                  ProfileInfoInitial() || ProfileInfoLoading() => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ProfileInfoLoaded(:final answers) when answers.isEmpty =>
+                    Center(
+                      child: Text(
+                        'No intake answers found.',
+                        style: AppTextStyles.medium14(context)
+                            .copyWith(color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ProfileInfoLoaded(:final answers) => ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 16.h,
+                      ),
+                      itemCount: answers.length,
+                      separatorBuilder: (_, _) => SizedBox(height: 24.h),
+                      itemBuilder: (context, index) {
+                        final answer = answers[index];
+                        return _QuestionItem(
+                          number: index + 1,
+                          question: answer.question,
+                          answer: answer.value,
+                        );
+                      },
+                    ),
+                  ProfileInfoError(:final message) => Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: Text(
+                          message,
+                          style: AppTextStyles.medium14(context)
+                              .copyWith(color: AppColors.textPrimary),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
                 },
               ),
             ),
@@ -66,6 +80,12 @@ class ProfileInfoViewBody extends StatelessWidget {
               color: AppColors.textPrimary,
               size: 20.sp,
             ),
+          ),
+          SizedBox(width: 12.w),
+          Text(
+            'Information',
+            style: AppTextStyles.bold20(context)
+                .copyWith(color: AppColors.textPrimary),
           ),
         ],
       ),
@@ -91,16 +111,14 @@ class _QuestionItem extends StatelessWidget {
       children: [
         Text(
           'Q$number',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.primaryBlue),
+          style: AppTextStyles.semiBold14(context)
+              .copyWith(color: AppColors.primaryBlue),
         ),
         SizedBox(height: 4.h),
         Text(
           question,
-          style: AppTextStyles.semiBold15(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.semiBold15(context)
+              .copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 10.h),
         Container(
@@ -115,9 +133,8 @@ class _QuestionItem extends StatelessWidget {
               Expanded(
                 child: Text(
                   answer,
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.semiBold14(context)
+                      .copyWith(color: AppColors.textPrimary),
                 ),
               ),
               SizedBox(width: 12.w),
