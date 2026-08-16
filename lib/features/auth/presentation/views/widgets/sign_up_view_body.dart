@@ -13,7 +13,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SignUpViewBody extends StatefulWidget {
-  const SignUpViewBody({super.key});
+  const SignUpViewBody({super.key, this.initialRole = 'Client'});
+  final String initialRole;
 
   @override
   State<SignUpViewBody> createState() => _SignUpViewBodyState();
@@ -25,6 +26,13 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
 
   late String name, email, phone, password, confirmPassword;
   String? _selectedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.initialRole;
+  }
+
   bool agreeToTerms = false;
 
   String? validatePassword(String? value) {
