@@ -2,6 +2,7 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
+import 'package:athletica/features/auth/presentation/views/verify_your_identity_view.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
@@ -80,14 +81,12 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
     if (_selectedRole == 'Coach') {
       cubit.registerTrainer(
         name: name,
-        phone: phone,
         email: email,
         password: password,
       );
     } else {
       cubit.registerClient(
         name: name,
-        phone: phone,
         email: email,
         password: password,
       );
@@ -99,13 +98,13 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is RegisterSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registered successfully! Please sign in.'),
-              backgroundColor: Colors.green,
-            ),
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            VerifyYourIdentityView.routeName,
+            (route) =>
+                route.settings.name == SignInView.routeName || route.isFirst,
+            arguments: email,
           );
-          Navigator.pushReplacementNamed(context, SignInView.routeName);
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),

@@ -1,8 +1,8 @@
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/info/data/datasources/info_remote_data_source.dart';
-import 'package:athletica/features/info/domain/entities/intake_answer.dart';
-import 'package:athletica/features/info/domain/entities/intake_section.dart';
+import 'package:athletica/features/info/domain/entities/client_answers.dart';
+import 'package:athletica/features/info/domain/entities/client_question.dart';
 import 'package:athletica/features/info/domain/repositories/info_repository.dart';
 import 'package:dio/dio.dart';
 
@@ -12,40 +12,71 @@ class InfoRepositoryImpl implements InfoRepository {
   final InfoRemoteDataSource _dataSource;
 
   @override
-  Future<ApiResult<List<IntakeSection>>> getQuestions() async {
+  Future<ApiResult<List<ClientQuestion>>> getQuestions() async {
     try {
-      final sections = await _dataSource.getQuestions();
-      return ApiSuccess(sections);
+      final questions = await _dataSource.getQuestions();
+      return ApiSuccess(questions);
     } on DioException catch (e) {
-      return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
-    } catch (e) {
-      return ApiError(UnknownFailure(e.toString()));
+      return ApiError(_mapDioError(e));
+    } catch (_) {
+      return const ApiError(
+        UnknownFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
   @override
-  Future<ApiResult<void>> submitAnswers(Map<String, dynamic> answers) async {
+  Future<ApiResult<void>> submitAnswers(Map<String, int> answers) async {
     try {
       await _dataSource.submitAnswers(answers);
       return const ApiSuccess(null);
     } on DioException catch (e) {
-      return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
-    } catch (e) {
-      return ApiError(UnknownFailure(e.toString()));
+      return ApiError(_mapDioError(e));
+    } catch (_) {
+      return const ApiError(
+        UnknownFailure('Something went wrong. Please try again.'),
+      );
     }
   }
 
   @override
-  Future<ApiResult<ClientIntakeAnswers>> getClientAnswers(
-    String clientId,
-  ) async {
+  Future<ApiResult<ClientAnswers>> getClientAnswers() async {
     try {
-      final answers = await _dataSource.getClientAnswers(clientId);
+      final answers = await _dataSource.getClientAnswers();
       return ApiSuccess(answers);
     } on DioException catch (e) {
-      return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
-    } catch (e) {
-      return ApiError(UnknownFailure(e.toString()));
+      return ApiError(_mapDioError(e));
+    } catch (_) {
+      return const ApiError(
+        UnknownFailure('Something went wrong. Please try again.'),
+      );
     }
+  }
+
+  AppFailure _mapDioError(DioException e) {
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionError) {
+      return const NetworkFailure('No internet connection. Please try again.');
+    }
+
+    final statusCode = e.response?.statusCode;
+    final data = e.response?.data;
+    final message = data is Map<String, dynamic>
+        ? (_extractMessage(data['message']) ??
+              _extractMessage(data['error']) ??
+              'Something went wrong.')
+        : 'Something went wrong. Please try again.';
+
+    if (statusCode == 401) {
+      return UnauthorizedFailure(message);
+    }
+    return ServerFailure(message);
+  }
+
+  String? _extractMessage(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) return value;
+    if (value is List && value.isNotEmpty) return value.join(', ');
+    return null;
   }
 }

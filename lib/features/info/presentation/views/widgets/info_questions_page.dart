@@ -1,82 +1,39 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/info/domain/entities/info_question.dart';
+import 'package:athletica/features/info/domain/entities/client_question.dart';
 import 'package:athletica/features/info/presentation/views/widgets/info_question_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class InfoQuestionsPage extends StatefulWidget {
+class InfoQuestionsPage extends StatelessWidget {
   const InfoQuestionsPage({
     super.key,
     required this.questions,
-    required this.onBack,
+    required this.selections,
+    required this.onSelected,
   });
 
-  final List<InfoQuestion> questions;
-  final VoidCallback onBack;
-
-  @override
-  InfoQuestionsPageState createState() => InfoQuestionsPageState();
-}
-
-class InfoQuestionsPageState extends State<InfoQuestionsPage>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-  late final Map<String, String?> _answers;
-
-  @override
-  void initState() {
-    super.initState();
-    _answers = {for (final q in widget.questions) q.key: null};
-  }
-
-  bool get allAnswered =>
-      _answers.values.every((v) => v != null && v.trim().isNotEmpty);
-
-  Map<String, dynamic> get answers {
-    return Map.fromEntries(
-      _answers.entries.where((e) => e.value != null).map((e) {
-        final q = widget.questions.firstWhere((q) => q.key == e.key);
-        final value = e.value!;
-        if (q.type == InfoQuestionType.number) {
-          return MapEntry(e.key, num.tryParse(value) ?? value);
-        }
-        return MapEntry(e.key, value);
-      }),
-    );
-  }
-
-  void _onQuestionChanged(String key, String? value) {
-    setState(
-      () => _answers[key] = value?.trim().isEmpty == true ? null : value,
-    );
-  }
+  final List<ClientQuestion> questions;
+  final Map<String, int> selections;
+  final void Function(String questionId, int choiceIndex) onSelected;
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 10.h),
-          IconButton(
-            onPressed: widget.onBack,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: Icon(Icons.arrow_back, color: Colors.white, size: 18.sp),
-          ),
-          SizedBox(height: 12.h),
           const _InfoPageHeader(),
           SizedBox(height: 16.h),
-          for (int i = 0; i < widget.questions.length; i++) ...[
+          for (int i = 0; i < questions.length; i++) ...[
             InfoQuestionItem(
-              question: widget.questions[i],
-              onChanged: (value) =>
-                  _onQuestionChanged(widget.questions[i].key, value),
+              question: questions[i],
+              selectedIndex: selections[questions[i].id],
+              onSelected: (choiceIndex) =>
+                  onSelected(questions[i].id, choiceIndex),
             ),
-            if (i != widget.questions.length - 1) SizedBox(height: 14.h),
+            if (i != questions.length - 1) SizedBox(height: 22.h),
           ],
           SizedBox(height: 10.h),
         ],

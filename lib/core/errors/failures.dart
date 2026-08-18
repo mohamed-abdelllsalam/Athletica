@@ -15,6 +15,10 @@ final class UnauthorizedFailure extends AppFailure {
   const UnauthorizedFailure(super.message);
 }
 
+final class EmailNotVerifiedFailure extends AppFailure {
+  const EmailNotVerifiedFailure(super.message);
+}
+
 final class UnknownFailure extends AppFailure {
   const UnknownFailure(super.message);
 }

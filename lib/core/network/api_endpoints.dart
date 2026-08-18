@@ -5,14 +5,12 @@ class ApiEndpoints {
 
   static String get baseUrl => AppConfig.instance.baseUrl;
 
-  static const String registerClient = 'auth/register/client';
-  static const String registerTrainer = 'auth/register/trainer';
+  static const String signup = 'auth/signup';
+  static const String verifyEmail = 'auth/verify-email';
+  static const String resendVerification = 'auth/resend-verification';
   static const String login = 'auth/login';
-  static const String logout = 'auth/logout';
-  static const String clientIntakeQuestions = 'client-intake/questions';
-  static const String clientIntakeAnswers = 'client-intake/answers';
-  static String clientIntakeAnswersByClient(String clientId) =>
-      'client-intake/answers/client/$clientId';
+  static const String clientQuestions = 'client/questions';
+  static const String clientAnswers = 'client/answers';
   static const String clientProfile = 'client-profiles/me';
   static String trainerProfile(String trainerId) =>
       'trainer-profiles/getById/$trainerId';

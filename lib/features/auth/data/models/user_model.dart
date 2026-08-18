@@ -24,14 +24,19 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final role = json['role'] as String? ?? '';
     return UserModel(
       id: json['id'] as String,
-      name: json['name'] as String,
-      phone: json['phone'] as String,
-      email: json['email'] as String,
+      name: json['username'] as String? ?? '',
+      phone: json['phone'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       profileImage: json['profileImage'] as String?,
-      isVerified: json['isVerified'] as bool? ?? false,
-      primaryRole: json['primaryRole'] as String? ?? '',
+      isVerified: json['email_verified'] as bool? ?? false,
+      primaryRole: role == 'coach'
+          ? 'TRAINER'
+          : role == 'client'
+              ? 'CLIENT'
+              : role,
       trainerId: json['trainerId'] as String?,
       clientId: json['clientId'] as String?,
     );
@@ -61,7 +66,7 @@ class AuthResponseModel {
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
     return AuthResponseModel(
       token: json['token'] as String,
-      user: UserModel.fromJson(json['data'] as Map<String, dynamic>),
+      user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
     );
   }
 
