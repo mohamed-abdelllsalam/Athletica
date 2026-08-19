@@ -21,44 +21,46 @@ class ProfileInfoViewBody extends StatelessWidget {
               child: BlocBuilder<ProfileInfoCubit, ProfileInfoState>(
                 builder: (context, state) => switch (state) {
                   ProfileInfoInitial() || ProfileInfoLoading() => const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: CircularProgressIndicator(),
+                  ),
                   ProfileInfoLoaded(:final answers) when answers.isEmpty =>
                     Center(
                       child: Text(
-                        'No intake answers found.',
-                        style: AppTextStyles.medium14(context)
-                            .copyWith(color: AppColors.textPrimary),
+                        'No answers found.',
+                        style: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
                       ),
                     ),
                   ProfileInfoLoaded(:final answers) => ListView.separated(
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 16.h,
-                      ),
-                      itemCount: answers.length,
-                      separatorBuilder: (_, _) => SizedBox(height: 24.h),
-                      itemBuilder: (context, index) {
-                        final answer = answers[index];
-                        return _QuestionItem(
-                          number: index + 1,
-                          question: answer.question,
-                          answer: answer.value,
-                        );
-                      },
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 16.h,
                     ),
+                    itemCount: answers.length,
+                    separatorBuilder: (_, _) => SizedBox(height: 24.h),
+                    itemBuilder: (context, index) {
+                      final answer = answers[index];
+                      return _QuestionItem(
+                        number: index + 1,
+                        question: answer.question,
+                        answer: answer.value,
+                      );
+                    },
+                  ),
                   ProfileInfoError(:final message) => Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 24.w),
-                        child: Text(
-                          message,
-                          style: AppTextStyles.medium14(context)
-                              .copyWith(color: AppColors.textPrimary),
-                          textAlign: TextAlign.center,
-                        ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: Text(
+                        message,
+                        style: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
+                        textAlign: TextAlign.center,
                       ),
                     ),
+                  ),
                 },
               ),
             ),
@@ -84,8 +86,9 @@ class ProfileInfoViewBody extends StatelessWidget {
           SizedBox(width: 12.w),
           Text(
             'Information',
-            style: AppTextStyles.bold20(context)
-                .copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.bold20(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
         ],
       ),
@@ -111,14 +114,16 @@ class _QuestionItem extends StatelessWidget {
       children: [
         Text(
           'Q$number',
-          style: AppTextStyles.semiBold14(context)
-              .copyWith(color: AppColors.primaryBlue),
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.primaryBlue),
         ),
         SizedBox(height: 4.h),
         Text(
           question,
-          style: AppTextStyles.semiBold15(context)
-              .copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.semiBold15(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 10.h),
         Container(
@@ -133,8 +138,9 @@ class _QuestionItem extends StatelessWidget {
               Expanded(
                 child: Text(
                   answer,
-                  style: AppTextStyles.semiBold14(context)
-                      .copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.semiBold14(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
                 ),
               ),
               SizedBox(width: 12.w),

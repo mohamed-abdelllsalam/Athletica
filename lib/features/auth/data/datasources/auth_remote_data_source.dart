@@ -8,22 +8,18 @@ abstract class AuthRemoteDataSource {
     required String password,
   });
 
-  Future<void> registerClient({
-    required String name,
-    required String phone,
+  Future<void> signup({
+    required String username,
     required String email,
     required String password,
+    required String role,
   });
 
-  Future<void> registerTrainer({
-    required String name,
-    required String phone,
-    required String email,
-    required String password,
-  });
+  Future<void> verifyEmail({required String email, required String code});
 
-  Future<void> logout();
-  Future<bool> hasSubmittedIntakeAnswers(String clientId);
+  Future<void> resendVerification({required String email});
+
+  Future<bool> hasSubmittedClientAnswers();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -44,60 +40,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> registerClient({
-    required String name,
-    required String phone,
+  Future<void> signup({
+    required String username,
     required String email,
     required String password,
+    required String role,
   }) async {
     await _dio.post(
-      ApiEndpoints.registerClient,
+      ApiEndpoints.signup,
       data: {
-        'name': name,
-        'phone': phone,
+        'username': username,
         'email': email,
         'password': password,
+        'role': role,
       },
     );
   }
 
   @override
-  Future<void> registerTrainer({
-    required String name,
-    required String phone,
+  Future<void> verifyEmail({
     required String email,
-    required String password,
+    required String code,
   }) async {
     await _dio.post(
-      ApiEndpoints.registerTrainer,
-      data: {
-        'name': name,
-        'phone': phone,
-        'email': email,
-        'password': password,
-      },
+      ApiEndpoints.verifyEmail,
+      data: {'email': email, 'code': code},
     );
   }
 
   @override
-  Future<void> logout() async {
-    await _dio.post(ApiEndpoints.logout);
+  Future<void> resendVerification({required String email}) async {
+    await _dio.post(ApiEndpoints.resendVerification, data: {'email': email});
   }
 
   @override
-  Future<bool> hasSubmittedIntakeAnswers(String clientId) async {
+  Future<bool> hasSubmittedClientAnswers() async {
     try {
-      final response = await _dio.get(
-        ApiEndpoints.clientIntakeAnswersByClient(clientId),
-      );
-      final data = response.data['data'] as Map<String, dynamic>?;
-      if (data == null) return false;
-
-      final status = data['status'] as Map<String, dynamic>?;
-      if (status != null && status['isComplete'] == true) return true;
-
-      final completedAt = data['completedAt'];
-      return completedAt is String && completedAt.trim().isNotEmpty;
+      final response = await _dio.get(ApiEndpoints.clientAnswers);
+      final data = response.data as Map<String, dynamic>?;
+      final answers = data?['answers'] as List<dynamic>? ?? const [];
+      return answers.isNotEmpty;
     } catch (_) {
       return false;
     }

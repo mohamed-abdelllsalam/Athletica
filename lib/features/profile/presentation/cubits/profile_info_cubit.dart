@@ -1,31 +1,23 @@
 import 'package:athletica/core/utils/api_result.dart';
-import 'package:athletica/features/info/domain/usecases/get_client_intake_answers_usecase.dart';
+import 'package:athletica/features/info/domain/usecases/get_client_answers_usecase.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_info_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ProfileInfoCubit extends Cubit<ProfileInfoState> {
-  ProfileInfoCubit(this._getClientIntakeAnswers)
-    : super(const ProfileInfoInitial());
+  ProfileInfoCubit(this._getClientAnswers) : super(const ProfileInfoInitial());
 
-  final GetClientIntakeAnswersUseCase _getClientIntakeAnswers;
-  String? _loadedClientId;
-  String? _loadingClientId;
+  final GetClientAnswersUseCase _getClientAnswers;
+  bool _loaded = false;
 
-  Future<void> loadAnswers(String clientId, {bool forceRefresh = false}) async {
-    if (!forceRefresh) {
-      if (state is ProfileInfoLoading && _loadingClientId == clientId) return;
-      if (state is ProfileInfoLoaded && _loadedClientId == clientId) return;
-    }
-    _loadingClientId = clientId;
+  Future<void> loadAnswers({bool forceRefresh = false}) async {
+    if (!forceRefresh && (_loaded || state is ProfileInfoLoading)) return;
     emit(const ProfileInfoLoading());
-    final result = await _getClientIntakeAnswers(clientId);
+    final result = await _getClientAnswers();
     switch (result) {
       case ApiSuccess(:final data):
-        _loadedClientId = clientId;
-        _loadingClientId = null;
+        _loaded = true;
         emit(ProfileInfoLoaded(data.answers));
       case ApiError(:final failure):
-        _loadingClientId = null;
         emit(ProfileInfoError(failure.message));
     }
   }

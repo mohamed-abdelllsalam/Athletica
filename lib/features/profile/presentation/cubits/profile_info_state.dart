@@ -1,4 +1,4 @@
-import 'package:athletica/features/info/domain/entities/intake_answer.dart';
+import 'package:athletica/features/info/domain/entities/client_answers.dart';
 
 sealed class ProfileInfoState {
   const ProfileInfoState();
@@ -14,7 +14,7 @@ final class ProfileInfoLoading extends ProfileInfoState {
 
 final class ProfileInfoLoaded extends ProfileInfoState {
   const ProfileInfoLoaded(this.answers);
-  final List<IntakeAnswer> answers;
+  final List<ClientAnswer> answers;
 }
 
 final class ProfileInfoError extends ProfileInfoState {

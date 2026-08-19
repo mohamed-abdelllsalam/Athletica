@@ -14,9 +14,20 @@ final class LoginSuccess extends AuthState {
 
 final class RegisterSuccess extends AuthState {}
 
+final class VerificationLoading extends AuthState {}
+
+final class VerificationSuccess extends AuthState {}
+
+final class VerificationCodeResent extends AuthState {}
+
 final class AuthStatusChecked extends AuthState {
   final AuthStatus status;
   AuthStatusChecked(this.status);
+}
+
+final class EmailVerificationRequired extends AuthState {
+  final String message;
+  EmailVerificationRequired(this.message);
 }
 
 final class AuthFailureState extends AuthState {

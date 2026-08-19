@@ -3,7 +3,9 @@ import 'package:athletica/features/auth/presentation/views/otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/reset_password_view.dart';
 import 'package:athletica/features/auth/presentation/views/role_selection_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
+import 'package:athletica/features/auth/presentation/views/sign_up_email_verification_otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_up_view.dart';
+import 'package:athletica/features/auth/presentation/views/verify_your_identity_view.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_active_clients_view.dart';
@@ -142,6 +144,16 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       final selectedRole = settings.arguments as String? ?? 'Client';
       return MaterialPageRoute(
         builder: (context) => SignUpView(selectedRole: selectedRole),
+      );
+    case VerifyYourIdentityView.routeName:
+      final email = settings.arguments as String? ?? '';
+      return MaterialPageRoute(
+        builder: (context) => VerifyYourIdentityView(email: email),
+      );
+    case SignUpEmailVerificationOtpView.routeName:
+      final email = settings.arguments as String? ?? '';
+      return MaterialPageRoute(
+        builder: (context) => SignUpEmailVerificationOtpView(email: email),
       );
     case ResetPasswordView.routeName:
       return MaterialPageRoute(builder: (context) => const ResetPasswordView());

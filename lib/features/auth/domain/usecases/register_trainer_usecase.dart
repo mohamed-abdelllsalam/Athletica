@@ -7,13 +7,11 @@ class RegisterTrainerUseCase {
 
   Future<ApiResult<void>> call({
     required String name,
-    required String phone,
     required String email,
     required String password,
   }) {
     return _repository.registerTrainer(
       name: name,
-      phone: phone,
       email: email,
       password: password,
     );

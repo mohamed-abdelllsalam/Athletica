@@ -8,6 +8,8 @@ import 'package:athletica/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/mark_profile_complete_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_client_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_trainer_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/resend_verification_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/verify_email_usecase.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/coach/clients/data/datasources/coach_clients_remote_data_source.dart';
 import 'package:athletica/features/coach/clients/data/repositories/coach_clients_repository_impl.dart';
@@ -55,9 +57,9 @@ import 'package:athletica/features/complete_profile/presentation/cubits/complete
 import 'package:athletica/features/info/data/datasources/info_remote_data_source.dart';
 import 'package:athletica/features/info/data/repositories/info_repository_impl.dart';
 import 'package:athletica/features/info/domain/repositories/info_repository.dart';
-import 'package:athletica/features/info/domain/usecases/get_client_intake_answers_usecase.dart';
-import 'package:athletica/features/info/domain/usecases/get_intake_questions_usecase.dart';
-import 'package:athletica/features/info/domain/usecases/submit_intake_answers_usecase.dart';
+import 'package:athletica/features/info/domain/usecases/get_client_answers_usecase.dart';
+import 'package:athletica/features/info/domain/usecases/get_client_questions_usecase.dart';
+import 'package:athletica/features/info/domain/usecases/submit_client_answers_usecase.dart';
 import 'package:athletica/features/info/presentation/cubits/info_cubit.dart';
 import 'package:athletica/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:athletica/features/profile/data/repositories/profile_repository_impl.dart';
@@ -119,9 +121,7 @@ void setupDependencies() {
   sl.registerLazySingleton<CoachInviteRepository>(
     () => CoachInviteRepositoryImpl(sl()),
   );
-  sl.registerLazySingleton<FoodsRepository>(
-    () => FoodsRepositoryImpl(sl()),
-  );
+  sl.registerLazySingleton<FoodsRepository>(() => FoodsRepositoryImpl(sl()));
   sl.registerLazySingleton<WorkoutTemplatesRepository>(
     () => WorkoutTemplatesRepositoryImpl(sl()),
   );
@@ -133,12 +133,14 @@ void setupDependencies() {
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterClientUseCase(sl()));
   sl.registerLazySingleton(() => RegisterTrainerUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyEmailUseCase(sl()));
+  sl.registerLazySingleton(() => ResendVerificationUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
   sl.registerLazySingleton(() => MarkProfileCompleteUseCase(sl()));
-  sl.registerLazySingleton(() => GetIntakeQuestionsUseCase(sl()));
-  sl.registerLazySingleton(() => SubmitIntakeAnswersUseCase(sl()));
-  sl.registerLazySingleton(() => GetClientIntakeAnswersUseCase(sl()));
+  sl.registerLazySingleton(() => GetClientQuestionsUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitClientAnswersUseCase(sl()));
+  sl.registerLazySingleton(() => GetClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
@@ -161,6 +163,8 @@ void setupDependencies() {
       loginUseCase: sl(),
       registerClientUseCase: sl(),
       registerTrainerUseCase: sl(),
+      verifyEmailUseCase: sl(),
+      resendVerificationUseCase: sl(),
       logoutUseCase: sl(),
       checkAuthStatusUseCase: sl(),
     ),
@@ -168,7 +172,7 @@ void setupDependencies() {
   sl.registerFactory(() => SplashCubit(sl()));
   sl.registerFactory(() => CompleteProfileCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
-  sl.registerFactory(() => InfoCubit(sl(), sl()));
+  sl.registerFactory(() => InfoCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileCubit(sl()));
   sl.registerFactory(() => CoachProfileCubit(sl()));
   sl.registerFactory(() => CoachClientsCubit(sl()));
