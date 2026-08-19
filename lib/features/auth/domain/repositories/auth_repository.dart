@@ -10,17 +10,22 @@ abstract class AuthRepository {
 
   Future<ApiResult<void>> registerClient({
     required String name,
-    required String phone,
     required String email,
     required String password,
   });
 
   Future<ApiResult<void>> registerTrainer({
     required String name,
-    required String phone,
     required String email,
     required String password,
   });
+
+  Future<ApiResult<void>> verifyEmail({
+    required String email,
+    required String code,
+  });
+
+  Future<ApiResult<void>> resendVerification({required String email});
 
   Future<ApiResult<void>> logout();
 

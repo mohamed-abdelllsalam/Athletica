@@ -1,3 +1,5 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 enum Flavor { dev, prod }
 
 class AppConfig {
@@ -15,15 +17,26 @@ class AppConfig {
 
   factory AppConfig.dev() => AppConfig._(
         flavor: Flavor.dev,
-        baseUrl: 'https://athletica-bakend-36ndq12fr-athletica.vercel.app/api/v1/',
-        appName: 'Athletica Dev',
+        baseUrl: _envValue(
+          'BASE_URL',
+          fallback: 'https://athletica-bakend.vercel.app/api/v1/',
+        ),
+        appName: _envValue('APP_NAME', fallback: 'Athletica Dev'),
       );
 
   factory AppConfig.prod() => AppConfig._(
         flavor: Flavor.prod,
-        baseUrl: 'https://athletica-bakend-36ndq12fr-athletica.vercel.app/api/v1/',
-        appName: 'Athletica',
+        baseUrl: _envValue(
+          'BASE_URL',
+          fallback: 'https://athletica-bakend.vercel.app/api/v1/',
+        ),
+        appName: _envValue('APP_NAME', fallback: 'Athletica'),
       );
+
+  static String _envValue(String key, {required String fallback}) {
+    final value = dotenv.maybeGet(key);
+    return (value == null || value.trim().isEmpty) ? fallback : value;
+  }
 
   bool get isDev => flavor == Flavor.dev;
   bool get isProd => flavor == Flavor.prod;

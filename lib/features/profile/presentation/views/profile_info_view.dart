@@ -32,7 +32,7 @@ class _ProfileInfoViewState extends State<ProfileInfoView> {
     if (_requestedLoad) return;
     if (state is ProfileLoaded) {
       _requestedLoad = true;
-      _infoCubit.loadAnswers(state.profile.clientId);
+      _infoCubit.loadAnswers();
     }
   }
 

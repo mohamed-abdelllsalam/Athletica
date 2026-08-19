@@ -1,14 +1,14 @@
 import 'package:athletica/core/network/api_endpoints.dart';
-import 'package:athletica/features/info/data/models/client_intake_answers_model.dart';
-import 'package:athletica/features/info/data/models/intake_section_model.dart';
-import 'package:athletica/features/info/domain/entities/intake_answer.dart';
-import 'package:athletica/features/info/domain/entities/intake_section.dart';
+import 'package:athletica/features/info/data/models/client_answers_model.dart';
+import 'package:athletica/features/info/data/models/client_question_model.dart';
+import 'package:athletica/features/info/domain/entities/client_answers.dart';
+import 'package:athletica/features/info/domain/entities/client_question.dart';
 import 'package:dio/dio.dart';
 
 abstract class InfoRemoteDataSource {
-  Future<List<IntakeSection>> getQuestions();
-  Future<void> submitAnswers(Map<String, dynamic> answers);
-  Future<ClientIntakeAnswers> getClientAnswers(String clientId);
+  Future<List<ClientQuestion>> getQuestions();
+  Future<void> submitAnswers(Map<String, int> answers);
+  Future<ClientAnswers> getClientAnswers();
 }
 
 class InfoRemoteDataSourceImpl implements InfoRemoteDataSource {
@@ -17,29 +17,27 @@ class InfoRemoteDataSourceImpl implements InfoRemoteDataSource {
   final Dio _dio;
 
   @override
-  Future<List<IntakeSection>> getQuestions() async {
-    final response = await _dio.get(ApiEndpoints.clientIntakeQuestions);
-    final data = response.data['data'] as Map<String, dynamic>;
-    final pages = data['pages'] as List<dynamic>;
-    return pages
-        .map((s) => IntakeSectionModel.fromJson(s as Map<String, dynamic>))
+  Future<List<ClientQuestion>> getQuestions() async {
+    final response = await _dio.get(ApiEndpoints.clientQuestions);
+    final data = response.data as Map<String, dynamic>;
+    final questions = data['questions'] as List<dynamic>? ?? const [];
+    return questions
+        .map((q) => ClientQuestionModel.fromJson(q as Map<String, dynamic>))
         .toList();
   }
 
   @override
-  Future<void> submitAnswers(Map<String, dynamic> answers) async {
-    await _dio.post(
-      ApiEndpoints.clientIntakeAnswers,
-      data: {'answers': answers},
-    );
+  Future<void> submitAnswers(Map<String, int> answers) async {
+    final payload = answers.entries
+        .map((e) => {'question_id': e.key, 'answer': e.value})
+        .toList();
+    await _dio.post(ApiEndpoints.clientAnswers, data: {'answers': payload});
   }
 
   @override
-  Future<ClientIntakeAnswers> getClientAnswers(String clientId) async {
-    final response = await _dio.get(
-      ApiEndpoints.clientIntakeAnswersByClient(clientId),
-    );
-    final data = response.data['data'] as Map<String, dynamic>;
-    return ClientIntakeAnswersModel.fromJson(data);
+  Future<ClientAnswers> getClientAnswers() async {
+    final response = await _dio.get(ApiEndpoints.clientAnswers);
+    final data = response.data as Map<String, dynamic>;
+    return ClientAnswersModel.fromJson(data);
   }
 }

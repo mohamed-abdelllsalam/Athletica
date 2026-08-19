@@ -26,11 +26,10 @@ class AuthRepositoryImpl implements AuthRepository {
       await TokenStorageService.instance.clearAll();
       await TokenStorageService.instance.saveToken(entity.token);
       await TokenStorageService.instance.saveRole(entity.user.primaryRole);
-      if (entity.user.clientId != null) {
-        await TokenStorageService.instance.saveClientId(entity.user.clientId!);
-      }
       if (entity.user.primaryRole == 'TRAINER') {
         await TokenStorageService.instance.saveTrainerId(entity.user.id);
+      } else {
+        await TokenStorageService.instance.saveClientId(entity.user.id);
       }
       return ApiSuccess(entity);
     } on DioException catch (e) {
@@ -43,16 +42,15 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<void>> registerClient({
     required String name,
-    required String phone,
     required String email,
     required String password,
   }) async {
     try {
-      await _remoteDataSource.registerClient(
-        name: name,
-        phone: phone,
+      await _remoteDataSource.signup(
+        username: name,
         email: email,
         password: password,
+        role: 'client',
       );
       return const ApiSuccess(null);
     } on DioException catch (e) {
@@ -65,17 +63,43 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<void>> registerTrainer({
     required String name,
-    required String phone,
     required String email,
     required String password,
   }) async {
     try {
-      await _remoteDataSource.registerTrainer(
-        name: name,
-        phone: phone,
+      await _remoteDataSource.signup(
+        username: name,
         email: email,
         password: password,
+        role: 'coach',
       );
+      return const ApiSuccess(null);
+    } on DioException catch (e) {
+      return ApiError(_mapDioError(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      await _remoteDataSource.verifyEmail(email: email, code: code);
+      return const ApiSuccess(null);
+    } on DioException catch (e) {
+      return ApiError(_mapDioError(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> resendVerification({required String email}) async {
+    try {
+      await _remoteDataSource.resendVerification(email: email);
       return const ApiSuccess(null);
     } on DioException catch (e) {
       return ApiError(_mapDioError(e));
@@ -87,11 +111,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<void>> logout() async {
     try {
-      await _remoteDataSource.logout();
       await TokenStorageService.instance.clearAll();
       return const ApiSuccess(null);
-    } on DioException catch (e) {
-      return ApiError(_mapDioError(e));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
     }
@@ -112,11 +133,8 @@ class AuthRepositoryImpl implements AuthRepository {
     // CLIENT: check local cache first, then verify with API
     bool isComplete = await TokenStorageService.instance.isProfileComplete();
     if (!isComplete) {
-      final clientId = await TokenStorageService.instance.getClientId();
-      if (clientId != null) {
-        isComplete = await _remoteDataSource.hasSubmittedIntakeAnswers(clientId);
-        if (isComplete) await TokenStorageService.instance.saveProfileComplete();
-      }
+      isComplete = await _remoteDataSource.hasSubmittedClientAnswers();
+      if (isComplete) await TokenStorageService.instance.saveProfileComplete();
     }
     return isComplete ? const ClientReady() : const ClientProfileIncomplete();
   }
@@ -146,6 +164,9 @@ class AuthRepositoryImpl implements AuthRepository {
               'Something went wrong.')
         : 'Something went wrong. Please try again.';
 
+    if (message.toLowerCase().contains('verify your email')) {
+      return EmailNotVerifiedFailure(message);
+    }
     if (statusCode == 401) return UnauthorizedFailure(message);
     return ServerFailure(message);
   }

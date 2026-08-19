@@ -2,6 +2,7 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
+import 'package:athletica/features/auth/presentation/views/sign_up_email_verification_otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_passwor_field.dart';
@@ -71,6 +72,18 @@ class _SignInViewBodyState extends State<SignInViewBody> {
           context.read<AuthCubit>().checkAuthStatus();
         } else if (state is AuthStatusChecked) {
           _navigateByStatus(context, state.status);
+        } else if (state is EmailVerificationRequired) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+          Navigator.pushNamed(
+            context,
+            SignUpEmailVerificationOtpView.routeName,
+            arguments: email,
+          );
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

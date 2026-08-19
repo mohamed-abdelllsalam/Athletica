@@ -1,4 +1,4 @@
-﻿name: athletica
+name: athletica
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -39,6 +39,7 @@ dependencies:
   flutter_svg: ^2.2.4
   get_it: ^8.0.3
   shared_preferences: ^2.5.3
+  flutter_dotenv: ^6.0.1
 
 dev_dependencies:
   flutter_lints: ^6.0.0
@@ -67,6 +68,8 @@ flutter:
     - assets/images/plan/
     - assets/images/on_boarding/
     - assets/fonts/
+    - .env.dev
+    - .env.prod
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
   # For details regarding adding assets from package dependencies, see
