@@ -46,4 +46,28 @@ class CoachProfileEntity {
   final String userId;
   final TrainerUserEntity user;
   final TrainerProfileEntity profile;
+
+  static const CoachProfileEntity mock = CoachProfileEntity(
+    userId: '1',
+    user: TrainerUserEntity(
+      id: '1',
+      name: 'Mohamed Ahmed',
+      phone: '1234567890',
+      email: 'mohamed12@gmail.com',
+      profileImage: null,
+      isVerified: true,
+    ),
+    profile: TrainerProfileEntity(
+      id: '1',
+      trainerId: '1',
+      bio:
+          'Certified fitness coach with 5+ years of experience helping clients '
+          'reach their strength and fitness goals through personalized training '
+          'and nutrition plans.',
+      certifications: 'Certified Personal Trainer (CPT)',
+      yearsExperience: 5,
+      rating: 4.8,
+      isVerified: true,
+    ),
+  );
 }

@@ -20,6 +20,17 @@ final class VerificationSuccess extends AuthState {}
 
 final class VerificationCodeResent extends AuthState {}
 
+final class ResetRequestLoading extends AuthState {}
+
+final class ResetRequestSuccess extends AuthState {
+  final String message;
+  ResetRequestSuccess(this.message);
+}
+
+final class ResetConfirmLoading extends AuthState {}
+
+final class ResetPasswordSuccess extends AuthState {}
+
 final class AuthStatusChecked extends AuthState {
   final AuthStatus status;
   AuthStatusChecked(this.status);

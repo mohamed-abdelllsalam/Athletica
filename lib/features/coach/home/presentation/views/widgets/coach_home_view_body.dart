@@ -12,7 +12,6 @@ import 'package:athletica/features/coach/home/presentation/views/widgets/coach_h
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_insights_section.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_stats_grid.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_plan_view_body.dart';
-import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_profile_view_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -128,13 +127,8 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
                   child: const CoachClientsViewBody(),
                 ),
                 const CoachPlanViewBody(),
-                MultiBlocProvider(
-                  providers: [
-                    BlocProvider(create: (_) => sl<AuthCubit>()),
-                    BlocProvider(
-                      create: (_) => sl<CoachProfileCubit>()..loadProfile(),
-                    ),
-                  ],
+                BlocProvider(
+                  create: (_) => sl<AuthCubit>(),
                   child: const CoachProfileViewBody(),
                 ),
               ],

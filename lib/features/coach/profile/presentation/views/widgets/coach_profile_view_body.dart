@@ -3,8 +3,6 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/coach/profile/domain/entities/coach_profile_entity.dart';
-import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
-import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_state.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_edit_profile_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_certificate_item.dart';
 import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_profile_info_row.dart';
@@ -15,6 +13,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachProfileViewBody extends StatelessWidget {
   const CoachProfileViewBody({super.key});
+
+  static const CoachProfileEntity _profile = CoachProfileEntity.mock;
 
   @override
   Widget build(BuildContext context) {
@@ -37,23 +37,7 @@ class CoachProfileViewBody extends StatelessWidget {
       },
       builder: (context, authState) {
         final isLoggingOut = authState is AuthLoading;
-        return BlocBuilder<CoachProfileCubit, CoachProfileState>(
-          builder: (context, profileState) {
-            return switch (profileState) {
-              CoachProfileLoading() || CoachProfileInitial() =>
-                const Center(child: CircularProgressIndicator()),
-              CoachProfileError(:final message) => _ErrorBody(
-                  message: message,
-                  onRetry: () =>
-                      context.read<CoachProfileCubit>().loadProfile(forceRefresh: true),
-                ),
-              CoachProfileLoaded(:final profile) => _ProfileBody(
-                  profile: profile,
-                  isLoggingOut: isLoggingOut,
-                ),
-            };
-          },
-        );
+        return _ProfileBody(profile: _profile, isLoggingOut: isLoggingOut);
       },
     );
   }
@@ -241,37 +225,6 @@ class _ProfileBody extends StatelessWidget {
                 .copyWith(color: AppColors.textSecondary),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ErrorBody extends StatelessWidget {
-  const _ErrorBody({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48.sp, color: Colors.red),
-            SizedBox(height: 16.h),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.regular13(context)
-                  .copyWith(color: AppColors.textSecondary),
-            ),
-            SizedBox(height: 16.h),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
       ),
     );
   }
