@@ -19,6 +19,14 @@ abstract class AuthRemoteDataSource {
 
   Future<void> resendVerification({required String email});
 
+  Future<String> requestPasswordReset({required String email});
+
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String password,
+  });
+
   Future<bool> hasSubmittedClientAnswers();
 }
 
@@ -71,6 +79,31 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> resendVerification({required String email}) async {
     await _dio.post(ApiEndpoints.resendVerification, data: {'email': email});
+  }
+
+  @override
+  Future<String> requestPasswordReset({required String email}) async {
+    final response = await _dio.post(
+      ApiEndpoints.requestPasswordReset,
+      data: {'email': email},
+    );
+    final data = response.data;
+    if (data is Map<String, dynamic> && data['message'] is String) {
+      return data['message'] as String;
+    }
+    return '';
+  }
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String password,
+  }) async {
+    await _dio.post(
+      ApiEndpoints.confirmPasswordReset,
+      data: {'email': email, 'code': code, 'password': password},
+    );
   }
 
   @override

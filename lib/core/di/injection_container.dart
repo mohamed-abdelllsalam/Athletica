@@ -3,11 +3,13 @@ import 'package:athletica/features/auth/data/datasources/auth_remote_data_source
 import 'package:athletica/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:athletica/features/auth/domain/repositories/auth_repository.dart';
 import 'package:athletica/features/auth/domain/usecases/check_auth_status_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/confirm_password_reset_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/login_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/mark_profile_complete_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_client_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_trainer_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/request_password_reset_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/resend_verification_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/verify_email_usecase.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
@@ -24,11 +26,6 @@ import 'package:athletica/features/coach/home/domain/usecases/create_coach_invit
 import 'package:athletica/features/coach/home/domain/usecases/get_coach_home_stats_usecase.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_home_stats_cubit.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_cubit.dart';
-import 'package:athletica/features/coach/profile/data/datasources/coach_profile_remote_data_source.dart';
-import 'package:athletica/features/coach/profile/data/repositories/coach_profile_repository_impl.dart';
-import 'package:athletica/features/coach/profile/domain/repositories/coach_profile_repository.dart';
-import 'package:athletica/features/coach/profile/domain/usecases/get_coach_profile_usecase.dart';
-import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/plan/data/datasources/foods_remote_data_source.dart';
 import 'package:athletica/features/coach/plan/data/repositories/foods_repository_impl.dart';
 import 'package:athletica/features/coach/plan/domain/repositories/foods_repository.dart';
@@ -87,9 +84,6 @@ void setupDependencies() {
   sl.registerLazySingleton<ProfileRemoteDataSource>(
     () => ProfileRemoteDataSourceImpl(sl()),
   );
-  sl.registerLazySingleton<CoachProfileRemoteDataSource>(
-    () => CoachProfileRemoteDataSourceImpl(sl()),
-  );
   sl.registerLazySingleton<CoachClientsRemoteDataSource>(
     () => CoachClientsRemoteDataSourceImpl(sl()),
   );
@@ -112,9 +106,6 @@ void setupDependencies() {
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(sl()),
   );
-  sl.registerLazySingleton<CoachProfileRepository>(
-    () => CoachProfileRepositoryImpl(sl()),
-  );
   sl.registerLazySingleton<CoachClientsRepository>(
     () => CoachClientsRepositoryImpl(sl()),
   );
@@ -135,6 +126,8 @@ void setupDependencies() {
   sl.registerLazySingleton(() => RegisterTrainerUseCase(sl()));
   sl.registerLazySingleton(() => VerifyEmailUseCase(sl()));
   sl.registerLazySingleton(() => ResendVerificationUseCase(sl()));
+  sl.registerLazySingleton(() => RequestPasswordResetUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmPasswordResetUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
   sl.registerLazySingleton(() => MarkProfileCompleteUseCase(sl()));
@@ -142,7 +135,6 @@ void setupDependencies() {
   sl.registerLazySingleton(() => SubmitClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
-  sl.registerLazySingleton(() => GetCoachProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
   sl.registerLazySingleton(() => CreateCoachInviteCodeUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachHomeStatsUseCase(sl()));
@@ -165,6 +157,8 @@ void setupDependencies() {
       registerTrainerUseCase: sl(),
       verifyEmailUseCase: sl(),
       resendVerificationUseCase: sl(),
+      requestPasswordResetUseCase: sl(),
+      confirmPasswordResetUseCase: sl(),
       logoutUseCase: sl(),
       checkAuthStatusUseCase: sl(),
     ),
@@ -174,7 +168,6 @@ void setupDependencies() {
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileCubit(sl()));
-  sl.registerFactory(() => CoachProfileCubit(sl()));
   sl.registerFactory(() => CoachClientsCubit(sl()));
   sl.registerFactory(() => CoachInviteCubit(sl()));
   sl.registerFactory(() => CoachHomeStatsCubit(sl()));

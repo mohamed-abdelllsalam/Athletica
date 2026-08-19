@@ -1,10 +1,12 @@
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/auth/domain/usecases/check_auth_status_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/confirm_password_reset_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/login_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_client_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_trainer_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/request_password_reset_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/resend_verification_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/verify_email_usecase.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
@@ -16,6 +18,8 @@ class AuthCubit extends Cubit<AuthState> {
   final RegisterTrainerUseCase _registerTrainerUseCase;
   final VerifyEmailUseCase _verifyEmailUseCase;
   final ResendVerificationUseCase _resendVerificationUseCase;
+  final RequestPasswordResetUseCase _requestPasswordResetUseCase;
+  final ConfirmPasswordResetUseCase _confirmPasswordResetUseCase;
   final LogoutUseCase _logoutUseCase;
   final CheckAuthStatusUseCase _checkAuthStatusUseCase;
 
@@ -25,6 +29,8 @@ class AuthCubit extends Cubit<AuthState> {
     required RegisterTrainerUseCase registerTrainerUseCase,
     required VerifyEmailUseCase verifyEmailUseCase,
     required ResendVerificationUseCase resendVerificationUseCase,
+    required RequestPasswordResetUseCase requestPasswordResetUseCase,
+    required ConfirmPasswordResetUseCase confirmPasswordResetUseCase,
     required LogoutUseCase logoutUseCase,
     required CheckAuthStatusUseCase checkAuthStatusUseCase,
   })  : _loginUseCase = loginUseCase,
@@ -32,6 +38,8 @@ class AuthCubit extends Cubit<AuthState> {
         _registerTrainerUseCase = registerTrainerUseCase,
         _verifyEmailUseCase = verifyEmailUseCase,
         _resendVerificationUseCase = resendVerificationUseCase,
+        _requestPasswordResetUseCase = requestPasswordResetUseCase,
+        _confirmPasswordResetUseCase = confirmPasswordResetUseCase,
         _logoutUseCase = logoutUseCase,
         _checkAuthStatusUseCase = checkAuthStatusUseCase,
         super(AuthInitial());
@@ -112,6 +120,36 @@ class AuthCubit extends Cubit<AuthState> {
     switch (result) {
       case ApiSuccess():
         emit(VerificationCodeResent());
+      case ApiError(:final failure):
+        emit(AuthFailureState(failure.message));
+    }
+  }
+
+  Future<void> requestPasswordReset({required String email}) async {
+    emit(ResetRequestLoading());
+    final result = await _requestPasswordResetUseCase(email: email);
+    switch (result) {
+      case ApiSuccess(:final data):
+        emit(ResetRequestSuccess(data));
+      case ApiError(:final failure):
+        emit(AuthFailureState(failure.message));
+    }
+  }
+
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String password,
+  }) async {
+    emit(ResetConfirmLoading());
+    final result = await _confirmPasswordResetUseCase(
+      email: email,
+      code: code,
+      password: password,
+    );
+    switch (result) {
+      case ApiSuccess():
+        emit(ResetPasswordSuccess());
       case ApiError(:final failure):
         emit(AuthFailureState(failure.message));
     }

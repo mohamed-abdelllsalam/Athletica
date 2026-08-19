@@ -1,7 +1,9 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/validation_utils.dart';
 import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
+import 'package:athletica/features/auth/presentation/views/reset_password_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_up_email_verification_otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
@@ -51,16 +53,28 @@ class _SignInViewBodyState extends State<SignInViewBody> {
         );
       case ClientProfileIncomplete():
         Navigator.pushNamedAndRemoveUntil(
-            context, InfoView.routeName, (_) => false);
+          context,
+          InfoView.routeName,
+          (_) => false,
+        );
       case CoachProfileIncomplete():
         Navigator.pushNamedAndRemoveUntil(
-            context, CoachCompleteProfileView.routeName, (_) => false);
+          context,
+          CoachCompleteProfileView.routeName,
+          (_) => false,
+        );
       case ClientReady():
         Navigator.pushNamedAndRemoveUntil(
-            context, HomeView.routeName, (_) => false);
+          context,
+          HomeView.routeName,
+          (_) => false,
+        );
       case CoachReady():
         Navigator.pushNamedAndRemoveUntil(
-            context, CoachHomeView.routeName, (_) => false);
+          context,
+          CoachHomeView.routeName,
+          (_) => false,
+        );
     }
   }
 
@@ -74,10 +88,7 @@ class _SignInViewBodyState extends State<SignInViewBody> {
           _navigateByStatus(context, state.status);
         } else if (state is EmailVerificationRequired) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
           Navigator.pushNamed(
             context,
@@ -86,10 +97,7 @@ class _SignInViewBodyState extends State<SignInViewBody> {
           );
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -139,12 +147,7 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                           labelText: 'Email',
                           hintText: 'Enter your email',
                           keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || !value.contains('@')) {
-                              return 'Enter a valid email';
-                            }
-                            return null;
-                          },
+                          validator: validateEmail,
                         ),
                         SizedBox(height: 30.h),
                         CustomPasswordField(
@@ -177,7 +180,12 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                       ),
                       const Spacer(),
                       GestureDetector(
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            ResetPasswordView.routeName,
+                          );
+                        },
                         child: Text(
                           'Forgot Password?',
                           style: AppTextStyles.semiBold15(

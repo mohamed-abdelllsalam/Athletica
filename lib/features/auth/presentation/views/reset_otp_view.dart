@@ -1,15 +1,14 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
-import 'package:athletica/features/auth/presentation/views/widgets/new_password_view_body.dart';
+import 'package:athletica/features/auth/presentation/views/widgets/reset_otp_view_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class NewPasswordView extends StatelessWidget {
-  const NewPasswordView({super.key, required this.email, required this.code});
-  static const String routeName = 'new_password_view';
+class ResetOtpView extends StatelessWidget {
+  const ResetOtpView({super.key, this.email = ''});
 
   final String email;
-  final String code;
+  static const String routeName = 'reset-otp';
 
   @override
   Widget build(BuildContext context) {
@@ -18,15 +17,17 @@ class NewPasswordView extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
+          backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+            ),
           ),
         ),
-        body: NewPasswordViewBody(email: email, code: code),
+        body: ResetOtpViewBody(email: email),
       ),
     );
   }

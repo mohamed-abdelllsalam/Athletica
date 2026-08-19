@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/validation_utils.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
@@ -35,19 +36,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
   }
 
   bool agreeToTerms = false;
-
-  String? validatePassword(String? value) {
-    final password = value ?? '';
-    final hasMinLength = password.length >= 8;
-    final hasUppercase = password.contains(RegExp(r'[A-Z]'));
-    final hasNumber = password.contains(RegExp(r'[0-9]'));
-    final hasSpecialChar = password.contains(RegExp(r'[!@#\$&*~]'));
-
-    if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecialChar) {
-      return '8+ chars, uppercase, number & special char';
-    }
-    return null;
-  }
 
   void _submit(BuildContext context) {
     if (!formKey.currentState!.validate()) {
@@ -167,12 +155,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                           keyboardType: TextInputType.emailAddress,
                           labelText: 'Email',
                           textInputAction: TextInputAction.next,
-                          validator: (value) {
-                            if (value == null || !value.contains('@')) {
-                              return 'Enter a valid email';
-                            }
-                            return null;
-                          },
+                          validator: validateEmail,
                         ),
                         const SizedBox(height: 16),
                         CustomFormTextField(

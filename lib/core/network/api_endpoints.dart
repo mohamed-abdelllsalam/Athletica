@@ -9,6 +9,8 @@ class ApiEndpoints {
   static const String verifyEmail = 'auth/verify-email';
   static const String resendVerification = 'auth/resend-verification';
   static const String login = 'auth/login';
+  static const String requestPasswordReset = 'auth/reset-password';
+  static const String confirmPasswordReset = 'auth/reset-password/confirm';
   static const String clientQuestions = 'client/questions';
   static const String clientAnswers = 'client/answers';
   static const String clientProfile = 'client-profiles/me';

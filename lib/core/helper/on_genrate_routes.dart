@@ -1,5 +1,5 @@
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
-import 'package:athletica/features/auth/presentation/views/otp_view.dart';
+import 'package:athletica/features/auth/presentation/views/reset_otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/reset_password_view.dart';
 import 'package:athletica/features/auth/presentation/views/role_selection_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
@@ -157,10 +157,19 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       );
     case ResetPasswordView.routeName:
       return MaterialPageRoute(builder: (context) => const ResetPasswordView());
-    case OtpView.routeName:
-      return MaterialPageRoute(builder: (context) => const OtpView());
+    case ResetOtpView.routeName:
+      final email = settings.arguments as String? ?? '';
+      return MaterialPageRoute(
+        builder: (context) => ResetOtpView(email: email),
+      );
     case NewPasswordView.routeName:
-      return MaterialPageRoute(builder: (context) => const NewPasswordView());
+      final args = settings.arguments! as ({String email, String code});
+      return MaterialPageRoute(
+        builder: (context) => NewPasswordView(
+          email: args.email,
+          code: args.code,
+        ),
+      );
     case InfoView.routeName:
       return MaterialPageRoute(builder: (context) => const InfoView());
     case HomeView.routeName:

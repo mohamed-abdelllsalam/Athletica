@@ -109,6 +109,40 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<ApiResult<String>> requestPasswordReset({
+    required String email,
+  }) async {
+    try {
+      final message = await _remoteDataSource.requestPasswordReset(email: email);
+      return ApiSuccess(message);
+    } on DioException catch (e) {
+      return ApiError(_mapDioError(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String password,
+  }) async {
+    try {
+      await _remoteDataSource.confirmPasswordReset(
+        email: email,
+        code: code,
+        password: password,
+      );
+      return const ApiSuccess(null);
+    } on DioException catch (e) {
+      return ApiError(_mapConfirmResetError(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<ApiResult<void>> logout() async {
     try {
       await TokenStorageService.instance.clearAll();
@@ -149,6 +183,58 @@ class AuthRepositoryImpl implements AuthRepository {
     return null;
   }
 
+  String? _extractBackendMessage(Map<String, dynamic> data) {
+    final message = _extractMessage(data['message']);
+    if (message != null) return message;
+
+    final details = data['details'];
+    if (details is List && details.isNotEmpty) {
+      return details.map((detail) => detail.toString()).join(', ');
+    }
+
+    final error = _extractMessage(data['error']);
+    if (error != null && error.toLowerCase() != 'validation failed') {
+      return error;
+    }
+    return null;
+  }
+
+  AppFailure _mapConfirmResetError(DioException e) {
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionError) {
+      return const NetworkFailure('No internet connection. Please try again.');
+    }
+
+    final statusCode = e.response?.statusCode;
+    if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+      final data = e.response?.data;
+      final message = data is Map<String, dynamic>
+          ? _extractBackendMessage(data)
+          : null;
+      if (message != null) {
+        final lower = message.toLowerCase();
+        if (lower.contains('expired')) {
+          return const ServerFailure(
+            'This verification code has expired. Please request a new code.',
+          );
+        }
+        if (lower.contains('incorrect') ||
+            lower.contains('invalid') ||
+            lower.contains('wrong')) {
+          return const ServerFailure(
+            'The verification code is incorrect. Please try again.',
+          );
+        }
+        return ServerFailure(message);
+      }
+      return const ServerFailure(
+        'The verification code is incorrect. Please try again.',
+      );
+    }
+    return _mapDioError(e);
+  }
+
   AppFailure _mapDioError(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
@@ -159,9 +245,7 @@ class AuthRepositoryImpl implements AuthRepository {
     final statusCode = e.response?.statusCode;
     final data = e.response?.data;
     final message = data is Map<String, dynamic>
-        ? (_extractMessage(data['message']) ??
-              _extractMessage(data['error']) ??
-              'Something went wrong.')
+        ? (_extractBackendMessage(data) ?? 'Something went wrong.')
         : 'Something went wrong. Please try again.';
 
     if (message.toLowerCase().contains('verify your email')) {
