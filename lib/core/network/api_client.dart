@@ -26,17 +26,26 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await TokenStorageService.instance.getToken();
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          final isPublicAuth = ApiEndpoints.isPublicAuthPath(options.uri.path);
+          if (!isPublicAuth) {
+            final token = await TokenStorageService.instance.getToken();
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
           }
           handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode == 401) {
+          final requestOptions = error.requestOptions;
+          final wasAuthenticatedRequest =
+              requestOptions.headers['Authorization'] != null &&
+                  !ApiEndpoints.isPublicAuthPath(requestOptions.uri.path);
+          final isSessionExpired =
+              error.response?.statusCode == 401 && wasAuthenticatedRequest;
+          if (isSessionExpired) {
             await TokenStorageService.instance.clearAll();
             final context = appNavigatorKey.currentContext;
-            if (context != null) {
+            if (context != null && context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Session expired, please login again.'),

@@ -31,6 +31,15 @@ class _ResetOtpViewBodyState extends State<ResetOtpViewBody> {
   int _countdown = 50;
   bool _isResendEnabled = false;
 
+  _ResetOtpViewBodyState() {
+    for (var i = 0; i < _focusNodes.length; i++) {
+      final index = i;
+      _focusNodes[i] = FocusNode(
+        onKeyEvent: (_, event) => _handleOtpKeyEvent(event, index),
+      );
+    }
+  }
+
   String get otpValue => _controllers.map((controller) => controller.text).join();
   bool get isOtpComplete => otpValue.length == 6;
 
@@ -88,6 +97,18 @@ class _ResetOtpViewBodyState extends State<ResetOtpViewBody> {
     );
   }
 
+  KeyEventResult _handleOtpKeyEvent(KeyEvent event, int index) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.backspace &&
+        index > 0 &&
+        _controllers[index].text.isEmpty) {
+      _focusNodes[index - 1].requestFocus();
+      _selectAll(index - 1);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   void _onOtpChanged(String value, int index) {
     if (value.isEmpty) {
       if (index > 0) {
@@ -105,17 +126,13 @@ class _ResetOtpViewBodyState extends State<ResetOtpViewBody> {
       if (pasted.isEmpty) {
         return;
       }
-      final chars = pasted.split('');
-      for (int i = 0; i < 6; i++) {
-        if (i < chars.length) {
-          _controllers[i].text = chars[i];
-          _controllers[i].selection = TextSelection.collapsed(offset: 1);
-        } else {
-          _controllers[i].clear();
-        }
+      final maxChars = math.min(pasted.length, 6 - index);
+      for (int i = 0; i < maxChars; i++) {
+        _controllers[index + i].text = pasted[i];
+        _controllers[index + i].selection = TextSelection.collapsed(offset: 1);
       }
 
-      final nextIndex = math.min(chars.length, 5);
+      final nextIndex = math.min(index + maxChars, 5);
       _focusNodes[nextIndex].requestFocus();
       return;
     }
@@ -164,11 +181,11 @@ class _ResetOtpViewBodyState extends State<ResetOtpViewBody> {
         focusNode: _focusNodes[index],
         autofocus: index == 0,
         keyboardType: TextInputType.number,
+        autofillHints: const [AutofillHints.oneTimeCode],
         textAlign: TextAlign.center,
         textAlignVertical: TextAlignVertical.center,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(1),
         ],
         style: AppTextStyles.bold20(context).copyWith(color: Colors.white),
         decoration: InputDecoration(
@@ -266,11 +283,13 @@ class _ResetOtpViewBodyState extends State<ResetOtpViewBody> {
                 ),
                 const SizedBox(height: 28),
                 Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(
-                      6,
-                      (index) => _buildOtpDigitInput(index),
+                  child: AutofillGroup(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(
+                        6,
+                        (index) => _buildOtpDigitInput(index),
+                      ),
                     ),
                   ),
                 ),

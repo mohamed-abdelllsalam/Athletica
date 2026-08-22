@@ -11,6 +11,24 @@ class ApiEndpoints {
   static const String login = 'auth/login';
   static const String requestPasswordReset = 'auth/reset-password';
   static const String confirmPasswordReset = 'auth/reset-password/confirm';
+
+  static const List<String> publicAuthPaths = [
+    signup,
+    verifyEmail,
+    resendVerification,
+    login,
+    requestPasswordReset,
+    confirmPasswordReset,
+  ];
+
+  static bool isPublicAuthPath(String uriPath) {
+    final path = Uri.parse(uriPath).path;
+    return publicAuthPaths.any(
+      (endpoint) =>
+          path == endpoint || path == '/$endpoint' || path.endsWith('/$endpoint'),
+    );
+  }
+
   static const String clientQuestions = 'client/questions';
   static const String clientAnswers = 'client/answers';
   static const String clientProfile = 'client-profiles/me';
