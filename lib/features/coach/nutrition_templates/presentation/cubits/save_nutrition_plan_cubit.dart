@@ -46,7 +46,8 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
 
       final mealResult = await _addMeal(
         templateId,
-        mealType: meal.type,
+        // The required coach-entered name is persisted as backend meal_type.
+        mealType: meal.name,
         mealOrder: i + 1,
         notes: meal.notes,
       );

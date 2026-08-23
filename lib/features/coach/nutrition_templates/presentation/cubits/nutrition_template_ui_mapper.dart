@@ -23,13 +23,13 @@ class NutritionTemplateUiMapper {
       );
 
   Meal toMeal(NutritionTemplateMeal m) {
-    final label = capitalize(m.mealType);
+    // The backend has no separate meal-name field; meal_type carries the
+    // coach-entered name while the UI shows the positional "Meal N" label
+    // as a secondary header under it.
     return Meal(
       id: m.id,
-      type: label,
-      // The backend has no separate meal-name field; the label doubles as
-      // the local session name (see contract report).
-      name: label,
+      type: 'Meal ${m.mealOrder}',
+      name: capitalize(m.mealType),
       calories: m.totalCalories,
       proteinGrams: m.totalProtein,
       fatGrams: m.totalFat,

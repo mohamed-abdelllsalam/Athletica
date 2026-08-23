@@ -170,8 +170,11 @@ class _NutritionPlanDetailViewBodyState
     Navigator.pop(context, _buildPlan());
   }
 
-  Future<bool> _onWillPop() async {
-    if (!widget.isCreateMode) return true;
+  /// Leaving flow in create mode: Save and exit, or Discard.
+  Future<void> _exitWithResolution() async {
+    // Dismiss the keyboard first — otherwise it stays on top of and
+    // visually hides the dialog (name field is autofocus).
+    FocusScope.of(context).unfocus();
     final hasContent =
         _nameController.text.trim().isNotEmpty ||
         _descriptionController.text.trim().isNotEmpty ||
@@ -180,52 +183,70 @@ class _NutritionPlanDetailViewBodyState
         _fatController.text.trim().isNotEmpty ||
         _carbsController.text.trim().isNotEmpty ||
         _meals.isNotEmpty;
-    if (!hasContent) return true;
-    final discard = await showDialog<bool>(
+    if (!hasContent) {
+      Navigator.pop(context);
+      return;
+    }
+    final action = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
         title: Text(
-          'Discard changes?',
+          'Unsaved changes',
           style: AppTextStyles.semiBold14(
             context,
           ).copyWith(color: AppColors.textPrimary),
         ),
         content: Text(
-          'You have unsaved changes. Leave without saving?',
+          'Do you want to save your changes before leaving?',
           style: AppTextStyles.medium14(
             context,
           ).copyWith(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context, 'saveExit'),
             child: Text(
-              'Stay',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
+              'Save and exit',
+              style: AppTextStyles.medium14(context)
+                  .copyWith(color: AppColors.primaryBlue),
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, 'discard'),
             child: Text(
               'Discard',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.red),
+              style:
+                  AppTextStyles.medium14(context).copyWith(color: Colors.red),
             ),
           ),
         ],
       ),
     );
-    return discard ?? false;
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'saveExit':
+        // Validates name/description, then pops with the built plan.
+        _trySavePlan();
+      case 'discard':
+        Navigator.pop(context);
+    }
   }
 
   Future<void> _handleMealTap(Meal meal) async {
     final updatedMeal = await Navigator.push<Meal>(
       context,
-      MaterialPageRoute(builder: (_) => MealDetailView(meal: meal)),
+      MaterialPageRoute(
+        builder: (_) => MealDetailView(
+          meal: meal,
+          onDelete: () => _deleteMeal(meal),
+          // Saved templates persist edits in place; create mode can only
+          // hand the updated meal back as a route result.
+          onPersist: widget.isCreateMode
+              ? null
+              : (m) => context.read<TemplateDetailCubit>().applyMealEdits(m),
+        ),
+      ),
     );
     if (updatedMeal == null) return;
     if (!widget.isCreateMode) {
@@ -241,6 +262,16 @@ class _NutritionPlanDetailViewBodyState
         _meals[index] = updatedMeal;
       }
     });
+  }
+
+  /// Deletes a meal — locally in create mode, via
+  /// `DELETE /nutrition/templates/:id/meals/:mealId` for persisted ones.
+  void _deleteMeal(Meal meal) {
+    if (!widget.isCreateMode) {
+      context.read<TemplateDetailCubit>().deleteMeal(meal.id);
+      return;
+    }
+    setState(() => _meals.removeWhere((m) => m.id == meal.id));
   }
 
   @override
@@ -320,8 +351,7 @@ class _NutritionPlanDetailViewBodyState
       canPop: !widget.isCreateMode,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop || !widget.isCreateMode) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && context.mounted) Navigator.pop(context);
+        await _exitWithResolution();
       },
       child: Column(
         children: [
@@ -334,8 +364,7 @@ class _NutritionPlanDetailViewBodyState
                   Navigator.pop(context);
                   return;
                 }
-                final shouldPop = await _onWillPop();
-                if (shouldPop && context.mounted) Navigator.pop(context);
+                await _exitWithResolution();
               },
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -401,7 +430,10 @@ class _NutritionPlanDetailViewBodyState
                           ),
                           SizedBox(width: 4.w),
                           Text(
-                            '${int.tryParse(_caloriesController.text.trim()) ?? (widget.isCreateMode ? _mealsCalories : displayPlan.calories)} calories',
+                            // Create mode: always reflect the live meal
+                            // totals; Daily targets inputs stay as manual
+                            // targets saved with the plan.
+                            '${widget.isCreateMode ? _mealsCalories : displayPlan.calories} calories',
                             style: AppTextStyles.meduim12(
                               context,
                             ).copyWith(color: AppColors.textSecondary),
@@ -554,8 +586,16 @@ class _NutritionPlanDetailViewBodyState
                                 ),
                               ),
                         )
-                      : () =>
-                          context.read<TemplateDetailCubit>().addMeal(),
+                      : () => context.read<TemplateDetailCubit>().addMeal(),
+                  onReorder: widget.isCreateMode
+                      ? (oldIndex, newIndex) => setState(() {
+                            if (newIndex > oldIndex) newIndex -= 1;
+                            final meal = _meals.removeAt(oldIndex);
+                            _meals.insert(newIndex, meal);
+                          })
+                      : (oldIndex, newIndex) => context
+                          .read<TemplateDetailCubit>()
+                          .reorderMeals(oldIndex, newIndex),
                   onMealTap: (meal) {
                     _handleMealTap(meal);
                   },
@@ -750,6 +790,7 @@ class _OverviewTab extends StatelessWidget {
     required this.carbsController,
     required this.onMacrosChanged,
     required this.onAddMeal,
+    required this.onReorder,
     required this.onMealTap,
   });
 
@@ -764,6 +805,10 @@ class _OverviewTab extends StatelessWidget {
   final TextEditingController carbsController;
   final VoidCallback onMacrosChanged;
   final VoidCallback onAddMeal;
+
+  /// Drag & drop reorder: local list in create mode, backend
+  /// `PUT .../meals/reorder` for persisted templates.
+  final void Function(int oldIndex, int newIndex) onReorder;
   final ValueChanged<Meal> onMealTap;
 
   @override
@@ -944,12 +989,69 @@ class _OverviewTab extends StatelessWidget {
           ],
         ),
         SizedBox(height: 14.h),
-        ...meals.map(
-          (meal) => Padding(
-            padding: EdgeInsets.only(bottom: 12.h),
-            child: _MealCard(meal: meal, onTap: () => onMealTap(meal)),
+        if (meals.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.h),
+            child: Center(
+              child: Text(
+                'No meals yet',
+                style: AppTextStyles.meduim12(context)
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+          )
+        else
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            buildDefaultDragHandles: false,
+            onReorder: onReorder,
+            proxyDecorator: (child, index, animation) => AnimatedBuilder(
+              animation: animation,
+              builder: (_, child) => Material(
+                color: Colors.transparent,
+                elevation: 6 * animation.value,
+                shadowColor: Colors.black54,
+                borderRadius: BorderRadius.circular(14.r),
+                child: child,
+              ),
+              child: child,
+            ),
+            children: [
+              for (var i = 0; i < meals.length; i++)
+                Container(
+                  key: ValueKey(meals[i].id),
+                  margin: EdgeInsets.only(bottom: 12.h),
+                  // Long-press anywhere on the card also starts a drag;
+                  // the ≡ handle starts one immediately.
+                  child: ReorderableDelayedDragStartListener(
+                    index: i,
+                    child: Row(
+                      children: [
+                        ReorderableDragStartListener(
+                          index: i,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.w),
+                            child: Icon(
+                              Icons.drag_handle,
+                              color: AppColors.textSecondary,
+                              size: 22.sp,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: _MealCard(
+                            meal: meals[i],
+                            onTap: () => onMealTap(meals[i]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ),
       ],
     );
   }
@@ -1093,17 +1195,10 @@ class _MealCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    meal.type,
+                    meal.name,
                     style: AppTextStyles.semiBold14(
                       context,
                     ).copyWith(color: AppColors.textPrimary),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    meal.name,
-                    style: AppTextStyles.medium14(
-                      context,
-                    ).copyWith(color: AppColors.textSecondary),
                   ),
                   SizedBox(height: 4.h),
                   Text(

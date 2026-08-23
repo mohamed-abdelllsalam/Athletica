@@ -298,7 +298,9 @@ void setupDependencies() {
     () => NutritionTemplatesListCubit(sl(), sl()),
   );
   sl.registerFactory(() => SaveNutritionPlanCubit(sl(), sl(), sl()));
-  sl.registerFactory(() => TemplateDetailCubit(sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(
+    () => TemplateDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
+  );
   sl.registerFactory(() => AssignPlanCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileInfoCubit(sl()));
 }

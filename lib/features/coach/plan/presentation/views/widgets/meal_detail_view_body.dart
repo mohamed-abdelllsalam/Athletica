@@ -7,9 +7,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class MealDetailViewBody extends StatefulWidget {
-  const MealDetailViewBody({super.key, required this.meal});
+  const MealDetailViewBody({
+    super.key,
+    required this.meal,
+    this.onDelete,
+    this.onPersist,
+  });
 
   final Meal meal;
+
+  /// When provided, a delete action is shown in the header.
+  final VoidCallback? onDelete;
+
+  /// Persists edits without leaving the screen (saved templates only).
+  /// When null, saving always exits with the updated meal as route result.
+  final Future<void> Function(Meal meal)? onPersist;
 
   @override
   State<MealDetailViewBody> createState() => _MealDetailViewBodyState();
@@ -23,7 +35,13 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
   final TextEditingController _mealNoteController = TextEditingController();
   final TextEditingController _noteTabController = TextEditingController();
   late TextEditingController _nameController;
+  bool _nameHasError = false;
   String _query = '';
+
+  // Baseline snapshot used to detect unsaved edits.
+  late String _initialName;
+  late String _initialNotes;
+  late String _initialIngredientsSignature;
 
   @override
   void initState() {
@@ -31,6 +49,14 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     _tabController = TabController(length: 2, vsync: this);
     _ingredients = List.from(widget.meal.ingredients);
     _nameController = TextEditingController(text: widget.meal.name);
+    _initialName = widget.meal.name.trim();
+    _initialNotes = (widget.meal.notes ?? '').trim();
+    _initialIngredientsSignature = _ingredientsSignature;
+    _nameController.addListener(() {
+      if (_nameHasError && _nameController.text.trim().isNotEmpty) {
+        setState(() => _nameHasError = false);
+      }
+    });
     // Seed the meal-notes field with the persisted note (if any).
     _mealNoteController.text = widget.meal.notes ?? '';
   }
@@ -43,6 +69,140 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     _noteTabController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  String get _ingredientsSignature =>
+      _ingredients.map((i) => '${i.id}:${i.serving}').join('|');
+
+  bool get _isDirty =>
+      _nameController.text.trim() != _initialName ||
+      _mealNoteController.text.trim() != _initialNotes ||
+      _ingredientsSignature != _initialIngredientsSignature;
+
+  bool _validateName() {
+    if (_nameController.text.trim().isNotEmpty) return true;
+    setState(() => _nameHasError = true);
+    return false;
+  }
+
+  /// Leaving flow for unsaved edits: Save (stay), Save and exit, Discard.
+  Future<void> _exitWithResolution() async {
+    FocusScope.of(context).unfocus();
+    if (!_isDirty) {
+      Navigator.pop(context);
+      return;
+    }
+    final action = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: Text(
+          'Unsaved changes',
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Do you want to save your changes before leaving?',
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'save'),
+            child: Text(
+              'Save',
+              style: AppTextStyles.medium14(context)
+                  .copyWith(color: AppColors.primaryBlue),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'saveExit'),
+            child: Text(
+              'Save and exit',
+              style:
+                  AppTextStyles.medium14(context).copyWith(color: Colors.white),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'discard'),
+            child: Text(
+              'Discard',
+              style:
+                  AppTextStyles.medium14(context).copyWith(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'discard':
+        Navigator.pop(context);
+      case 'saveExit':
+        if (_validateName()) Navigator.pop(context, _buildMeal());
+      case 'save':
+        if (!_validateName()) return;
+        final meal = _buildMeal();
+        final persist = widget.onPersist;
+        if (persist == null) {
+          // No in-place persistence available — saving exits.
+          if (mounted) Navigator.pop(context, meal);
+          return;
+        }
+        await persist(meal);
+        if (!mounted) return;
+        setState(() {
+          _initialName = meal.name.trim();
+          _initialNotes = (meal.notes ?? '').trim();
+          _initialIngredientsSignature = _ingredientsSignature;
+        });
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    FocusScope.of(context).unfocus();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: Text(
+          'Delete meal?',
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'This removes the meal and all of its foods.',
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'Delete',
+              style:
+                  AppTextStyles.medium14(context).copyWith(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    widget.onDelete?.call();
+    Navigator.pop(context);
   }
 
   List<Ingredient> get _filtered {
@@ -161,31 +321,41 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _exitWithResolution();
+      },
+      child: Column(
       children: [
         SizedBox(height: 20.h),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Icon(
-                Icons.arrow_back_ios_new,
-                color: AppColors.textPrimary,
-                size: 20.sp,
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: _exitWithResolution,
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  color: AppColors.textPrimary,
+                  size: 20.sp,
+                ),
               ),
-            ),
+              const Spacer(),
+              if (widget.onDelete != null)
+                GestureDetector(
+                  onTap: _confirmDelete,
+                  child: Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                    size: 22.sp,
+                  ),
+                ),
+            ],
           ),
         ),
         SizedBox(height: 10.h),
-        Text(
-          widget.meal.type,
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        SizedBox(height: 2.h),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: TextField(
@@ -201,6 +371,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
                 color: AppColors.textSecondary,
                 fontSize: 22.sp,
               ),
+              errorText: _nameHasError ? 'Meal name is required' : null,
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
@@ -274,13 +445,21 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
                 totalProtein: _totalProtein,
                 totalFat: _totalFat,
                 totalCarbs: _totalCarbs,
-                onSave: () => Navigator.pop(context, _buildMeal()),
+                onSave: () {
+                  // Meal name is required — block saving an unnamed meal.
+                  if (_nameController.text.trim().isEmpty) {
+                    setState(() => _nameHasError = true);
+                    return;
+                  }
+                  Navigator.pop(context, _buildMeal());
+                },
               ),
               _NoteTab(controller: _noteTabController),
             ],
           ),
         ),
       ],
+      ),
     );
   }
 }

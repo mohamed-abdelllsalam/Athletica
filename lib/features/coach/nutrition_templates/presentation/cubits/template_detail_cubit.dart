@@ -2,7 +2,9 @@
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_food_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_meal_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/delete_template_food_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/delete_template_meal_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/get_nutrition_template_detail_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/reorder_template_meals_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/update_template_food_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/update_template_meal_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_template_ui_mapper.dart';
@@ -40,17 +42,21 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     this._getDetail,
     this._addMeal,
     this._updateMeal,
+    this._reorderMeals,
     this._addFood,
     this._updateFood,
     this._deleteFood,
+    this._deleteMeal,
   ) : super(TemplateDetailInitial());
 
   final GetNutritionTemplateDetailUseCase _getDetail;
   final AddTemplateMealUseCase _addMeal;
   final UpdateTemplateMealUseCase _updateMeal;
+  final ReorderTemplateMealsUseCase _reorderMeals;
   final AddTemplateFoodUseCase _addFood;
   final UpdateTemplateFoodUseCase _updateFood;
   final DeleteTemplateFoodUseCase _deleteFood;
+  final DeleteTemplateMealUseCase _deleteMeal;
 
   static const _mapper = NutritionTemplateUiMapper();
 
@@ -99,6 +105,79 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     final mealType = 'Meal ${state.plan.meals.length + 1}';
 
     final result = await _addMeal(_templateId, mealType: mealType);
+    switch (result) {
+      case ApiSuccess():
+        await refresh();
+      case ApiError(:final failure):
+        emit(state.copyWith(message: failure.message));
+    }
+  }
+
+  /// Reorders meals after a drag & drop. Applies the move optimistically,
+  /// then pushes the full permutation (orders 1..N) to the backend
+  /// (`PUT /nutrition/templates/:id/meals/reorder`).
+  Future<void> reorderMeals(int oldIndex, int newIndex) async {
+    final current = state;
+    if (current is! TemplateDetailLoaded) return;
+
+    var meals = List<Meal>.from(current.plan.meals);
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex < 0 ||
+        oldIndex >= meals.length ||
+        newIndex < 0 ||
+        newIndex >= meals.length) {
+      return;
+    }
+    final moved = meals.removeAt(oldIndex);
+    meals.insert(newIndex, moved);
+
+    // Optimistic UI update so the list reflects the drag immediately.
+    emit(
+      TemplateDetailLoaded(
+        plan: NutritionPlan(
+          id: current.plan.id,
+          name: current.plan.name,
+          category: current.plan.category,
+          calories: current.plan.calories,
+          proteinGrams: current.plan.proteinGrams,
+          fatGrams: current.plan.fatGrams,
+          carbsGrams: current.plan.carbsGrams,
+          planDuration: current.plan.planDuration,
+          updatedAgo: current.plan.updatedAgo,
+          clientCount: current.plan.clientCount,
+          meals: meals,
+          description: current.plan.description,
+          iconAsset: current.plan.iconAsset,
+        ),
+      ),
+    );
+
+    final orders = <({String mealId, int mealOrder})>[
+      for (var i = 0; i < meals.length; i++)
+        (mealId: meals[i].id, mealOrder: i + 1),
+    ];
+    final result = await _reorderMeals(_templateId, orders);
+    switch (result) {
+      case ApiSuccess():
+        // Re-sync with server truth so the UI never shows an order the
+        // backend did not actually persist.
+        await refresh();
+      case ApiError(:final failure):
+        // Roll back to server truth and surface the error.
+        emit(TemplateDetailLoaded(
+          plan: current.plan,
+          message: failure.message,
+        ));
+    }
+  }
+
+  /// Deletes a meal from the persisted template (cascades its foods on the
+  /// backend), then refreshes so the UI reflects server state.
+  Future<void> deleteMeal(String mealId) async {
+    final state = this.state;
+    if (state is! TemplateDetailLoaded) return;
+
+    final result = await _deleteMeal(_templateId, mealId);
     switch (result) {
       case ApiSuccess():
         await refresh();
@@ -190,12 +269,17 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       }
     }
 
-    // 4. Notes change
-    if ((editedMeal.notes ?? '') != (original.notes ?? '')) {
+    // 4. Name (meal_type) and notes changes
+    final newName = editedMeal.name.trim();
+    final nameChanged =
+        newName.isNotEmpty && newName != original.name.trim();
+    final notesChanged = (editedMeal.notes ?? '') != (original.notes ?? '');
+    if (nameChanged || notesChanged) {
       final result = await _updateMeal(
         _templateId,
         editedMeal.id,
-        notes: editedMeal.notes ?? '',
+        mealType: nameChanged ? newName : null,
+        notes: notesChanged ? (editedMeal.notes ?? '') : null,
       );
       switch (result) {
         case ApiError(:final failure):
