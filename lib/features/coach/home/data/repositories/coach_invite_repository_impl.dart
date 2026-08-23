@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/home/data/datasources/coach_invite_remote_data_source.dart';
@@ -16,7 +17,19 @@ class CoachInviteRepositoryImpl implements CoachInviteRepository {
       final model = await _dataSource.createInviteCode();
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
-      return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
+      return ApiError(mapDioException(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> revokeInviteCode() async {
+    try {
+      await _dataSource.revokeInviteCode();
+      return const ApiSuccess(null);
+    } on DioException catch (e) {
+      return ApiError(mapDioException(e));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
     }

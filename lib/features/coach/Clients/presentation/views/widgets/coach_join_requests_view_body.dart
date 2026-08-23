@@ -1,66 +1,145 @@
+import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/coach/clients/domain/entities/join_request.dart';
-import 'package:athletica/features/coach/clients/domain/entities/join_requests_data.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_cubit.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class CoachJoinRequestsViewBody extends StatefulWidget {
+class CoachJoinRequestsViewBody extends StatelessWidget {
   const CoachJoinRequestsViewBody({super.key});
 
   @override
-  State<CoachJoinRequestsViewBody> createState() =>
-      _CoachJoinRequestsViewBodyState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<CoachJoinRequestsCubit>()..loadRequests(),
+      child: const Scaffold(
+        backgroundColor: AppColors.primaryAppColor,
+        body: SafeArea(child: _CoachJoinRequestsContent()),
+      ),
+    );
+  }
 }
 
-class _CoachJoinRequestsViewBodyState
-    extends State<CoachJoinRequestsViewBody> {
-  final List<JoinRequest> _requests = List.of(JoinRequestsData.requests);
+class _CoachJoinRequestsContent extends StatelessWidget {
+  const _CoachJoinRequestsContent();
 
-  void _accept(JoinRequest request) {
-    setState(() => _requests.remove(request));
-  }
-
-  void _reject(JoinRequest request) {
-    setState(() => _requests.remove(request));
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryAppColor,
-      body: SafeArea(
-        child: Column(
+    return BlocConsumer<CoachJoinRequestsCubit, CoachJoinRequestsState>(
+      listenWhen: (previous, current) =>
+          current is CoachJoinRequestsActionError,
+      listener: (context, state) {
+        if (state is CoachJoinRequestsActionError) {
+          _showSnackBar(context, state.message);
+        }
+      },
+      builder: (context, state) {
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildAppBar(context),
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
               child: Text(
-                'Request (${_requests.length})',
+                'Request (${state.requests.length})',
                 style: AppTextStyles.medium15(context).copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),
             ),
             SizedBox(height: 12.h),
-            Expanded(
-              child: ListView.builder(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                itemCount: _requests.length,
-                itemBuilder: (context, index) {
-                  return _RequestTile(
-                    request: _requests[index],
-                    onAccept: () => _accept(_requests[index]),
-                    onReject: () => _reject(_requests[index]),
-                  );
-                },
-              ),
-            ),
+            Expanded(child: _buildBody(context, state)),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, CoachJoinRequestsState state) {
+    return switch (state) {
+      CoachJoinRequestsInitial() || CoachJoinRequestsLoading() => AppShimmer(
+          child: ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            itemCount: 7,
+            itemBuilder: (_, _) => Padding(
+              padding: EdgeInsets.only(bottom: 20.h),
+              child: SkeletonListTile(),
+            ),
+          ),
         ),
-      ),
+      CoachJoinRequestsError(:final message) => Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline,
+                    color: AppColors.textSecondary, size: 48.sp),
+                SizedBox(height: 12.h),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.medium14(context)
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+                SizedBox(height: 16.h),
+                TextButton(
+                  onPressed: () =>
+                      context.read<CoachJoinRequestsCubit>().loadRequests(),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      _ => _buildList(context, state.requests),
+    };
+  }
+
+  Widget _buildList(BuildContext context, List<JoinRequest> requests) {
+    final actingRequestId = switch (context.watch<CoachJoinRequestsCubit>().state) {
+      CoachJoinRequestsActionInProgress(:final actingRequestId) =>
+        actingRequestId,
+      _ => null,
+    };
+
+    if (requests.isEmpty) {
+      return Center(
+        child: Text(
+          'No pending requests.',
+          style: AppTextStyles.medium14(context)
+              .copyWith(color: AppColors.textSecondary),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      itemCount: requests.length,
+      itemBuilder: (context, index) {
+        final request = requests[index];
+        return _RequestTile(
+          request: request,
+          busy: actingRequestId == request.id,
+          actionInFlight: actingRequestId != null,
+          onAccept: () =>
+              context.read<CoachJoinRequestsCubit>().accept(request.id),
+          onReject: () =>
+              context.read<CoachJoinRequestsCubit>().reject(request.id),
+        );
+      },
     );
   }
 
@@ -96,11 +175,15 @@ class _CoachJoinRequestsViewBodyState
 class _RequestTile extends StatelessWidget {
   const _RequestTile({
     required this.request,
+    required this.busy,
+    required this.actionInFlight,
     required this.onAccept,
     required this.onReject,
   });
 
   final JoinRequest request;
+  final bool busy;
+  final bool actionInFlight;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -127,25 +210,39 @@ class _RequestTile extends StatelessWidget {
           ),
           SizedBox(width: 14.w),
           Expanded(
-            child: Text(
-              request.name,
-              style: AppTextStyles.semiBold15(context).copyWith(
-                color: AppColors.textPrimary,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  request.name,
+                  style: AppTextStyles.semiBold15(context).copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (request.goal.isNotEmpty)
+                  Text(
+                    request.goal,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.meduim11(context).copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           ),
           _CircleIconButton(
             icon: Icons.close,
             iconColor: AppColors.textPrimary,
             borderColor: AppColors.textSecondary,
-            onTap: onReject,
+            onTap: actionInFlight ? null : onReject,
           ),
           SizedBox(width: 10.w),
           _CircleIconButton(
-            icon: Icons.check,
+            icon: busy ? Icons.hourglass_top : Icons.check,
             iconColor: AppColors.primaryBlue,
             borderColor: AppColors.primaryBlue,
-            onTap: onAccept,
+            onTap: busy || actionInFlight ? null : onAccept,
           ),
         ],
       ),
@@ -164,7 +261,7 @@ class _CircleIconButton extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color borderColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

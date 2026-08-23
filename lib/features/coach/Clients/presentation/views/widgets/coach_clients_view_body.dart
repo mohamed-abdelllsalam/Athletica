@@ -1,8 +1,12 @@
+import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_state.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_cubit.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_state.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_detail_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_join_requests_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_client_card.dart';
@@ -42,8 +46,10 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<CoachClientsCubit, CoachClientsState>(
-      builder: (context, state) {
+    return BlocProvider(
+      create: (_) => sl<CoachJoinRequestsCubit>()..loadRequests(),
+      child: BlocBuilder<CoachClientsCubit, CoachClientsState>(
+        builder: (context, state) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -66,26 +72,45 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
             SizedBox(height: 16.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: CoachJoinRequestsBanner(
-                count: 10,
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  CoachJoinRequestsView.routeName,
-                ),
+              child: BlocBuilder<CoachJoinRequestsCubit,
+                  CoachJoinRequestsState>(
+                builder: (context, joinState) {
+                  return CoachJoinRequestsBanner(
+                    count: joinState.requests.length,
+                    onTap: () async {
+                      await Navigator.pushNamed(
+                        context,
+                        CoachJoinRequestsView.routeName,
+                      );
+                      if (context.mounted) {
+                        context
+                            .read<CoachJoinRequestsCubit>()
+                            .loadRequests();
+                      }
+                    },
+                  );
+                },
               ),
             ),
             SizedBox(height: 16.h),
             Expanded(child: _buildBody(state)),
           ],
         );
-      },
+        },
+      ),
     );
   }
 
   Widget _buildBody(CoachClientsState state) {
     return switch (state) {
-      CoachClientsInitial() || CoachClientsLoading() => const Center(
-          child: CircularProgressIndicator(),
+      CoachClientsInitial() || CoachClientsLoading() => AppShimmer(
+          child: ListView.separated(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            itemCount: 6,
+            separatorBuilder: (_, _) => SizedBox(height: 12.h),
+            itemBuilder: (_, _) => SkeletonBox(height: 88.h, radius: 14.r),
+          ),
         ),
       CoachClientsError(:final message) => Center(
           child: Padding(

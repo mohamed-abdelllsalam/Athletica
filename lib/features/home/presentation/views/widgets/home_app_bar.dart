@@ -1,6 +1,7 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/client_coach/presentation/views/client_coach_view.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/profile/presentation/views/profile_view.dart';
@@ -59,6 +60,14 @@ class HomeAppBar extends StatelessWidget {
             },
           ),
           const Spacer(),
+          _buildIconButton(
+            icon: Icons.fitness_center,
+            badgeCount: 0,
+            onTap: () {
+              Navigator.pushNamed(context, ClientCoachView.routeName);
+            },
+          ),
+          SizedBox(width: 8.w),
           _buildIconButton(
             icon: Icons.mail_outline_rounded,
             badgeCount: 0,

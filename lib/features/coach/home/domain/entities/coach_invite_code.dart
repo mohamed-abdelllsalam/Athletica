@@ -1,15 +1,12 @@
+/// Active coach invite link from `POST /coach/invite`.
 class CoachInviteCode {
   const CoachInviteCode({
-    required this.id,
-    required this.trainerId,
-    required this.code,
-    required this.totalClients,
-    required this.inviteLink,
+    required this.token,
+    required this.inviteUrl,
+    this.expiresAt,
   });
 
-  final String id;
-  final String trainerId;
-  final String code;
-  final int totalClients;
-  final String inviteLink;
+  final String token;
+  final String inviteUrl;
+  final DateTime? expiresAt;
 }

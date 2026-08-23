@@ -105,12 +105,16 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
       ],
       child: BlocListener<CoachInviteCubit, CoachInviteState>(
         listenWhen: (previous, current) =>
-            current is CoachInviteSuccess || current is CoachInviteError,
+            current is CoachInviteSuccess ||
+            current is CoachInviteError ||
+            current is CoachInviteRevoked,
         listener: (context, state) async {
           if (state is CoachInviteSuccess) {
             await Clipboard.setData(ClipboardData(text: state.inviteLink));
             if (!context.mounted) return;
             _showSnackBar(context, 'Invite link copied to clipboard.');
+          } else if (state is CoachInviteRevoked) {
+            _showSnackBar(context, 'Invite link revoked.');
           } else if (state is CoachInviteError) {
             _showSnackBar(context, state.message);
           }

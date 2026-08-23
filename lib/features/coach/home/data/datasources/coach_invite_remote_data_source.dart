@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 abstract class CoachInviteRemoteDataSource {
   Future<CoachInviteCodeModel> createInviteCode();
+  Future<void> revokeInviteCode();
 }
 
 class CoachInviteRemoteDataSourceImpl implements CoachInviteRemoteDataSource {
@@ -13,8 +14,13 @@ class CoachInviteRemoteDataSourceImpl implements CoachInviteRemoteDataSource {
 
   @override
   Future<CoachInviteCodeModel> createInviteCode() async {
-    final response = await _dio.post(ApiEndpoints.trainerInviteCodes);
-    final data = response.data['data'] as Map<String, dynamic>? ?? {};
+    final response = await _dio.post(ApiEndpoints.coachInvite);
+    final data = response.data as Map<String, dynamic>? ?? {};
     return CoachInviteCodeModel.fromJson(data);
+  }
+
+  @override
+  Future<void> revokeInviteCode() async {
+    await _dio.delete(ApiEndpoints.coachInvite);
   }
 }

@@ -1,8 +1,15 @@
+﻿import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_shimmer.dart';
+import 'package:athletica/core/widgets/unfocus_on_tap.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/entities/assigned_client.dart';
+import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
+import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/template_detail_cubit.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
 import 'package:athletica/features/coach/plan/presentation/views/meal_detail_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -35,6 +42,7 @@ class _NutritionPlanDetailViewBodyState
   late TextEditingController _carbsController;
   late String _selectedCategory;
   bool _nameHasError = false;
+  bool _descriptionHasError = false;
 
   static const List<String> _categories = [
     'Fat loss',
@@ -57,6 +65,12 @@ class _NutritionPlanDetailViewBodyState
     _descriptionController = TextEditingController(
       text: widget.plan.description,
     );
+    _descriptionController.addListener(() {
+      if (_descriptionHasError &&
+          _descriptionController.text.trim().isNotEmpty) {
+        setState(() => _descriptionHasError = false);
+      }
+    });
     _caloriesController = TextEditingController(
       text: widget.plan.calories == 0 ? '' : widget.plan.calories.toString(),
     );
@@ -102,12 +116,22 @@ class _NutritionPlanDetailViewBodyState
     super.dispose();
   }
 
+  /// Totals derived from the current meals' ingredients.
+  int get _mealsCalories => _meals.fold(0, (s, m) => s + m.calories);
+  int get _mealsProtein => _meals.fold(0, (s, m) => s + m.proteinGrams);
+  int get _mealsFat => _meals.fold(0, (s, m) => s + m.fatGrams);
+  int get _mealsCarbs => _meals.fold(0, (s, m) => s + m.carbsGrams);
+
   NutritionPlan _buildPlan() {
     final name = _nameController.text.trim();
-    final calories = int.tryParse(_caloriesController.text.trim()) ?? 0;
-    final protein = int.tryParse(_proteinController.text.trim()) ?? 0;
-    final fat = int.tryParse(_fatController.text.trim()) ?? 0;
-    final carbs = int.tryParse(_carbsController.text.trim()) ?? 0;
+    // Manual entries win; otherwise totals are computed from the meals so
+    // the saved plan never carries stale/zero numbers by accident.
+    final calories =
+        int.tryParse(_caloriesController.text.trim()) ?? _mealsCalories;
+    final protein =
+        int.tryParse(_proteinController.text.trim()) ?? _mealsProtein;
+    final fat = int.tryParse(_fatController.text.trim()) ?? _mealsFat;
+    final carbs = int.tryParse(_carbsController.text.trim()) ?? _mealsCarbs;
     return NutritionPlan(
       id: widget.plan.id,
       name: name,
@@ -129,22 +153,20 @@ class _NutritionPlanDetailViewBodyState
 
   void _trySavePlan() {
     final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim();
+    var hasError = false;
     if (name.isEmpty) {
       setState(() => _nameHasError = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Plan name is required',
-            style: AppTextStyles.medium14(
-              context,
-            ).copyWith(color: Colors.white),
-          ),
-          backgroundColor: AppColors.buttonColor,
-        ),
-      );
-      return;
+      hasError = true;
     }
-    setState(() => _nameHasError = false);
+    if (description.isEmpty) {
+      // Validate before leaving the page — the backend requires a
+      // description, so failing here would otherwise surface as a snackbar
+      // on the previous screen after pop.
+      setState(() => _descriptionHasError = true);
+      hasError = true;
+    }
+    if (hasError) return;
     Navigator.pop(context, _buildPlan());
   }
 
@@ -206,6 +228,13 @@ class _NutritionPlanDetailViewBodyState
       MaterialPageRoute(builder: (_) => MealDetailView(meal: meal)),
     );
     if (updatedMeal == null) return;
+    if (!widget.isCreateMode) {
+      // Persisted template: push the diff to the backend, then refresh.
+      if (mounted) {
+        await context.read<TemplateDetailCubit>().applyMealEdits(updatedMeal);
+      }
+      return;
+    }
     setState(() {
       final index = _meals.indexWhere((m) => m.id == meal.id);
       if (index != -1) {
@@ -216,6 +245,77 @@ class _NutritionPlanDetailViewBodyState
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isCreateMode) {
+      return UnfocusOnTap(child: _buildContent(context, widget.plan));
+    }
+    return UnfocusOnTap(
+      child: BlocConsumer<TemplateDetailCubit, TemplateDetailState>(
+      listener: (context, state) {
+        final message = state is TemplateDetailLoaded ? state.message : null;
+        if (message != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                message,
+                style: AppTextStyles.medium14(context)
+                    .copyWith(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          context.read<TemplateDetailCubit>().clearMessage();
+        }
+      },
+      builder: (context, state) {
+        switch (state) {
+          case TemplateDetailInitial():
+          case TemplateDetailLoading():
+            return AppShimmer(
+              child: ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.all(20.r),
+                itemCount: 5,
+                separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                itemBuilder: (_, _) => SkeletonBox(height: 72.h, radius: 14.r),
+              ),
+            );
+          case TemplateDetailError(:final message):
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    message,
+                    style: AppTextStyles.medium14(context)
+                        .copyWith(color: AppColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () => context
+                        .read<TemplateDetailCubit>()
+                        .load(widget.plan.id),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                    ),
+                    child: Text(
+                      'Retry',
+                      style: AppTextStyles.medium14(context)
+                          .copyWith(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          case TemplateDetailLoaded(:final plan):
+            return _buildContent(context, plan);
+        }
+      },
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, NutritionPlan displayPlan) {
     return PopScope(
       canPop: !widget.isCreateMode,
       onPopInvokedWithResult: (didPop, _) async {
@@ -285,7 +385,7 @@ class _NutritionPlanDetailViewBodyState
                         ),
                       ] else
                         Text(
-                          widget.plan.name,
+                          displayPlan.name,
                           style: AppTextStyles.bold24(context).copyWith(
                             color: AppColors.textPrimary,
                             fontSize: 20.sp,
@@ -301,7 +401,7 @@ class _NutritionPlanDetailViewBodyState
                           ),
                           SizedBox(width: 4.w),
                           Text(
-                            '${int.tryParse(_caloriesController.text.trim()) ?? widget.plan.calories} calories',
+                            '${int.tryParse(_caloriesController.text.trim()) ?? (widget.isCreateMode ? _mealsCalories : displayPlan.calories)} calories',
                             style: AppTextStyles.meduim12(
                               context,
                             ).copyWith(color: AppColors.textSecondary),
@@ -315,7 +415,7 @@ class _NutritionPlanDetailViewBodyState
                                   setState(() => _selectedCategory = v),
                             )
                           else
-                            _CategoryBadge(category: widget.plan.category),
+                            _CategoryBadge(category: displayPlan.category),
                         ],
                       ),
                       if (!widget.isCreateMode) ...[
@@ -329,7 +429,7 @@ class _NutritionPlanDetailViewBodyState
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              widget.plan.updatedAgo,
+                              displayPlan.updatedAgo,
                               style: AppTextStyles.meduim12(
                                 context,
                               ).copyWith(color: AppColors.textSecondary),
@@ -346,7 +446,7 @@ class _NutritionPlanDetailViewBodyState
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              'Used by ${widget.plan.clientCount} clients',
+                              'Used by ${displayPlan.clientCount} clients',
                               style: AppTextStyles.meduim12(
                                 context,
                               ).copyWith(color: AppColors.textSecondary),
@@ -426,29 +526,36 @@ class _NutritionPlanDetailViewBodyState
               controller: _tabController,
               children: [
                 _OverviewTab(
-                  plan: widget.plan,
-                  meals: _meals,
+                  plan: displayPlan,
+                  meals: widget.isCreateMode
+                      ? _meals
+                      : displayPlan.meals,
                   isCreateMode: widget.isCreateMode,
                   descriptionController: _descriptionController,
+                  descriptionHasError: _descriptionHasError,
                   caloriesController: _caloriesController,
                   proteinController: _proteinController,
                   fatController: _fatController,
                   carbsController: _carbsController,
                   onMacrosChanged: () => setState(() {}),
-                  onAddMeal: () => setState(
-                    () => _meals.add(
-                      Meal(
-                        id: 'm${_meals.length + 1}',
-                        type: 'Meal ${_meals.length + 1}',
-                        name: 'New Meal',
-                        calories: 0,
-                        proteinGrams: 0,
-                        fatGrams: 0,
-                        carbsGrams: 0,
-                        ingredients: [],
-                      ),
-                    ),
-                  ),
+                  onAddMeal: widget.isCreateMode
+                      ? () => setState(
+                          () => _meals.add(
+                                Meal(
+                                  id:
+                                      'm${DateTime.now().millisecondsSinceEpoch}',
+                                  type: 'Meal ${_meals.length + 1}',
+                                  name: 'New Meal',
+                                  calories: 0,
+                                  proteinGrams: 0,
+                                  fatGrams: 0,
+                                  carbsGrams: 0,
+                                  ingredients: [],
+                                ),
+                              ),
+                        )
+                      : () =>
+                          context.read<TemplateDetailCubit>().addMeal(),
                   onMealTap: (meal) {
                     _handleMealTap(meal);
                   },
@@ -463,6 +570,8 @@ class _NutritionPlanDetailViewBodyState
   }
 
   void _showAssignSheet(BuildContext context) {
+    final state = context.read<TemplateDetailCubit>().state;
+    if (state is! TemplateDetailLoaded) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.cardBackground,
@@ -470,7 +579,12 @@ class _NutritionPlanDetailViewBodyState
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (_) => const _AssignToClientSheet(),
+      // Modal routes do not inherit providers from the page, so the sheet
+      // must own its AssignPlanCubit.
+      builder: (_) => BlocProvider(
+        create: (_) => sl<AssignPlanCubit>()..loadClients(),
+        child: _AssignToClientSheet(plan: state.plan),
+      ),
     );
   }
 }
@@ -629,6 +743,7 @@ class _OverviewTab extends StatelessWidget {
     required this.meals,
     required this.isCreateMode,
     required this.descriptionController,
+    required this.descriptionHasError,
     required this.caloriesController,
     required this.proteinController,
     required this.fatController,
@@ -642,6 +757,7 @@ class _OverviewTab extends StatelessWidget {
   final List<Meal> meals;
   final bool isCreateMode;
   final TextEditingController descriptionController;
+  final bool descriptionHasError;
   final TextEditingController caloriesController;
   final TextEditingController proteinController;
   final TextEditingController fatController;
@@ -664,21 +780,51 @@ class _OverviewTab extends StatelessWidget {
         ),
         SizedBox(height: 8.h),
         if (isCreateMode)
-          TextField(
-            controller: descriptionController,
-            maxLines: null,
-            style: AppTextStyles.medium14(
-              context,
-            ).copyWith(color: AppColors.textSecondary),
-            decoration: InputDecoration(
-              hintText: 'Add a program description…',
-              hintStyle: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textTertiary),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: descriptionHasError
+                      ? Border.all(color: Colors.redAccent)
+                      : null,
+                ),
+                child: TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  minLines: 1,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
+                  decoration: InputDecoration(
+                    hintText: 'Add a program description…',
+                    hintStyle: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(
+                      color: descriptionHasError
+                          ? Colors.redAccent
+                          : AppColors.textTertiary,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              if (descriptionHasError) ...[
+                SizedBox(height: 6.h),
+                Text(
+                  'Description is required',
+                  style: AppTextStyles.meduim12(context)
+                      .copyWith(color: Colors.redAccent),
+                ),
+              ],
+            ],
           )
         else
           Text(
@@ -1088,7 +1234,9 @@ class _CategoryBadge extends StatelessWidget {
 // ── Assign to client bottom sheet ────────────────────────────────────────────
 
 class _AssignToClientSheet extends StatefulWidget {
-  const _AssignToClientSheet();
+  const _AssignToClientSheet({required this.plan});
+
+  final NutritionPlan plan;
 
   @override
   State<_AssignToClientSheet> createState() => _AssignToClientSheetState();
@@ -1098,16 +1246,7 @@ class _AssignToClientSheetState extends State<_AssignToClientSheet> {
   final TextEditingController _searchController = TextEditingController();
   DateTime _startDate = DateTime(2026, 6, 20);
   DateTime _endDate = DateTime(2026, 8, 20);
-  int? _selectedClientIndex;
-
-  static const List<String> _clientNames = [
-    'Mohamed Salah',
-    'Rayan',
-    'Sayed Hafez',
-    'Nour Ayman',
-    'Anas',
-    'Ahmed',
-  ];
+  String? _selectedClientId;
 
   @override
   void dispose() {
@@ -1151,160 +1290,314 @@ class _AssignToClientSheetState extends State<_AssignToClientSheet> {
     return '${months[date.month - 1]} ${date.day},${date.year}';
   }
 
+  void _submit(AssignPlanState state) {
+    if (state is AssignPlanAssigning) return;
+    final clients = switch (state) {
+      AssignPlanClientsLoaded(:final clients) => clients,
+      AssignPlanError(:final clients) => clients,
+      _ => <AssignedClient>[],
+    };
+    final selectedId = _selectedClientId;
+    if (selectedId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please select a client',
+            style:
+                AppTextStyles.medium14(context).copyWith(color: Colors.white),
+          ),
+          backgroundColor: AppColors.buttonColor,
+        ),
+      );
+      return;
+    }
+    final selected =
+        clients.where((c) => c.relationId == selectedId).firstOrNull;
+    if (selected == null) return;
+    context.read<AssignPlanCubit>().assign(
+          templateId: widget.plan.id,
+          coachClientId: selected.relationId,
+          title: widget.plan.name.isEmpty ? 'Nutrition Plan' : widget.plan.name,
+          description: widget.plan.description.isEmpty
+              ? 'Nutrition Plan'
+              : widget.plan.description,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final query = _searchController.text.toLowerCase();
-    final filtered = _clientNames
-        .where((n) => query.isEmpty || n.toLowerCase().contains(query))
-        .toList();
-
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        padding: EdgeInsets.all(20.r),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceDark,
-                  borderRadius: BorderRadius.circular(2.r),
+    return BlocConsumer<AssignPlanCubit, AssignPlanState>(
+      listener: (context, state) {
+        final messenger = ScaffoldMessenger.of(context);
+        switch (state) {
+          case AssignPlanSuccess():
+            Navigator.pop(context);
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Plan assigned successfully',
+                  style: AppTextStyles.medium14(context)
+                      .copyWith(color: Colors.white),
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          case AssignPlanError(:final message):
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  message,
+                  style: AppTextStyles.medium14(context)
+                      .copyWith(color: Colors.white),
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          default:
+            break;
+        }
+      },
+      builder: (context, state) {
+        Widget body;
+        switch (state) {
+          case AssignPlanInitial():
+          case AssignPlanClientsLoading():
+            body = SizedBox(
+              height: 200.h,
+              child: AppShimmer(
+                child: Row(
+                  children: [
+                    for (var i = 0; i < 4; i++) ...[
+                      if (i > 0) SizedBox(width: 16.w),
+                      SkeletonBox(width: 56.w, height: 72.h, radius: 28.r),
+                    ],
+                  ],
                 ),
               ),
-            ),
-            SizedBox(height: 16.h),
-            Container(
-              height: 44.h,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (_) => setState(() {}),
-                style: AppTextStyles.medium14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Search',
-                  hintStyle: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.textSecondary),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: AppColors.textSecondary,
-                    size: 20.sp,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 12.h),
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            SizedBox(
-              height: 80.h,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: filtered.length,
-                separatorBuilder: (_, _) => SizedBox(width: 16.w),
-                itemBuilder: (context, index) {
-                  final name = filtered[index];
-                  final isSelected = _selectedClientIndex == index;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedClientIndex = index),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 48.r,
-                          height: 48.r,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.surfaceDark,
-                            border: isSelected
-                                ? Border.all(
-                                    color: AppColors.primaryBlue,
-                                    width: 2,
-                                  )
-                                : null,
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: AppColors.textSecondary,
-                            size: 26.sp,
-                          ),
-                        ),
-                        SizedBox(height: 4.h),
-                        SizedBox(
-                          width: 56.w,
-                          child: Text(
-                            name.split(' ').first,
-                            style: AppTextStyles.meduim11(
-                              context,
-                            ).copyWith(color: AppColors.textSecondary),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+            );
+          case AssignPlanClientsError(:final message):
+            body = SizedBox(
+              height: 200.h,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message,
+                      style: AppTextStyles.medium14(context)
+                          .copyWith(color: AppColors.textSecondary),
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                },
+                    SizedBox(height: 12.h),
+                    ElevatedButton(
+                      onPressed: () =>
+                          context.read<AssignPlanCubit>().loadClients(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                      ),
+                      child: Text(
+                        'Retry',
+                        style: AppTextStyles.medium14(context)
+                            .copyWith(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            SizedBox(height: 16.h),
-            Row(
+            );
+          default:
+            body = _buildClientPicker(context, state);
+        }
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: EdgeInsets.all(20.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: _DatePickerCard(
-                    label: 'Start Data',
-                    date: _formatDate(_startDate),
-                    onTap: () => _pickDate(true),
+                Center(
+                  child: Container(
+                    width: 40.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDark,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
                   ),
                 ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _DatePickerCard(
-                    label: 'End Data',
-                    date: _formatDate(_endDate),
-                    onTap: () => _pickDate(false),
-                  ),
-                ),
+                SizedBox(height: 16.h),
+                body,
               ],
             ),
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              height: 50.h,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.buttonColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildClientPicker(BuildContext context, AssignPlanState state) {
+    final clients = switch (state) {
+      AssignPlanClientsLoaded(:final clients) => clients,
+      AssignPlanAssigning(:final clients) => clients,
+      AssignPlanError(:final clients) => clients,
+      _ => <AssignedClient>[],
+    };
+    final isAssigning = state is AssignPlanAssigning;
+    final query = _searchController.text.toLowerCase();
+    final filtered = clients
+        .where((c) => query.isEmpty || c.name.toLowerCase().contains(query))
+        .toList();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 44.h,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (_) => setState(() {}),
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Search',
+              hintStyle: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
+              prefixIcon: Icon(
+                Icons.search,
+                color: AppColors.textSecondary,
+                size: 20.sp,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+            ),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        SizedBox(
+          height: 80.h,
+          child: filtered.isEmpty
+              ? Center(
+                  child: Text(
+                    'No assigned clients found',
+                    style: AppTextStyles.meduim12(context)
+                        .copyWith(color: AppColors.textSecondary),
                   ),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) => SizedBox(width: 16.w),
+                  itemBuilder: (context, index) {
+                    final client = filtered[index];
+                    final isSelected = _selectedClientId == client.relationId;
+                    final name = client.name;
+                    return GestureDetector(
+                      onTap: () => setState(
+                          () => _selectedClientId = client.relationId),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 48.r,
+                            height: 48.r,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.surfaceDark,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: AppColors.primaryBlue,
+                                      width: 2,
+                                    )
+                                  : null,
+                            ),
+                            child: Icon(
+                              Icons.person,
+                              color: AppColors.textSecondary,
+                              size: 26.sp,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          SizedBox(
+                            width: 56.w,
+                            child: Text(
+                              name.split(' ').first,
+                              style: AppTextStyles.meduim11(
+                                context,
+                              ).copyWith(color: AppColors.textSecondary),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                child: Text(
-                  'Submit',
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
+        ),
+        SizedBox(height: 16.h),
+        Row(
+          children: [
+            Expanded(
+              child: _DatePickerCard(
+                label: 'Start Data',
+                date: _formatDate(_startDate),
+                onTap: () => _pickDate(true),
               ),
             ),
-            SizedBox(height: 8.h),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: _DatePickerCard(
+                label: 'End Data',
+                date: _formatDate(_endDate),
+                onTap: () => _pickDate(false),
+              ),
+            ),
           ],
         ),
-      ),
+        SizedBox(height: 16.h),
+        SizedBox(
+          width: double.infinity,
+          height: 50.h,
+          child: ElevatedButton(
+            onPressed: isAssigning ? null : () => _submit(state),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.buttonColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+            child: isAssigning
+                ? SizedBox(
+                    height: 22.h,
+                    width: 22.h,
+                    child: const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Text(
+                    'Submit',
+                    style: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
+          ),
+        ),
+        SizedBox(height: 8.h),
+      ],
     );
   }
 }
-
 class _DatePickerCard extends StatelessWidget {
   const _DatePickerCard({
     required this.label,

@@ -1,21 +1,25 @@
 import 'package:athletica/core/utils/api_result.dart';
-import 'package:athletica/features/coach/nutrition_templates/domain/usecases/create_nutrition_template_day_usecase.dart';
-import 'package:athletica/features/coach/nutrition_templates/domain/usecases/create_nutrition_template_item_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_food_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_meal_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/create_nutrition_template_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/save_nutrition_plan_state.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Persists a plan built in the create-mode editor:
+/// 1. POST /nutrition/templates            (title + description)
+/// 2. POST /nutrition/templates/:id/meals  (one call per meal, in order)
+/// 3. POST /nutrition/templates/:id/meals/:mealId/foods (per ingredient)
 class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
   SaveNutritionPlanCubit(
     this._createTemplate,
-    this._createDay,
-    this._createItem,
+    this._addMeal,
+    this._addFood,
   ) : super(SaveNutritionPlanIdle());
 
   final CreateNutritionTemplateUseCase _createTemplate;
-  final CreateNutritionTemplateDayUseCase _createDay;
-  final CreateNutritionTemplateItemUseCase _createItem;
+  final AddTemplateMealUseCase _addMeal;
+  final AddTemplateFoodUseCase _addFood;
 
   Future<void> savePlan(NutritionPlan plan) async {
     if (state is SaveNutritionPlanLoading) return;
@@ -25,11 +29,6 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
     final templateResult = await _createTemplate(
       title: plan.name,
       description: plan.description,
-      isPublic: false,
-      dailyTargetCalories: plan.calories,
-      dailyTargetProtein: plan.proteinGrams,
-      dailyTargetCarbs: plan.carbsGrams,
-      dailyTargetFats: plan.fatGrams,
     );
 
     final String templateId;
@@ -41,35 +40,38 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
         return;
     }
 
-    // 2. Create each meal as a day, then its ingredients as items
+    // 2. Create each meal in order
     for (int i = 0; i < plan.meals.length; i++) {
       final meal = plan.meals[i];
 
-      final dayResult = await _createDay(
-        templateId: templateId,
-        name: meal.type,
-        dayNumber: i + 1,
+      final mealResult = await _addMeal(
+        templateId,
+        mealType: meal.type,
+        mealOrder: i + 1,
+        notes: meal.notes,
       );
 
-      final String dayId;
-      switch (dayResult) {
+      final String mealId;
+      switch (mealResult) {
         case ApiSuccess(:final data):
-          dayId = data.id;
+          mealId = data.id;
         case ApiError(:final failure):
           emit(SaveNutritionPlanError(failure.message));
           return;
       }
 
-      // 3. Create food items for this meal — skip non-UUID ingredient ids
+      // 3. Add foods to this meal — only ingredients backed by a real
+      //    catalog food UUID can be persisted.
       for (final ingredient in meal.ingredients) {
-        if (!_isValidUuid(ingredient.id)) continue;
-        final grams = _parseGrams(ingredient.serving);
-        final itemResult = await _createItem(
-          dayId: dayId,
-          foodId: ingredient.id,
-          grams: grams,
+        if (!_isValidUuid(ingredient.foodId)) continue;
+        final quantity = ingredient.grams > 0 ? ingredient.grams : 100;
+        final foodResult = await _addFood(
+          templateId,
+          mealId,
+          foodId: ingredient.foodId!,
+          quantity: quantity,
         );
-        switch (itemResult) {
+        switch (foodResult) {
           case ApiError(:final failure):
             emit(SaveNutritionPlanError(failure.message));
             return;
@@ -87,15 +89,6 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
     caseSensitive: false,
   );
 
-  bool _isValidUuid(String id) => _uuidRegex.hasMatch(id);
-
-  int _parseGrams(String serving) {
-    // Handles "100g" format (from FoodItem.serving)
-    final gMatch = RegExp(r'^(\d+)g$').firstMatch(serving.trim());
-    if (gMatch != null) return int.parse(gMatch.group(1)!);
-    // Handles "1 cup (80)" format (from mock data)
-    final parenMatch = RegExp(r'\((\d+)\)').firstMatch(serving);
-    if (parenMatch != null) return int.parse(parenMatch.group(1)!);
-    return 100;
-  }
+  bool _isValidUuid(String? id) =>
+      id != null && _uuidRegex.hasMatch(id);
 }

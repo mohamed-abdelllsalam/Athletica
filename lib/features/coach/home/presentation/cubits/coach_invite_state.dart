@@ -9,6 +9,8 @@ final class CoachInviteSuccess extends CoachInviteState {
   final String inviteLink;
 }
 
+final class CoachInviteRevoked extends CoachInviteState {}
+
 final class CoachInviteError extends CoachInviteState {
   CoachInviteError(this.message);
   final String message;

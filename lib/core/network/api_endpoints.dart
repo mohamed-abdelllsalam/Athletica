@@ -48,11 +48,68 @@ class ApiEndpoints {
 
   static const String workoutTemplateItems = 'workout-template-items';
 
-  static const String foods = 'foods/getAll';
-  static const String foodCategories = 'foods/categories';
+  // ── Nutrition (documented contract: NUTRITION_API_FOR_FLUTTER.md) ──────────
 
-  static const String mealTemplates = 'templates';
-  static String mealTemplateDays(String templateId) =>
-      'templates/days/$templateId';
-  static String mealTemplateItems(String dayId) => 'templates/items/$dayId';
+  // Food catalog
+  static const String nutritionFoods = 'nutrition/foods';
+  static String nutritionFood(String id) => 'nutrition/foods/$id';
+  static const String nutritionFoodCategories = 'nutrition/food-categories';
+
+  // Templates (coach)
+  static const String nutritionTemplates = 'nutrition/templates';
+  static String nutritionTemplate(String templateId) =>
+      'nutrition/templates/$templateId';
+  static String nutritionTemplateMeals(String templateId) =>
+      'nutrition/templates/$templateId/meals';
+  static String nutritionTemplateMealsReorder(String templateId) =>
+      'nutrition/templates/$templateId/meals/reorder';
+  static String nutritionTemplateMeal(String templateId, String mealId) =>
+      'nutrition/templates/$templateId/meals/$mealId';
+  static String nutritionTemplateMealFoods(String templateId, String mealId) =>
+      'nutrition/templates/$templateId/meals/$mealId/foods';
+  static String nutritionTemplateMealFood(
+          String templateId, String mealId, String foodId) =>
+      'nutrition/templates/$templateId/meals/$mealId/foods/$foodId';
+  static String assignNutritionTemplate(String templateId) =>
+      'nutrition/templates/$templateId/assign';
+
+  // Plans (coach)
+  static const String nutritionPlans = 'nutrition/plans';
+  static String nutritionPlan(String planId) => 'nutrition/plans/$planId';
+  static String nutritionPlanMeals(String planId) =>
+      'nutrition/plans/$planId/meals';
+  static String nutritionPlanMealsReorder(String planId) =>
+      'nutrition/plans/$planId/meals/reorder';
+  static String nutritionPlanMeal(String planId, String mealId) =>
+      'nutrition/plans/$planId/meals/$mealId';
+  static String nutritionPlanMealFoods(String planId, String mealId) =>
+      'nutrition/plans/$planId/meals/$mealId/foods';
+  static String nutritionPlanMealFood(
+          String planId, String mealId, String foodId) =>
+      'nutrition/plans/$planId/meals/$mealId/foods/$foodId';
+
+  // Coach-client assignment (documented contract: NUTRITION_API_FOR_FLUTTER.md)
+  static const String coachClients = 'coach/clients';
+  static String coachClient(String coachClientId) =>
+      'coach/clients/$coachClientId';
+  static const String coachInvite = 'coach/invite';
+  static const String coachRequests = 'coach/requests';
+  static String coachRequestAccept(String requestId) =>
+      'coach/requests/$requestId/accept';
+  static String coachRequestReject(String requestId) =>
+      'coach/requests/$requestId/reject';
+
+  // Client side of the assignment flow
+  static const String coachClientRequests = 'coach-requests';
+  static const String clientCoach = 'client/coach';
+  static const String clientLeaveCoach = 'client/leave-coach';
+
+  // Client nutrition view (documented contract: NUTRITION_API_FOR_FLUTTER.md)
+  static const String nutritionToday = 'nutrition/today';
+  static const String nutritionMyPlans = 'nutrition/my/plans';
+  static String nutritionMyPlan(String planId) => 'nutrition/my/plans/$planId';
+  static String nutritionMealComplete(String mealLogId) =>
+      'nutrition/meals/$mealLogId/complete';
+  static String nutritionMealUncomplete(String mealLogId) =>
+      'nutrition/meals/$mealLogId/uncomplete';
 }

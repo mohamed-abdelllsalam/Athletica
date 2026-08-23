@@ -3,4 +3,5 @@ import 'package:athletica/features/coach/home/domain/entities/coach_invite_code.
 
 abstract class CoachInviteRepository {
   Future<ApiResult<CoachInviteCode>> createInviteCode();
+  Future<ApiResult<void>> revokeInviteCode();
 }

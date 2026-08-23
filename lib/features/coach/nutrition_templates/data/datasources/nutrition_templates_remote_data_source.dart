@@ -1,33 +1,90 @@
-import 'package:athletica/core/network/api_endpoints.dart';
-import 'package:athletica/features/coach/nutrition_templates/data/models/nutrition_template_day_model.dart';
-import 'package:athletica/features/coach/nutrition_templates/data/models/nutrition_template_item_model.dart';
+﻿import 'package:athletica/core/network/api_endpoints.dart';
+import 'package:athletica/core/network/api_pagination.dart';
+import 'package:athletica/features/coach/nutrition_templates/data/models/assigned_client_model.dart';
+import 'package:athletica/features/coach/nutrition_templates/data/models/nutrition_template_meal_model.dart';
 import 'package:athletica/features/coach/nutrition_templates/data/models/nutrition_template_model.dart';
 import 'package:dio/dio.dart';
 
+typedef TemplatesPage = (
+  {
+    List<NutritionTemplateModel> templates,
+    ApiPagination pagination
+  }
+);
+
 abstract class NutritionTemplatesRemoteDataSource {
-  Future<List<NutritionTemplateModel>> getNutritionTemplates();
+  Future<TemplatesPage> getNutritionTemplates({
+    int page = 1,
+    int pageSize = 20,
+  });
 
   Future<NutritionTemplateModel> createNutritionTemplate({
     required String title,
     required String description,
-    required bool isPublic,
-    required int dailyTargetCalories,
-    required int dailyTargetProtein,
-    required int dailyTargetCarbs,
-    required int dailyTargetFats,
   });
 
-  Future<NutritionTemplateDayModel> createNutritionTemplateDay({
-    required String templateId,
-    required String name,
-    required int dayNumber,
+  Future<NutritionTemplateModel> getNutritionTemplate(String templateId);
+
+  Future<void> updateNutritionTemplate(
+    String templateId, {
+    String? title,
+    String? description,
   });
 
-  Future<NutritionTemplateItemModel> createNutritionTemplateItem({
-    required String dayId,
+  Future<void> deleteNutritionTemplate(String templateId);
+
+  Future<NutritionTemplateMealModel> addTemplateMeal(
+    String templateId, {
+    required String mealType,
+    int? mealOrder,
+    String? notes,
+  });
+
+  Future<void> updateTemplateMeal(
+    String templateId,
+    String mealId, {
+    String? mealType,
+    int? mealOrder,
+    String? notes,
+  });
+
+  Future<void> deleteTemplateMeal(String templateId, String mealId);
+
+  Future<void> reorderTemplateMeals(
+    String templateId,
+    List<({String mealId, int mealOrder})> mealOrders,
+  );
+
+  Future<void> addTemplateFood(
+    String templateId,
+    String mealId, {
     required String foodId,
-    required int grams,
+    required num quantity,
   });
+
+  Future<void> updateTemplateFood(
+    String templateId,
+    String mealId,
+    String relationFoodId, {
+    required num quantity,
+  });
+
+  Future<void> removeTemplateFood(
+    String templateId,
+    String mealId,
+    String relationFoodId,
+  );
+
+  Future<void> assignNutritionTemplate(
+    String templateId, {
+    required String coachClientId,
+    required String title,
+    required String description,
+  });
+
+  Future<List<AssignedClientModel>> getAssignedClients();
+
+  Future<void> removeAssignedClient(String coachClientId);
 }
 
 class NutritionTemplatesRemoteDataSourceImpl
@@ -36,73 +93,201 @@ class NutritionTemplatesRemoteDataSourceImpl
 
   final Dio _dio;
 
+  Map<String, dynamic> _unwrap(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final inner = data['template'];
+      if (inner is Map<String, dynamic>) return inner;
+      return data;
+    }
+    return {};
+  }
+
   @override
-  Future<List<NutritionTemplateModel>> getNutritionTemplates() async {
+  Future<TemplatesPage> getNutritionTemplates({
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     final response = await _dio.get(
-      ApiEndpoints.mealTemplates,
-      queryParameters: {'limit': 100, 'sort': 'updatedAt', 'order': 'desc'},
+      ApiEndpoints.nutritionTemplates,
+      queryParameters: {'page': page, 'pageSize': pageSize},
     );
-    final data = response.data['data'] as List<dynamic>;
-    return data
+    final data = response.data as Map<String, dynamic>;
+    final templates = (data['templates'] as List<dynamic>? ?? [])
         .map((e) =>
             NutritionTemplateModel.fromJson(e as Map<String, dynamic>))
         .toList();
+    final pagination = ApiPagination.fromJson(
+      data['pagination'] as Map<String, dynamic>? ?? {},
+    );
+    return (templates: templates, pagination: pagination);
   }
 
   @override
   Future<NutritionTemplateModel> createNutritionTemplate({
     required String title,
     required String description,
-    required bool isPublic,
-    required int dailyTargetCalories,
-    required int dailyTargetProtein,
-    required int dailyTargetCarbs,
-    required int dailyTargetFats,
   }) async {
     final response = await _dio.post(
-      ApiEndpoints.mealTemplates,
+      ApiEndpoints.nutritionTemplates,
+      data: {'title': title, 'description': description},
+    );
+    return NutritionTemplateModel.fromJson(_unwrap(response.data));
+  }
+
+  @override
+  Future<NutritionTemplateModel> getNutritionTemplate(String templateId) async {
+    final response =
+        await _dio.get(ApiEndpoints.nutritionTemplate(templateId));
+    return NutritionTemplateModel.fromJson(_unwrap(response.data));
+  }
+
+  @override
+  Future<void> updateNutritionTemplate(
+    String templateId, {
+    String? title,
+    String? description,
+  }) async {
+    await _dio.put(
+      ApiEndpoints.nutritionTemplate(templateId),
       data: {
-        'title': title,
-        'description': description,
-        'isPublic': isPublic,
-        'dailyTargetCalories': dailyTargetCalories,
-        'dailyTargetProtein': dailyTargetProtein,
-        'dailyTargetCarbs': dailyTargetCarbs,
-        'dailyTargetFats': dailyTargetFats,
+        'title': ?title,
+        'description': ?description,
       },
     );
-    return NutritionTemplateModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
   }
 
   @override
-  Future<NutritionTemplateDayModel> createNutritionTemplateDay({
-    required String templateId,
-    required String name,
-    required int dayNumber,
+  Future<void> deleteNutritionTemplate(String templateId) async {
+    await _dio.delete(ApiEndpoints.nutritionTemplate(templateId));
+  }
+
+  @override
+  Future<NutritionTemplateMealModel> addTemplateMeal(
+    String templateId, {
+    required String mealType,
+    int? mealOrder,
+    String? notes,
   }) async {
     final response = await _dio.post(
-      ApiEndpoints.mealTemplateDays(templateId),
-      data: {'name': name, 'dayIndex': dayNumber},
+      ApiEndpoints.nutritionTemplateMeals(templateId),
+      data: {
+        'meal_type': mealType,
+        'meal_order': ?mealOrder,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
     );
-    return NutritionTemplateDayModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
+    final data = response.data as Map<String, dynamic>;
+    final meal = data['meal'];
+    return NutritionTemplateMealModel.fromJson(
+      meal is Map<String, dynamic> ? meal : {},
     );
   }
 
   @override
-  Future<NutritionTemplateItemModel> createNutritionTemplateItem({
-    required String dayId,
+  Future<void> updateTemplateMeal(
+    String templateId,
+    String mealId, {
+    String? mealType,
+    int? mealOrder,
+    String? notes,
+  }) async {
+    await _dio.put(
+      ApiEndpoints.nutritionTemplateMeal(templateId, mealId),
+      data: {
+        'meal_type': ?mealType,
+        'meal_order': ?mealOrder,
+        'notes': ?notes,
+      },
+    );
+  }
+
+  @override
+  Future<void> deleteTemplateMeal(String templateId, String mealId) async {
+    await _dio.delete(ApiEndpoints.nutritionTemplateMeal(templateId, mealId));
+  }
+
+  @override
+  Future<void> reorderTemplateMeals(
+    String templateId,
+    List<({String mealId, int mealOrder})> mealOrders,
+  ) async {
+    await _dio.put(
+      ApiEndpoints.nutritionTemplateMealsReorder(templateId),
+      data: {
+        'meal_orders': mealOrders
+            .map((m) => {'meal_id': m.mealId, 'meal_order': m.mealOrder})
+            .toList(),
+      },
+    );
+  }
+
+  @override
+  Future<void> addTemplateFood(
+    String templateId,
+    String mealId, {
     required String foodId,
-    required int grams,
+    required num quantity,
   }) async {
-    final response = await _dio.post(
-      ApiEndpoints.mealTemplateItems(dayId),
-      data: {'foodId': foodId, 'grams': grams},
+    await _dio.post(
+      ApiEndpoints.nutritionTemplateMealFoods(templateId, mealId),
+      data: {'food_id': foodId, 'quantity': quantity},
     );
-    return NutritionTemplateItemModel.fromJson(
-      response.data['data'] as Map<String, dynamic>,
+  }
+
+  @override
+  Future<void> updateTemplateFood(
+    String templateId,
+    String mealId,
+    String relationFoodId, {
+    required num quantity,
+  }) async {
+    await _dio.put(
+      ApiEndpoints.nutritionTemplateMealFood(
+          templateId, mealId, relationFoodId),
+      data: {'quantity': quantity},
     );
+  }
+
+  @override
+  Future<void> removeTemplateFood(
+    String templateId,
+    String mealId,
+    String relationFoodId,
+  ) async {
+    await _dio.delete(
+      ApiEndpoints.nutritionTemplateMealFood(
+          templateId, mealId, relationFoodId),
+    );
+  }
+
+  @override
+  Future<void> assignNutritionTemplate(
+    String templateId, {
+    required String coachClientId,
+    required String title,
+    required String description,
+  }) async {
+    await _dio.post(
+      ApiEndpoints.assignNutritionTemplate(templateId),
+      data: {
+        'coach_client_id': coachClientId,
+        'title': title,
+        'description': description,
+      },
+    );
+  }
+
+  @override
+  Future<List<AssignedClientModel>> getAssignedClients() async {
+    final response = await _dio.get(ApiEndpoints.coachClients);
+    final data = response.data as Map<String, dynamic>;
+    return (data['clients'] as List<dynamic>? ?? [])
+        .map((e) => AssignedClientModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<void> removeAssignedClient(String coachClientId) async {
+    await _dio.delete(ApiEndpoints.coachClient(coachClientId));
   }
 }

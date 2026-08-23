@@ -15,8 +15,10 @@ class NutritionPlansListView extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-          create: (_) => sl<NutritionTemplatesListCubit>()..loadTemplates(),
+        // .value — the cubit is an app-lifetime singleton; a plain
+        // BlocProvider would close it on pop and break later reopens.
+        BlocProvider.value(
+          value: sl<NutritionTemplatesListCubit>()..loadTemplates(),
         ),
         BlocProvider(create: (_) => sl<SaveNutritionPlanCubit>()),
       ],

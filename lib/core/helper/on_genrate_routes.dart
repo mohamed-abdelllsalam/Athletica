@@ -25,6 +25,7 @@ import 'package:athletica/features/coach/messages/presentation/views/coach_conta
 import 'package:athletica/features/coach/messages/presentation/views/coach_message_requests_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_messages_view.dart';
 import 'package:athletica/features/coach/plan/domain/entities/coach_plan_client.dart';
+import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
 import 'package:athletica/features/coach/plan/presentation/views/client_plan_detail_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/nutrition_plan_detail_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/nutrition_plans_list_view.dart';
@@ -33,6 +34,7 @@ import 'package:athletica/features/coach/profile/presentation/views/coach_edit_p
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_photo_view.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_view.dart';
 import 'package:athletica/features/complete_profile/presentation/views/complete_profile_view.dart';
+import 'package:athletica/features/client_coach/presentation/views/client_coach_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
@@ -65,6 +67,12 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         builder: (context) => const NutritionPlansListView(),
       );
     case NutritionPlanDetailView.routeName:
+      final plan = settings.arguments;
+      if (plan is NutritionPlan) {
+        return MaterialPageRoute(
+          builder: (context) => NutritionPlanDetailView(plan: plan),
+        );
+      }
       return MaterialPageRoute(
         builder: (context) => const NutritionPlansListView(),
       );
@@ -174,6 +182,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const InfoView());
     case HomeView.routeName:
       return MaterialPageRoute(builder: (context) => const HomeView());
+    case ClientCoachView.routeName:
+      return MaterialPageRoute(builder: (context) => const ClientCoachView());
     case SettingsView.routeName:
       return MaterialPageRoute(builder: (context) => const SettingsView());
     case ChatView.routeName:

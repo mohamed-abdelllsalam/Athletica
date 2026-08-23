@@ -1,7 +1,7 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_templates_list_cubit.dart';
-import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_templates_list_state.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/save_nutrition_plan_cubit.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/save_nutrition_plan_state.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
@@ -26,6 +26,8 @@ class _NutritionPlansListViewBodyState
   String _selectedCategory = 'All';
   List<NutritionPlan> _apiPlans = [];
   bool _loading = false;
+  bool _loadingMore = false;
+  String? _errorMessage;
 
   static const List<String> _categories = [
     'All',
@@ -95,14 +97,25 @@ class _NutritionPlansListViewBodyState
           listener: (context, state) {
             switch (state) {
               case NutritionTemplatesListLoading():
-                setState(() => _loading = true);
-              case NutritionTemplatesListLoaded(:final plans):
+                setState(() {
+                  _loading = true;
+                  _errorMessage = null;
+                });
+              case NutritionTemplatesListLoaded(
+                  :final plans,
+                  :final isLoadingMore,
+                ):
                 setState(() {
                   _apiPlans = plans;
                   _loading = false;
+                  _loadingMore = isLoadingMore;
                 });
-              case NutritionTemplatesListError():
-                setState(() => _loading = false);
+              case NutritionTemplatesListError(:final message):
+                setState(() {
+                  _loading = false;
+                  _loadingMore = false;
+                  _errorMessage = message;
+                });
               case NutritionTemplatesListInitial():
                 break;
             }
@@ -207,41 +220,102 @@ class _NutritionPlansListViewBodyState
           SizedBox(height: 14.h),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _filtered.isEmpty
+                ? AppShimmer(
+                    child: ListView.separated(
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      itemCount: 6,
+                      separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                      itemBuilder: (_, _) =>
+                          SkeletonBox(height: 88.h, radius: 14.r),
+                    ),
+                  )
+                : (_errorMessage != null && _apiPlans.isEmpty)
                     ? Center(
-                        child: Text(
-                          'No plans found',
-                          style: AppTextStyles.medium14(
-                            context,
-                          ).copyWith(color: AppColors.textSecondary),
-                        ),
-                      )
-                    : ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 4.h,
-                        ),
-                        itemCount: _filtered.length,
-                        separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                        itemBuilder: (context, index) {
-                          final plan = _filtered[index];
-                          final color =
-                              _iconColors[index % _iconColors.length];
-                          return _NutritionPlanCard(
-                            plan: plan,
-                            iconColor: color,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    NutritionPlanDetailView(plan: plan),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _errorMessage!,
+                              style: AppTextStyles.medium14(context)
+                                  .copyWith(color: AppColors.textSecondary),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 16.h),
+                            ElevatedButton(
+                              onPressed: () => context
+                                  .read<NutritionTemplatesListCubit>()
+                                  .loadTemplates(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                              ),
+                              child: Text(
+                                'Retry',
+                                style: AppTextStyles.medium14(context)
+                                    .copyWith(color: Colors.white),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      )
+                    : _filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No plans found',
+                              style: AppTextStyles.medium14(
+                                context,
+                              ).copyWith(color: AppColors.textSecondary),
+                            ),
+                          )
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: (scrollInfo) {
+                              final cubit =
+                                  context.read<NutritionTemplatesListCubit>();
+                              if (scrollInfo.metrics.pixels >=
+                                      scrollInfo.metrics.maxScrollExtent -
+                                          200 &&
+                                  !_loadingMore) {
+                                cubit.loadMore();
+                              }
+                              return false;
+                            },
+                            child: ListView.separated(
+                              physics: const BouncingScrollPhysics(),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20.w,
+                                vertical: 4.h,
+                              ),
+                              itemCount: _filtered.length +
+                                  (_loadingMore ? 1 : 0),
+                              separatorBuilder: (_, _) =>
+                                  SizedBox(height: 12.h),
+                              itemBuilder: (context, index) {
+                                if (index >= _filtered.length) {
+                                  return const Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 12),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                }
+                                final plan = _filtered[index];
+                                final color =
+                                    _iconColors[index % _iconColors.length];
+                                return _NutritionPlanCard(
+                                  plan: plan,
+                                  iconColor: color,
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => NutritionPlanDetailView(
+                                          plan: plan),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
           ),
         ],
       ),

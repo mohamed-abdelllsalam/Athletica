@@ -31,6 +31,8 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     _tabController = TabController(length: 2, vsync: this);
     _ingredients = List.from(widget.meal.ingredients);
     _nameController = TextEditingController(text: widget.meal.name);
+    // Seed the meal-notes field with the persisted note (if any).
+    _mealNoteController.text = widget.meal.notes ?? '';
   }
 
   @override
@@ -52,15 +54,20 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
 
   Meal _buildMeal() {
     final name = _nameController.text.trim();
+    final notes = _mealNoteController.text.trim();
+    // Totals are recomputed from the current ingredients so the saved meal
+    // always carries up-to-date calories and macros.
     return Meal(
       id: widget.meal.id,
       type: widget.meal.type,
       name: name.isEmpty ? widget.meal.name : name,
-      calories: widget.meal.calories,
-      proteinGrams: widget.meal.proteinGrams,
-      fatGrams: widget.meal.fatGrams,
-      carbsGrams: widget.meal.carbsGrams,
+      calories: _totalCalories,
+      proteinGrams: _totalProtein,
+      fatGrams: _totalFat,
+      carbsGrams: _totalCarbs,
       ingredients: List<Ingredient>.from(_ingredients),
+      order: widget.meal.order,
+      notes: notes.isEmpty ? null : notes,
     );
   }
 
@@ -92,6 +99,8 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     final ratio = newGrams / currentGrams;
     final updated = Ingredient(
       id: ingredient.id,
+      foodId: ingredient.foodId,
+      relationId: ingredient.relationId,
       name: ingredient.name,
       emoji: ingredient.emoji,
       serving: '${newGrams}g',
@@ -116,17 +125,26 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     return 100;
   }
 
+  Set<String> get _existingFoodIds =>
+      _ingredients.map((i) => i.foodId).whereType<String>().toSet();
+
   Future<void> _addIngredients() async {
     final result = await Navigator.push<List<FoodItem>>(
       context,
-      MaterialPageRoute(builder: (_) => const FoodSearchView()),
+      MaterialPageRoute(
+        builder: (_) => FoodSearchView(existingFoodIds: _existingFoodIds),
+      ),
     );
     if (result == null || result.isEmpty) return;
     setState(() {
+      var stamp = DateTime.now().millisecondsSinceEpoch;
       for (final item in result) {
+        // Defensive: never duplicate a catalog food already in this meal.
+        if (_existingFoodIds.contains(item.id)) continue;
         _ingredients.add(
           Ingredient(
-            id: 'ing_${DateTime.now().millisecondsSinceEpoch}_${item.id}',
+            id: 'ing_${stamp}_${item.id}',
+            foodId: item.id,
             name: item.name,
             emoji: item.emoji,
             serving: item.serving,
@@ -136,6 +154,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
             fatGrams: item.fatGrams,
           ),
         );
+        stamp += 1;
       }
     });
   }
@@ -202,7 +221,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
               Text('🔥', style: TextStyle(fontSize: 16.sp)),
               SizedBox(width: 6.w),
               Text(
-                '${widget.meal.calories} Calories',
+                '$_totalCalories Calories',
                 style: AppTextStyles.semiBold14(
                   context,
                 ).copyWith(color: AppColors.textPrimary),
@@ -213,7 +232,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
               Text('🎯', style: TextStyle(fontSize: 16.sp)),
               SizedBox(width: 6.w),
               Text(
-                'p:${widget.meal.proteinGrams}g . c:${widget.meal.carbsGrams}g . f:${widget.meal.fatGrams}g',
+                'p:${_totalProtein}g . c:${_totalCarbs}g . f:${_totalFat}g',
                 style: AppTextStyles.meduim12(
                   context,
                 ).copyWith(color: AppColors.textSecondary),

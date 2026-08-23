@@ -1,0 +1,73 @@
+import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/features/client_coach/domain/usecases/get_my_coach_usecase.dart';
+import 'package:athletica/features/client_coach/domain/usecases/leave_coach_usecase.dart';
+import 'package:athletica/features/client_coach/domain/usecases/submit_coach_invite_token_usecase.dart';
+import 'package:athletica/features/client_coach/presentation/cubits/client_coach_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+class ClientCoachCubit extends Cubit<ClientCoachState> {
+  ClientCoachCubit(
+    this._getMyCoach,
+    this._submitToken,
+    this._leaveCoach,
+  ) : super(ClientCoachInitial());
+
+  final GetMyCoachUseCase _getMyCoach;
+  final SubmitCoachInviteTokenUseCase _submitToken;
+  final LeaveCoachUseCase _leaveCoach;
+
+  Future<void> loadCoach() async {
+    if (state is ClientCoachLoading) return;
+
+    emit(ClientCoachLoading());
+
+    final result = await _getMyCoach();
+    switch (result) {
+      case ApiSuccess(:final data):
+        emit(data == null
+            ? const ClientCoachNoCoach()
+            : ClientCoachLoaded(data));
+      case ApiError(:final failure):
+        emit(ClientCoachError(failure.message));
+    }
+  }
+
+  Future<void> submitToken(String rawToken) async {
+    final token = _normalizeToken(rawToken.trim());
+    if (token.isEmpty) {
+      emit(const ClientCoachError('Please paste your invite link or token.'));
+      return;
+    }
+
+    emit(const ClientCoachSubmitting());
+
+    final result = await _submitToken(token);
+    switch (result) {
+      case ApiSuccess(:final data):
+        emit(ClientCoachRequestSent(data.status));
+        await loadCoach();
+      case ApiError(:final failure):
+        emit(ClientCoachError(failure.message));
+    }
+  }
+
+  /// Accepts either the raw token or a full invite URL ending in the token.
+  String _normalizeToken(String input) {
+    if (!input.contains('/')) return input;
+    final segments =
+        input.split('/').where((s) => s.trim().isNotEmpty).toList();
+    return segments.isEmpty ? '' : segments.last;
+  }
+
+  Future<void> leave() async {
+    emit(ClientCoachLoading());
+
+    final result = await _leaveCoach();
+    switch (result) {
+      case ApiSuccess():
+        await loadCoach();
+      case ApiError(:final failure):
+        emit(ClientCoachError(failure.message));
+    }
+  }
+}

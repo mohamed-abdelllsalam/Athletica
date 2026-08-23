@@ -3,71 +3,64 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class MealCard extends StatefulWidget {
+class MealCard extends StatelessWidget {
   const MealCard({
     super.key,
-    required this.emoji,
+    required this.mealType,
     required this.name,
     required this.calories,
     required this.carbs,
     required this.protein,
     required this.fat,
+    required this.completed,
+    this.busy = false,
+    this.onToggle,
   });
 
-  final String emoji;
+  final String mealType;
   final String name;
-  final int calories;
-  final int carbs;
-  final int protein;
-  final double fat;
+  final num calories;
+  final num carbs;
+  final num protein;
+  final num fat;
+  final bool completed;
+  final bool busy;
+  final VoidCallback? onToggle;
 
-  @override
-  State<MealCard> createState() => _MealCardState();
-}
-
-class _MealCardState extends State<MealCard> {
-  bool _isDone = false;
+  static const _emojiByType = {
+    'breakfast': '🥣',
+    'lunch': '🥩',
+    'snack': '🥜',
+    'snacks': '🥜',
+    'dinner': '🍳',
+  };
 
   static const _grayscaleMatrix = <double>[
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0, 0, 0, 1, 0,
   ];
+
+  String get _emoji => _emojiByType[mealType.toLowerCase()] ?? '🍽️';
+
+  String _format(num value) =>
+      value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
 
   @override
   Widget build(BuildContext context) {
-    final Color cardBg = _isDone
+    final Color cardBg = completed
         ? const Color(0xFF2E2E2E)
         : AppColors.cardBackground;
-    final Color borderColor = _isDone
+    final Color borderColor = completed
         ? const Color(0xFF3A3A3A)
         : AppColors.cardBackgroundLight;
-    final Color nameColor = _isDone
-        ? AppColors.textTertiary
-        : AppColors.textPrimary;
-    final Color detailColor = _isDone
-        ? AppColors.textTertiary
-        : AppColors.textSecondary;
-    final Color iconColor = _isDone
-        ? AppColors.textTertiary
-        : AppColors.primaryPurple;
+    final Color nameColor =
+        completed ? AppColors.textTertiary : AppColors.textPrimary;
+    final Color detailColor =
+        completed ? AppColors.textTertiary : AppColors.textSecondary;
+    final Color iconColor =
+        completed ? AppColors.streakGreen : AppColors.primaryPurple;
 
     return Container(
       margin: EdgeInsets.only(bottom: 8.h),
@@ -81,10 +74,10 @@ class _MealCardState extends State<MealCard> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ColorFiltered(
-            colorFilter: _isDone
+            colorFilter: completed
                 ? const ColorFilter.matrix(_grayscaleMatrix)
                 : const ColorFilter.mode(Colors.transparent, BlendMode.color),
-            child: Text(widget.emoji, style: TextStyle(fontSize: 32.sp)),
+            child: Text(_emoji, style: TextStyle(fontSize: 32.sp)),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -92,35 +85,35 @@ class _MealCardState extends State<MealCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.name,
+                  name,
                   style: AppTextStyles.semiBold14(
                     context,
                   ).copyWith(color: nameColor),
                 ),
                 SizedBox(height: 6.h),
                 Text(
-                  'Calories: ${widget.calories} kcal',
+                  'Calories: ${_format(calories)} kcal',
                   style: AppTextStyles.meduim12(
                     context,
                   ).copyWith(color: detailColor),
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  'Carbohydrates: ${widget.carbs} g',
+                  'Carbohydrates: ${_format(carbs)} g',
                   style: AppTextStyles.meduim12(
                     context,
                   ).copyWith(color: detailColor),
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  'Protein: ${widget.protein} g',
+                  'Protein: ${_format(protein)} g',
                   style: AppTextStyles.meduim12(
                     context,
                   ).copyWith(color: detailColor),
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  'Fat: ${widget.fat} g',
+                  'Fat: ${_format(fat)} g',
                   style: AppTextStyles.meduim12(
                     context,
                   ).copyWith(color: detailColor),
@@ -129,8 +122,18 @@ class _MealCardState extends State<MealCard> {
             ),
           ),
           GestureDetector(
-            onTap: () => setState(() => _isDone = !_isDone),
-            child: Icon(Icons.fingerprint, size: 32.sp, color: iconColor),
+            onTap: busy ? null : onToggle,
+            child: busy
+                ? SizedBox(
+                    width: 24.r,
+                    height: 24.r,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    Icons.fingerprint,
+                    size: 32.sp,
+                    color: iconColor,
+                  ),
           ),
         ],
       ),

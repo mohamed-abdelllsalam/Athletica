@@ -1,13 +1,58 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class NutritionSummaryCard extends StatelessWidget {
-  const NutritionSummaryCard({super.key});
+  const NutritionSummaryCard({
+    super.key,
+    required this.totalCarbs,
+    required this.totalProtein,
+    required this.totalFat,
+    this.isLoading = false,
+  });
+
+  final num totalCarbs;
+  final num totalProtein;
+  final num totalFat;
+  final bool isLoading;
+
+  String _format(num value) =>
+      value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading && totalCarbs == 0 && totalProtein == 0 && totalFat == 0) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Nutrition Summary',
+              style: AppTextStyles.medium16(context).copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            AppShimmer(
+              child: Row(
+                children: [
+                  for (var i = 0; i < 3; i++) ...[
+                    if (i > 0) SizedBox(width: 10.w),
+                    Expanded(
+                      child: SkeletonBox(height: 92.h, radius: 16.r),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
@@ -26,8 +71,7 @@ class NutritionSummaryCard extends StatelessWidget {
                 child: _MacroCard(
                   icon: '🍖',
                   label: 'Carb',
-                  value: '110',
-                  targetValue: '200',
+                  value: _format(totalCarbs),
                   accentColor: AppColors.carbAccent,
                 ),
               ),
@@ -36,8 +80,7 @@ class NutritionSummaryCard extends StatelessWidget {
                 child: _MacroCard(
                   icon: '🥩',
                   label: 'Protein',
-                  value: '67',
-                  targetValue: '80',
+                  value: _format(totalProtein),
                   accentColor: AppColors.proteinAccent,
                 ),
               ),
@@ -46,8 +89,7 @@ class NutritionSummaryCard extends StatelessWidget {
                 child: _MacroCard(
                   icon: '🧈',
                   label: 'Fat',
-                  value: '85',
-                  targetValue: '110',
+                  value: _format(totalFat),
                   accentColor: AppColors.fatAccent,
                 ),
               ),
@@ -64,14 +106,12 @@ class _MacroCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    required this.targetValue,
     required this.accentColor,
   });
 
   final String icon;
   final String label;
   final String value;
-  final String targetValue;
   final Color accentColor;
 
   @override
@@ -118,29 +158,6 @@ class _MacroCard extends StatelessWidget {
                   style: AppTextStyles.meduim11(context).copyWith(
                     color: AppColors.textSecondary,
                   ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 6.h),
-          Row(
-            children: [
-              Container(
-                width: 6.r,
-                height: 6.r,
-                decoration: BoxDecoration(
-                  color: AppColors.streakGreen,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              SizedBox(width: 4.w),
-              Flexible(
-                child: Text(
-                  'Target $targetValue Gram',
-                  style: AppTextStyles.semiBold10(context).copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
