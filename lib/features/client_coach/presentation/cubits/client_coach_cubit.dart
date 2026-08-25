@@ -44,7 +44,12 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
     final result = await _submitToken(token);
     switch (result) {
       case ApiSuccess(:final data):
-        emit(ClientCoachRequestSent(data.status));
+        emit(
+          ClientCoachRequestSent(
+            data.status,
+            coachName: data.coachName,
+          ),
+        );
         await loadCoach();
       case ApiError(:final failure):
         emit(ClientCoachError(failure.message));
@@ -59,15 +64,19 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
     return segments.isEmpty ? '' : segments.last;
   }
 
-  Future<void> leave() async {
+  /// Leaves the current coach. Returns true on success; on failure the
+  /// state becomes [ClientCoachError] and false is returned.
+  Future<bool> leave() async {
     emit(ClientCoachLoading());
 
     final result = await _leaveCoach();
     switch (result) {
       case ApiSuccess():
         await loadCoach();
+        return true;
       case ApiError(:final failure):
         emit(ClientCoachError(failure.message));
+        return false;
     }
   }
 }

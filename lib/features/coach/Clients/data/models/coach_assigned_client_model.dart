@@ -2,6 +2,9 @@ import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_
 
 /// Parses a `GET /coach/clients` entry:
 /// `{ id, client: { id, user: { username, email }, goal, height, weight }, assigned_at }`
+///
+/// NOTE: for removal, the backend expects the nested `client.id`, not the
+/// entry-level `id`.
 class CoachAssignedClientModel {
   const CoachAssignedClientModel({
     required this.relationId,

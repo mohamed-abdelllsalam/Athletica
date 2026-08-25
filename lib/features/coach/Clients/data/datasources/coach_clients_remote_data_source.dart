@@ -10,7 +10,10 @@ abstract class CoachClientsRemoteDataSource {
   Future<List<CoachAssignedClientModel>> getAssignedClients();
 
   /// `DELETE /coach/clients/:id` — removes the assignment (cascades plans).
-  Future<void> removeAssignedClient(String coachClientId);
+  ///
+  /// NOTE: the live backend expects the **client profile id** in [clientId],
+  /// NOT the roster relation id, despite the API doc saying otherwise.
+  Future<void> removeAssignedClient(String clientId);
 }
 
 class CoachClientsRemoteDataSourceImpl implements CoachClientsRemoteDataSource {

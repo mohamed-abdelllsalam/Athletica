@@ -31,9 +31,12 @@ final class ClientCoachSubmitting extends ClientCoachState {
 
 /// Invite token accepted by the API; waiting for the coach to accept.
 final class ClientCoachRequestSent extends ClientCoachState {
-  const ClientCoachRequestSent(this.requestStatus);
+  const ClientCoachRequestSent(this.requestStatus, {this.coachName = ''});
 
   final String requestStatus;
+
+  /// Best-effort coach display name; empty when the API omits it.
+  final String coachName;
 }
 
 final class ClientCoachError extends ClientCoachState {

@@ -38,6 +38,7 @@ import 'package:athletica/features/client_coach/presentation/views/client_coach_
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
+import 'package:athletica/features/nutrition/presentation/views/my_plan_details_view.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_info_view.dart';
@@ -184,6 +185,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const HomeView());
     case ClientCoachView.routeName:
       return MaterialPageRoute(builder: (context) => const ClientCoachView());
+    case MyPlanDetailsView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const MyPlanDetailsView(),
+      );
     case SettingsView.routeName:
       return MaterialPageRoute(builder: (context) => const SettingsView());
     case ChatView.routeName:

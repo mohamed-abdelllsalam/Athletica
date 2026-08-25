@@ -99,7 +99,7 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
       ),
     );
     if (confirmed == true && context.mounted) {
-      context.read<CoachClientsCubit>().removeClient(client.relationId);
+      context.read<CoachClientsCubit>().removeClient(client);
     }
   }
 
@@ -153,6 +153,9 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
                             context
                                 .read<CoachJoinRequestsCubit>()
                                 .loadRequests();
+                            // Accepted/rejected requests change the roster,
+                            // so reload it instead of showing stale data.
+                            context.read<CoachClientsCubit>().loadClients();
                           }
                         },
                       );

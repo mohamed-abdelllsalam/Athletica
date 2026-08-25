@@ -69,7 +69,7 @@ class NutritionSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _MacroCard(
-                  icon: '🍖',
+                  icon: Icons.bakery_dining,
                   label: 'Carb',
                   value: _format(totalCarbs),
                   accentColor: AppColors.carbAccent,
@@ -78,7 +78,7 @@ class NutritionSummaryCard extends StatelessWidget {
               SizedBox(width: 10.w),
               Expanded(
                 child: _MacroCard(
-                  icon: '🥩',
+                  icon: Icons.egg_alt,
                   label: 'Protein',
                   value: _format(totalProtein),
                   accentColor: AppColors.proteinAccent,
@@ -87,7 +87,7 @@ class NutritionSummaryCard extends StatelessWidget {
               SizedBox(width: 10.w),
               Expanded(
                 child: _MacroCard(
-                  icon: '🧈',
+                  icon: Icons.water_drop,
                   label: 'Fat',
                   value: _format(totalFat),
                   accentColor: AppColors.fatAccent,
@@ -109,7 +109,7 @@ class _MacroCard extends StatelessWidget {
     required this.accentColor,
   });
 
-  final String icon;
+  final IconData icon;
   final String label;
   final String value;
   final Color accentColor;
@@ -127,7 +127,7 @@ class _MacroCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(icon, style: TextStyle(fontSize: 16.sp)),
+              Icon(icon, size: 16.sp, color: accentColor),
               SizedBox(width: 4.w),
               Flexible(
                 child: Text(

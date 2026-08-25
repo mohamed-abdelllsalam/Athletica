@@ -7,8 +7,8 @@ abstract class ClientCoachRemoteDataSource {
   /// Submits an invite token. Returns the created/reset request.
   Future<CoachLinkRequestModel> submitInviteToken(String token);
 
-  /// Returns null when the client has no assigned coach (404
-  /// `no_coach_assigned`); other errors are thrown.
+  /// Returns null when the client has no assigned coach (the API answers
+  /// with the `no_coach_assigned` error key); other errors are thrown.
   Future<AssignedCoachModel?> getMyCoach();
 
   Future<void> leaveCoach();
@@ -38,7 +38,7 @@ class ClientCoachRemoteDataSourceImpl implements ClientCoachRemoteDataSource {
     } on DioException catch (e) {
       final body = e.response?.data;
       final errorKey = body is Map<String, dynamic> ? body['error'] : null;
-      if (e.response?.statusCode == 404 && errorKey == 'no_coach_assigned') {
+      if (_normalizeErrorKey(errorKey) == 'no_coach_assigned') {
         return null;
       }
       rethrow;
@@ -50,3 +50,9 @@ class ClientCoachRemoteDataSourceImpl implements ClientCoachRemoteDataSource {
     await _dio.post(ApiEndpoints.clientLeaveCoach);
   }
 }
+
+/// The API documents snake_case error keys but responses carry
+/// human-readable values (e.g. "No coach assigned"); normalize both so the
+/// empty-state detection matches either shape.
+String? _normalizeErrorKey(Object? key) =>
+    key is String ? key.toLowerCase().trim().replaceAll(' ', '_') : null;

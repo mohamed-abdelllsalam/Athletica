@@ -100,8 +100,12 @@ import 'package:athletica/features/nutrition/data/datasources/nutrition_remote_d
 import 'package:athletica/features/nutrition/data/repositories/nutrition_repository_impl.dart';
 import 'package:athletica/features/nutrition/domain/repositories/nutrition_repository.dart';
 import 'package:athletica/features/nutrition/domain/usecases/complete_meal_log_usecase.dart';
+import 'package:athletica/features/nutrition/domain/usecases/get_my_active_plan_usecase.dart';
+import 'package:athletica/features/nutrition/domain/usecases/get_my_plan_details_usecase.dart';
+import 'package:athletica/features/nutrition/domain/usecases/get_nutrition_history_usecase.dart';
 import 'package:athletica/features/nutrition/domain/usecases/get_today_meals_usecase.dart';
 import 'package:athletica/features/nutrition/domain/usecases/uncomplete_meal_log_usecase.dart';
+import 'package:athletica/features/nutrition/presentation/cubits/my_plan_details_cubit.dart';
 import 'package:athletica/features/nutrition/presentation/cubits/nutrition_today_cubit.dart';
 import 'package:athletica/features/info/data/repositories/info_repository_impl.dart';
 import 'package:athletica/features/info/domain/repositories/info_repository.dart';
@@ -264,6 +268,9 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetTodayMealsUseCase(sl()));
   sl.registerLazySingleton(() => CompleteMealLogUseCase(sl()));
   sl.registerLazySingleton(() => UncompleteMealLogUseCase(sl()));
+  sl.registerLazySingleton(() => GetMyActivePlanUseCase(sl()));
+  sl.registerLazySingleton(() => GetMyPlanDetailsUseCase(sl()));
+  sl.registerLazySingleton(() => GetNutritionHistoryUseCase(sl()));
 
   // Cubits — factory so each screen gets a fresh instance
   sl.registerFactory(
@@ -290,6 +297,9 @@ void setupDependencies() {
   sl.registerFactory(() => ClientCoachCubit(sl(), sl(), sl()));
   sl.registerFactory(
     () => NutritionTodayCubit(sl(), sl(), sl()),
+  );
+  sl.registerFactory(
+    () => MyPlanDetailsCubit(sl(), sl()),
   );
   sl.registerFactory(() => CoachHomeStatsCubit(sl()));
   sl.registerFactory(() => FoodsCubit(sl(), sl()));

@@ -1,8 +1,8 @@
 /// A client assigned to the coach, from `GET /coach/clients`.
 ///
-/// [relationId] is the `coach_clients.id` — the value used to remove the
-/// client (`DELETE /coach/clients/:id`) and as `coach_client_id` when
-/// assigning a nutrition plan.
+/// [relationId] is the entry-level `id`. For removal the backend expects
+/// [clientId] (verified against the live backend); [relationId] is kept as
+/// the list key and for assigning nutrition plans.
 class CoachAssignedClient {
   const CoachAssignedClient({
     required this.relationId,

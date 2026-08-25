@@ -108,6 +108,7 @@ class ApiEndpoints {
   static const String nutritionToday = 'nutrition/today';
   static const String nutritionMyPlans = 'nutrition/my/plans';
   static String nutritionMyPlan(String planId) => 'nutrition/my/plans/$planId';
+  static const String nutritionHistory = 'nutrition/history';
   static String nutritionMealComplete(String mealLogId) =>
       'nutrition/meals/$mealLogId/complete';
   static String nutritionMealUncomplete(String mealLogId) =>

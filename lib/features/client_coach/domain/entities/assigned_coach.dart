@@ -7,6 +7,7 @@ class AssignedCoach {
     this.bio = '',
     this.specialization = '',
     this.assignedAt,
+    this.imageUrl,
   });
 
   final String id;
@@ -15,4 +16,9 @@ class AssignedCoach {
   final String bio;
   final String specialization;
   final DateTime? assignedAt;
+
+  /// Best-effort profile photo; null when the API omits it.
+  final String? imageUrl;
+
+  bool get hasPhoto => imageUrl != null && imageUrl!.isNotEmpty;
 }

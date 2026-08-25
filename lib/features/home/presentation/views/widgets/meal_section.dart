@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/meal_type_labels.dart';
 import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/home/presentation/views/widgets/meal_card.dart';
 import 'package:athletica/features/nutrition/domain/entities/today_meals.dart';
@@ -25,22 +26,6 @@ class MealSection extends StatelessWidget {
   final void Function(String mealLogId, bool targetCompleted)
       onToggleComplete;
 
-  static const Map<String, String> _typeLabels = {
-    'breakfast': 'Breakfast',
-    'lunch': 'Lunch',
-    'dinner': 'Dinner',
-    'snacks': 'Snacks',
-    'snack': 'Snacks',
-  };
-
-  static const Map<String, String> _typeOrder = {
-    'breakfast': '0',
-    'lunch': '1',
-    'snack': '2',
-    'snacks': '2',
-    'dinner': '3',
-  };
-
   /// Groups meals by type in a stable breakfast→lunch→snacks→dinner order,
   /// keeping any unknown meal types at the end.
   List<MapEntry<String, List<TodayMeal>>> get _grouped {
@@ -50,8 +35,8 @@ class MealSection extends StatelessWidget {
     }
     final entries = groups.entries.toList()
       ..sort((a, b) {
-        final rankA = _typeOrder[a.key] ?? '9';
-        final rankB = _typeOrder[b.key] ?? '9';
+        final rankA = mealTypeOrder[a.key] ?? '9';
+        final rankB = mealTypeOrder[b.key] ?? '9';
         return rankA.compareTo(rankB);
       });
     return entries;
@@ -149,8 +134,7 @@ class MealSection extends StatelessWidget {
   List<Widget> _buildGroups(BuildContext context) {
     final widgets = <Widget>[];
     for (final group in _grouped) {
-      final label =
-          _typeLabels[group.key] ?? _titleCase(group.key);
+      final label = labelForMealType(group.key);
       widgets
         ..add(SizedBox(height: widgets.isEmpty ? 0 : 16.h))
         ..add(_buildGroupHeader(context, label));
@@ -194,10 +178,5 @@ class MealSection extends StatelessWidget {
         SizedBox(height: 10.h),
       ],
     );
-  }
-
-  String _titleCase(String raw) {
-    if (raw.isEmpty) return raw;
-    return raw[0].toUpperCase() + raw.substring(1);
   }
 }

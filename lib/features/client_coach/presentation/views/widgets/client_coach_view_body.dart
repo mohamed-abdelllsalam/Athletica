@@ -4,8 +4,8 @@ import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/client_coach/domain/entities/assigned_coach.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_cubit.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_state.dart';
+import 'package:athletica/features/client_coach/presentation/views/widgets/coach_code_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -17,20 +17,6 @@ class ClientCoachViewBody extends StatefulWidget {
 }
 
 class _ClientCoachViewBodyState extends State<ClientCoachViewBody> {
-  final TextEditingController _tokenController = TextEditingController();
-
-  @override
-  void dispose() {
-    _tokenController.dispose();
-    super.dispose();
-  }
-
-  void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
-
   Future<void> _confirmLeave(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -61,25 +47,17 @@ class _ClientCoachViewBodyState extends State<ClientCoachViewBody> {
     );
 
     if (confirmed == true && context.mounted) {
-      context.read<ClientCoachCubit>().leave();
+      final left = await context.read<ClientCoachCubit>().leave();
+      // Back to the previous (home) screen once the leave succeeded.
+      if (left && context.mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<ClientCoachCubit, ClientCoachState>(
-      listenWhen: (previous, current) =>
-          current is ClientCoachRequestSent ||
-          current is ClientCoachError &&
-              previous is! ClientCoachError,
-      listener: (context, state) {
-        if (state is ClientCoachRequestSent) {
-          _showSnackBar(context,
-              'Request sent. Waiting for your coach to accept it.');
-        } else if (state is ClientCoachError) {
-          _showSnackBar(context, state.message);
-        }
-      },
+    return BlocBuilder<ClientCoachCubit, ClientCoachState>(
       builder: (context, state) {
         return Scaffold(
           backgroundColor: AppColors.primaryAppColor,
@@ -145,7 +123,7 @@ class _ClientCoachViewBodyState extends State<ClientCoachViewBody> {
       ClientCoachNoCoach() ||
       ClientCoachSubmitting() ||
       ClientCoachRequestSent() =>
-        _JoinCoachForm(controller: _tokenController),
+        const _JoinCoachSection(),
       ClientCoachError() => Center(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -175,107 +153,61 @@ class _ClientCoachViewBodyState extends State<ClientCoachViewBody> {
   }
 }
 
-class _JoinCoachForm extends StatelessWidget {
-  const _JoinCoachForm({required this.controller});
-
-  final TextEditingController controller;
+class _JoinCoachSection extends StatelessWidget {
+  const _JoinCoachSection();
 
   @override
   Widget build(BuildContext context) {
-    final submitting = context.watch<ClientCoachCubit>().state
-        is ClientCoachSubmitting;
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Connect with your coach',
-            style: AppTextStyles.bold20(context)
-                .copyWith(color: AppColors.textPrimary),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            'Ask your coach for their invite link, then paste it below to '
-            'send a connection request.',
-            style: AppTextStyles.medium14(context)
-                .copyWith(color: AppColors.textSecondary),
-          ),
-          SizedBox(height: 24.h),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: TextField(
-              controller: controller,
-              enabled: !submitting,
-              style: AppTextStyles.medium14(context)
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'Connect with your coach',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bold20(context)
                   .copyWith(color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Invite link or token',
-                hintStyle: AppTextStyles.medium14(context)
-                    .copyWith(color: AppColors.textSecondary),
-                border: InputBorder.none,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    Icons.content_paste,
-                    color: AppColors.textSecondary,
-                    size: 20.sp,
-                  ),
-                  onPressed: submitting
-                      ? null
-                      : () async {
-                          final data =
-                              await Clipboard.getData(Clipboard.kTextPlain);
-                          final text = data?.text;
-                          if (text != null && text.trim().isNotEmpty) {
-                            controller.text = text.trim();
-                          }
-                        },
-                ),
-              ),
             ),
-          ),
-          SizedBox(height: 16.h),
-          SizedBox(
-            width: double.infinity,
-            height: 50.h,
-            child: ElevatedButton(
-              onPressed: submitting
-                  ? null
-                  : () => context.read<ClientCoachCubit>().submitToken(
-                        controller.text,
-                      ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.buttonColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              child: submitting
-                  ? SizedBox(
-                      height: 22.h,
-                      width: 22.h,
-                      child: const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Text(
-                      'Send request',
-                      style: AppTextStyles.medium14(context).copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+            SizedBox(height: 8.h),
+            Text(
+              "You don't have a coach yet. Get your coach's 6-character "
+              'code, then subscribe below to send a connection request.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.medium14(context)
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 24.h),
+            GestureDetector(
+              onTap: () async {
+                final sent = await showCoachCodeDialog(context);
+                if (sent && context.mounted) {
+                  context.read<ClientCoachCubit>().loadCoach();
+                }
+              },
+              child: Text.rich(
+                TextSpan(
+                  text: "You don't have one. ",
+                  style: AppTextStyles.medium15(context)
+                      .copyWith(color: AppColors.textSecondary),
+                  children: [
+                    TextSpan(
+                      text: 'Subscribe',
+                      style: AppTextStyles.semiBold15(context).copyWith(
+                        color: AppColors.primaryBlue,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.primaryBlue,
                       ),
                     ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -307,6 +239,8 @@ class _CoachCard extends StatelessWidget {
                 Container(
                   width: 72.r,
                   height: 72.r,
+                  clipBehavior: Clip.antiAlias,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.surfaceDark,
@@ -315,11 +249,23 @@ class _CoachCard extends StatelessWidget {
                       width: 2,
                     ),
                   ),
-                  child: Icon(
-                    Icons.fitness_center,
-                    color: AppColors.textSecondary,
-                    size: 32.sp,
-                  ),
+                  child: coach.hasPhoto
+                      ? Image.network(
+                          coach.imageUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, _, _) => Icon(
+                            Icons.person,
+                            color: AppColors.textSecondary,
+                            size: 32.sp,
+                          ),
+                        )
+                      : Icon(
+                          Icons.person,
+                          color: AppColors.textSecondary,
+                          size: 32.sp,
+                        ),
                 ),
                 SizedBox(height: 12.h),
                 Text(

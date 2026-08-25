@@ -3,6 +3,9 @@ import 'package:athletica/features/client_coach/domain/entities/assigned_coach.d
 /// Parses `GET /client/coach`:
 /// `{ "coach": { "id", "user": { "username", "email" }, "bio",
 ///    "specialization" }, "assigned_at": "..." }`
+///
+/// [imageUrl] is best-effort parsed from common photo fields; null when the
+/// API omits them.
 class AssignedCoachModel {
   const AssignedCoachModel({
     required this.id,
@@ -10,6 +13,7 @@ class AssignedCoachModel {
     required this.email,
     required this.bio,
     required this.specialization,
+    required this.imageUrl,
     this.assignedAt,
   });
 
@@ -18,6 +22,7 @@ class AssignedCoachModel {
   final String email;
   final String bio;
   final String specialization;
+  final String? imageUrl;
   final DateTime? assignedAt;
 
   factory AssignedCoachModel.fromJson(Map<String, dynamic> json) {
@@ -29,8 +34,31 @@ class AssignedCoachModel {
       email: user['email'] as String? ?? '',
       bio: coach['bio'] as String? ?? '',
       specialization: coach['specialization'] as String? ?? '',
+      imageUrl: _parseImageUrl(coach, user),
       assignedAt: DateTime.tryParse(json['assigned_at'] as String? ?? ''),
     );
+  }
+
+  static const List<String> _imageKeys = [
+    'image',
+    'imageUrl',
+    'avatar',
+    'photo',
+    'profile_image',
+    'profileImage',
+  ];
+
+  static String? _parseImageUrl(
+    Map<String, dynamic> coach,
+    Map<String, dynamic> user,
+  ) {
+    for (final source in [user, coach]) {
+      for (final key in _imageKeys) {
+        final value = source[key];
+        if (value is String && value.isNotEmpty) return value;
+      }
+    }
+    return null;
   }
 
   AssignedCoach toEntity() => AssignedCoach(
@@ -40,5 +68,6 @@ class AssignedCoachModel {
         bio: bio,
         specialization: specialization,
         assignedAt: assignedAt,
+        imageUrl: imageUrl,
       );
 }

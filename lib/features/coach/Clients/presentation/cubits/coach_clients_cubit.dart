@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_assigned_clients_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/remove_coach_assigned_client_usecase.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_state.dart';
@@ -25,19 +26,23 @@ class CoachClientsCubit extends Cubit<CoachClientsState> {
     }
   }
 
-  Future<void> removeClient(String relationId) async {
+  /// Removes [client] from the roster.
+  ///
+  /// The API expects the **client profile id** in the DELETE path (verified
+  /// against the live backend), not the roster relation id.
+  Future<void> removeClient(CoachAssignedClient client) async {
     final clients = state.clients;
     if (state is CoachClientsActionInProgress) return;
-    if (relationId.isEmpty) return;
+    if (client.clientId.isEmpty) return;
 
-    emit(CoachClientsActionInProgress(clients, relationId));
+    emit(CoachClientsActionInProgress(clients, client.relationId));
 
-    final result = await _removeAssignedClient(relationId);
+    final result = await _removeAssignedClient(client.clientId);
     switch (result) {
       case ApiSuccess():
         emit(
           CoachClientsLoaded(
-            clients.where((c) => c.relationId != relationId).toList(),
+            clients.where((c) => c.relationId != client.relationId).toList(),
           ),
         );
       case ApiError(:final failure):
