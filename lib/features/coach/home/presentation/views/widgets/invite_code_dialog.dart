@@ -6,7 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Small dialog that reveals the 6-character invite code with a staggered
-/// animation and lets the coach copy the code or the full invite link.
+/// animation and lets the coach copy the code. The Regenerate button is
+/// static for now — wiring comes later.
 class InviteCodeDialog extends StatefulWidget {
   const InviteCodeDialog({super.key, required this.invite});
 
@@ -74,7 +75,11 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
   String get _expiryLabel {
     final expiresAt = widget.invite.expiresAt;
     if (expiresAt == null) return 'This code does not expire.';
-    return 'Expires on ${expiresAt.year}-${expiresAt.month.toString().padLeft(2, '0')}-${expiresAt.day.toString().padLeft(2, '0')}';
+    final hour12 = expiresAt.hour % 12 == 0 ? 12 : expiresAt.hour % 12;
+    final period = expiresAt.hour < 12 ? 'AM' : 'PM';
+    final date =
+        '${expiresAt.year}-${expiresAt.month.toString().padLeft(2, '0')}-${expiresAt.day.toString().padLeft(2, '0')}';
+    return 'Expires on $date at $hour12:${expiresAt.minute.toString().padLeft(2, '0')} $period';
   }
 
   @override
@@ -131,6 +136,13 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
               label: 'Copy Code',
               icon: Icons.copy_rounded,
               onTap: _copyCode,
+            ),
+            SizedBox(height: 10.h),
+            _DialogButton(
+              label: 'Regenerate',
+              icon: Icons.refresh_rounded,
+              onTap: () {},
+              outlined: true,
             ),
             SizedBox(height: 6.h),
             TextButton(
@@ -196,29 +208,44 @@ class _DialogButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.outlined = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 46.h,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18.sp),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.buttonColor,
-          foregroundColor: AppColors.textPrimary,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-        ),
-      ),
+      child: outlined
+          ? OutlinedButton.icon(
+              onPressed: onTap,
+              icon: Icon(icon, size: 18.sp),
+              label: Text(label),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary,
+                side: BorderSide(color: AppColors.surfaceDark, width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+            )
+          : ElevatedButton.icon(
+              onPressed: onTap,
+              icon: Icon(icon, size: 18.sp),
+              label: Text(label),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.buttonColor,
+                foregroundColor: AppColors.textPrimary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+            ),
     );
   }
 }
