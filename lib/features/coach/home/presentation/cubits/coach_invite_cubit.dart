@@ -19,11 +19,12 @@ class CoachInviteCubit extends Cubit<CoachInviteState> {
     final result = await _createInviteCode();
     switch (result) {
       case ApiSuccess(:final data):
+        final hasCode = data.code.trim().isNotEmpty;
         final inviteLink = data.inviteUrl.trim();
-        if (inviteLink.isEmpty) {
-          emit(CoachInviteError('Invite link not available.'));
+        if (!hasCode && inviteLink.isEmpty) {
+          emit(CoachInviteError('Invite code not available.'));
         } else {
-          emit(CoachInviteSuccess(inviteLink));
+          emit(CoachInviteSuccess(data));
         }
       case ApiError(:final failure):
         emit(CoachInviteError(failure.message));

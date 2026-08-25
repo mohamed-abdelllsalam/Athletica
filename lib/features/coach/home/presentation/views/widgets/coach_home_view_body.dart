@@ -11,10 +11,10 @@ import 'package:athletica/features/coach/home/presentation/views/widgets/coach_b
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_home_app_bar.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_insights_section.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_stats_grid.dart';
+import 'package:athletica/features/coach/home/presentation/views/widgets/invite_code_dialog.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_plan_view_body.dart';
 import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_profile_view_body.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -110,9 +110,10 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
             current is CoachInviteRevoked,
         listener: (context, state) async {
           if (state is CoachInviteSuccess) {
-            await Clipboard.setData(ClipboardData(text: state.inviteLink));
-            if (!context.mounted) return;
-            _showSnackBar(context, 'Invite link copied to clipboard.');
+            await showDialog<void>(
+              context: context,
+              builder: (_) => InviteCodeDialog(invite: state.invite),
+            );
           } else if (state is CoachInviteRevoked) {
             _showSnackBar(context, 'Invite link revoked.');
           } else if (state is CoachInviteError) {

@@ -1,3 +1,5 @@
+import 'package:athletica/features/coach/home/domain/entities/coach_invite_code.dart';
+
 sealed class CoachInviteState {}
 
 final class CoachInviteInitial extends CoachInviteState {}
@@ -5,8 +7,8 @@ final class CoachInviteInitial extends CoachInviteState {}
 final class CoachInviteLoading extends CoachInviteState {}
 
 final class CoachInviteSuccess extends CoachInviteState {
-  CoachInviteSuccess(this.inviteLink);
-  final String inviteLink;
+  CoachInviteSuccess(this.invite);
+  final CoachInviteCode invite;
 }
 
 final class CoachInviteRevoked extends CoachInviteState {}

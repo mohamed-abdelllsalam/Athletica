@@ -20,9 +20,11 @@ import 'package:athletica/features/coach/clients/data/repositories/coach_join_re
 import 'package:athletica/features/coach/clients/domain/repositories/coach_clients_repository.dart';
 import 'package:athletica/features/coach/clients/domain/repositories/coach_join_requests_repository.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/accept_coach_join_request_usecase.dart';
+import 'package:athletica/features/coach/clients/domain/usecases/get_coach_assigned_clients_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_clients_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_join_requests_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/reject_coach_join_request_usecase.dart';
+import 'package:athletica/features/coach/clients/domain/usecases/remove_coach_assigned_client_usecase.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/coach_subscription_cubit.dart';
@@ -209,6 +211,8 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
+  sl.registerLazySingleton(() => GetCoachAssignedClientsUseCase(sl()));
+  sl.registerLazySingleton(() => RemoveCoachAssignedClientUseCase(sl()));
   sl.registerLazySingleton(() => CreateCoachInviteCodeUseCase(sl()));
   sl.registerLazySingleton(() => RevokeCoachInviteUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachHomeStatsUseCase(sl()));
@@ -280,7 +284,7 @@ void setupDependencies() {
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileCubit(sl()));
-  sl.registerFactory(() => CoachClientsCubit(sl()));
+  sl.registerFactory(() => CoachClientsCubit(sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachInviteCubit(sl(), sl()));
   sl.registerFactory(() => ClientCoachCubit(sl(), sl(), sl()));

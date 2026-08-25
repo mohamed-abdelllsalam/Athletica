@@ -33,6 +33,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/NUTRITION_API_FOR_FLUTTER.md
 
 # Symbolication related
 app.*.symbols

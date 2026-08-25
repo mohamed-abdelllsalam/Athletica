@@ -1,31 +1,47 @@
-import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
-import 'package:athletica/features/coach/clients/domain/usecases/get_coach_clients_usecase.dart';
+import 'package:athletica/features/coach/clients/domain/usecases/get_coach_assigned_clients_usecase.dart';
+import 'package:athletica/features/coach/clients/domain/usecases/remove_coach_assigned_client_usecase.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CoachClientsCubit extends Cubit<CoachClientsState> {
-  CoachClientsCubit(this._getCoachClients) : super(CoachClientsInitial());
+  CoachClientsCubit(this._getAssignedClients, this._removeAssignedClient)
+      : super(CoachClientsInitial());
 
-  final GetCoachClientsUseCase _getCoachClients;
+  final GetCoachAssignedClientsUseCase _getAssignedClients;
+  final RemoveCoachAssignedClientUseCase _removeAssignedClient;
 
   Future<void> loadClients() async {
     if (state is CoachClientsLoading) return;
 
     emit(CoachClientsLoading());
 
-    final trainerId = await TokenStorageService.instance.getTrainerId();
-    if (trainerId == null) {
-      emit(CoachClientsError('Trainer ID not found. Please log in again.'));
-      return;
-    }
-
-    final result = await _getCoachClients(trainerId);
+    final result = await _getAssignedClients();
     switch (result) {
       case ApiSuccess(:final data):
         emit(CoachClientsLoaded(data));
       case ApiError(:final failure):
         emit(CoachClientsError(failure.message));
+    }
+  }
+
+  Future<void> removeClient(String relationId) async {
+    final clients = state.clients;
+    if (state is CoachClientsActionInProgress) return;
+    if (relationId.isEmpty) return;
+
+    emit(CoachClientsActionInProgress(clients, relationId));
+
+    final result = await _removeAssignedClient(relationId);
+    switch (result) {
+      case ApiSuccess():
+        emit(
+          CoachClientsLoaded(
+            clients.where((c) => c.relationId != relationId).toList(),
+          ),
+        );
+      case ApiError(:final failure):
+        emit(CoachClientsActionError(clients, failure.message));
     }
   }
 }
