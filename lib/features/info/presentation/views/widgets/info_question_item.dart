@@ -4,17 +4,27 @@ import 'package:athletica/features/info/domain/entities/client_question.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+/// Renders a single API-driven question according to its [QuestionType]:
+/// choice questions render their available choices (storing indexes),
+/// text questions render a normal text input (storing strings).
 class InfoQuestionItem extends StatelessWidget {
   const InfoQuestionItem({
     super.key,
     required this.question,
-    required this.selectedIndex,
+    required this.answer,
+    this.textController,
     required this.onSelected,
+    required this.onTextChanged,
   });
 
   final ClientQuestion question;
-  final int? selectedIndex;
+
+  /// Current answer: int choice index for choice questions,
+  /// String for text questions.
+  final Object? answer;
+  final TextEditingController? textController;
   final ValueChanged<int> onSelected;
+  final ValueChanged<String> onTextChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -28,17 +38,52 @@ class InfoQuestionItem extends StatelessWidget {
           ).copyWith(color: Colors.white),
         ),
         SizedBox(height: 10.h),
-        for (int i = 0; i < question.choices.length; i++) ...[
-          _ChoiceTile(
-            label: question.choices[i],
-            isSelected: selectedIndex == i,
-            onTap: () => onSelected(i),
-          ),
-          if (i != question.choices.length - 1) SizedBox(height: 8.h),
-        ],
+        if (question.isTextQuestion)
+          _buildTextInput(context)
+        else
+          ..._buildChoices(),
       ],
     );
   }
+
+  List<Widget> _buildChoices() {
+    return [
+      for (int i = 0; i < question.choices.length; i++) ...[
+        _ChoiceTile(
+          label: question.choices[i],
+          isSelected: answer == i,
+          onTap: () => onSelected(i),
+        ),
+        if (i != question.choices.length - 1) SizedBox(height: 8.h),
+      ],
+    ];
+  }
+
+  Widget _buildTextInput(BuildContext context) {
+    return TextField(
+      controller: textController,
+      onChanged: onTextChanged,
+      maxLines: null,
+      style: AppTextStyles.medium14(context).copyWith(color: Colors.white),
+      cursorColor: AppColors.primaryPurple,
+      decoration: InputDecoration(
+        hintText: 'Type your answer',
+        hintStyle: AppTextStyles.medium14(
+          context,
+        ).copyWith(color: Colors.white.withValues(alpha: 0.4)),
+        filled: true,
+        fillColor: const Color(0xFF1E1E1E),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        enabledBorder: _border(const Color(0xFF3A3A3A)),
+        focusedBorder: _border(AppColors.primaryPurple),
+      ),
+    );
+  }
+
+  OutlineInputBorder _border(Color color) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10.r),
+    borderSide: BorderSide(width: 1.2, color: color),
+  );
 }
 
 class _ChoiceTile extends StatelessWidget {

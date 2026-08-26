@@ -305,7 +305,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
           Ingredient(
             id: 'ing_${stamp}_${item.id}',
             foodId: item.id,
-            name: item.name,
+            name: item.displayName,
             emoji: item.emoji,
             serving: item.serving,
             calories: item.calories,

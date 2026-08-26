@@ -10,13 +10,17 @@ class FoodsRepositoryImpl implements FoodsRepository {
   FoodsRepositoryImpl(this._dataSource);
 
   final FoodsRemoteDataSource _dataSource;
-  Map<String, String>? _categoryNamesCache;
+  Map<String, String>? _categoryLabelsCache;
 
-  Future<Map<String, String>> _categoryNames() async {
-    if (_categoryNamesCache != null) return _categoryNamesCache!;
+  /// Category display labels resolved once so food cards keep their
+  /// emoji/icon mapping (matched against both en/ar labels).
+  Future<Map<String, String>> _categoryLabels() async {
+    if (_categoryLabelsCache != null) return _categoryLabelsCache!;
     final models = await _dataSource.getFoodCategories();
-    _categoryNamesCache = {for (final c in models) c.id: c.name};
-    return _categoryNamesCache!;
+    _categoryLabelsCache = {
+      for (final c in models) c.id: c.toEntity().displayName,
+    };
+    return _categoryLabelsCache!;
   }
 
   @override
@@ -27,8 +31,8 @@ class FoodsRepositoryImpl implements FoodsRepository {
     int pageSize = 20,
   }) async {
     try {
-      // Category names are resolved once so food cards keep their emoji/icon.
-      final nameById = await _categoryNames();
+      // Category labels are resolved once so food cards keep their emoji.
+      final labelById = await _categoryLabels();
       final page_ = await _dataSource.getFoods(
         search: search,
         categoryId: categoryId,
@@ -39,7 +43,7 @@ class FoodsRepositoryImpl implements FoodsRepository {
           .foods
           .map(
             (m) => m
-                .copyWithCategoryName(nameById[m.categoryId] ?? '')
+                .copyWithCategoryName(labelById[m.categoryId] ?? '')
                 .toEntity(),
           )
           .toList();

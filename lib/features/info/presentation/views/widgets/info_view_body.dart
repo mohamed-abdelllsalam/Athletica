@@ -16,7 +16,8 @@ class InfoViewBody extends StatefulWidget {
 }
 
 class _InfoViewBodyState extends State<InfoViewBody> {
-  final Map<String, int> _selections = {};
+  final Map<String, Object> _answers = {};
+  final Map<String, TextEditingController> _textControllers = {};
   List<ClientQuestion> _questions = const [];
 
   @override
@@ -27,24 +28,67 @@ class _InfoViewBodyState extends State<InfoViewBody> {
     });
   }
 
-  int _answeredCount() =>
-      _questions.where((q) => _selections.containsKey(q.id)).length;
-
-  void _submit() {
-    final missing = _questions.any((q) => !_selections.containsKey(q.id));
-    if (missing) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please answer all questions before continuing.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
+  @override
+  void dispose() {
+    for (final controller in _textControllers.values) {
+      controller.dispose();
     }
-    context.read<InfoCubit>().submitAnswers(Map.of(_selections));
+    super.dispose();
   }
 
-  Widget _buildError(BuildContext context, String message) {
+  bool _isAnswered(ClientQuestion question) {
+    if (question.questionType == QuestionType.text) {
+      final text = _textControllers[question.id]?.text.trim() ?? '';
+      return text.isNotEmpty;
+    }
+    final answer = _answers[question.id];
+    return answer is int && answer >= 0 && answer < question.choices.length;
+  }
+
+  int _answeredCount() =>
+      _questions.where(_isAnswered).length;
+
+  void _submit() {
+    final payload = <String, Object>{};
+    for (final question in _questions) {
+      if (!_isAnswered(question)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please answer "${question.question}" to continue.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      // Enforce the backend contract client-side:
+      // choice -> integer index, text -> non-empty String.
+      if (question.questionType == QuestionType.text) {
+        payload[question.id] = _textControllers[question.id]!.text.trim();
+      } else {
+        payload[question.id] = _answers[question.id] as int;
+      }
+    }
+    context.read<InfoCubit>().submitAnswers(payload);
+  }
+
+  void _onQuestionsLoaded(InfoQuestionsLoaded state) {
+    for (final question in state.questions) {
+      if (question.questionType != QuestionType.text) continue;
+      final saved = state.savedAnswers[question.id];
+      _textControllers.putIfAbsent(
+        question.id,
+        () => TextEditingController(text: saved is String ? saved : ''),
+      );
+    }
+    setState(() {
+      _questions = state.questions;
+      _answers
+        ..clear()
+        ..addAll(state.savedAnswers);
+    });
+  }
+
+  Widget _buildError(BuildContext context, String message, {bool retry = true}) {
     return Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -57,10 +101,11 @@ class _InfoViewBodyState extends State<InfoViewBody> {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 20.h),
-            CustomButton(
-              onPressed: () => context.read<InfoCubit>().loadQuestions(),
-              text: 'Try Again',
-            ),
+            if (retry)
+              CustomButton(
+                onPressed: () => context.read<InfoCubit>().loadQuestions(),
+                text: 'Try Again',
+              ),
           ],
         ),
       ),
@@ -70,7 +115,8 @@ class _InfoViewBodyState extends State<InfoViewBody> {
   Widget _buildQuestionsFlow(BuildContext context, InfoState state) {
     final answered = _answeredCount();
     final progress = _questions.isEmpty ? 0.0 : answered / _questions.length;
-    final allAnswered = _questions.every((q) => _selections.containsKey(q.id));
+    final allAnswered = answered == _questions.length &&
+        _questions.isNotEmpty;
     final isLoading = state is InfoLoading;
 
     return SafeArea(
@@ -79,9 +125,26 @@ class _InfoViewBodyState extends State<InfoViewBody> {
           Expanded(
             child: InfoQuestionsPage(
               questions: _questions,
-              selections: _selections,
+              answers: _answers,
+              textControllers: _textControllers,
               onSelected: (questionId, choiceIndex) {
-                setState(() => _selections[questionId] = choiceIndex);
+                setState(() => _answers[questionId] = choiceIndex);
+              },
+              onTextChanged: (questionId, text) {
+                // The TextField manages its own text via its controller;
+                // rebuild only when the question's answered state flips.
+                final question = _questions.firstWhere(
+                  (q) => q.id == questionId,
+                );
+                final wasAnswered = _isAnswered(question);
+                if (text.trim().isEmpty) {
+                  _answers.remove(questionId);
+                } else {
+                  _answers[questionId] = text;
+                }
+                if (_isAnswered(question) != wasAnswered && mounted) {
+                  setState(() {});
+                }
               },
             ),
           ),
@@ -131,7 +194,7 @@ class _InfoViewBodyState extends State<InfoViewBody> {
     return BlocConsumer<InfoCubit, InfoState>(
       listener: (context, state) {
         if (state is InfoQuestionsLoaded) {
-          if (mounted) setState(() => _questions = state.questions);
+          if (mounted) _onQuestionsLoaded(state);
         } else if (state is InfoSuccess) {
           Navigator.pushNamedAndRemoveUntil(
             context,
@@ -154,7 +217,7 @@ class _InfoViewBodyState extends State<InfoViewBody> {
           return _buildError(context, state.message);
         }
         if (_questions.isEmpty) {
-          return _buildError(context, 'No questions available right now.');
+          return _buildError(context, 'No questions available right now.', retry: false);
         }
         return _buildQuestionsFlow(context, state);
       },

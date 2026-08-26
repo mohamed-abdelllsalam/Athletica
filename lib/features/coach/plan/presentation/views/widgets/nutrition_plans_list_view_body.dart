@@ -337,13 +337,20 @@ class _NutritionPlansListViewBodyState
                       return _NutritionPlanCard(
                         plan: plan,
                         iconColor: color,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => NutritionPlanDetailView(
-                                plan: plan),
-                          ),
-                        ),
+                        onTap: () async {
+                          final navigator = Navigator.of(context);
+                          final changed = await navigator.push<bool>(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  NutritionPlanDetailView(plan: plan),
+                            ),
+                          );
+                          if ((changed ?? false) && context.mounted) {
+                            context
+                                .read<NutritionTemplatesListCubit>()
+                                .loadTemplates();
+                          }
+                        },
                       );
                     },
                   ),

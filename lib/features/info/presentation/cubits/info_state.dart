@@ -13,8 +13,16 @@ final class InfoQuestionsLoading extends InfoState {
 }
 
 final class InfoQuestionsLoaded extends InfoState {
-  const InfoQuestionsLoaded(this.questions);
+  const InfoQuestionsLoaded(
+    this.questions, {
+    this.savedAnswers = const {},
+  });
+
   final List<ClientQuestion> questions;
+
+  /// Previously submitted answers keyed by question id
+  /// (int choice indexes / String text values), already validated.
+  final Map<String, Object> savedAnswers;
 }
 
 final class InfoQuestionsError extends InfoState {

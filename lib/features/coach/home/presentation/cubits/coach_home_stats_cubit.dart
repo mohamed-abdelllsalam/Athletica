@@ -1,4 +1,3 @@
-import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/home/domain/usecases/get_coach_home_stats_usecase.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_home_stats_state.dart';
@@ -14,13 +13,7 @@ class CoachHomeStatsCubit extends Cubit<CoachHomeStatsState> {
 
     emit(CoachHomeStatsLoading());
 
-    final trainerId = await TokenStorageService.instance.getTrainerId();
-    if (trainerId == null) {
-      emit(CoachHomeStatsError('Trainer ID not found. Please log in again.'));
-      return;
-    }
-
-    final result = await _getCoachHomeStats(trainerId);
+    final result = await _getCoachHomeStats();
     switch (result) {
       case ApiSuccess(:final data):
         emit(CoachHomeStatsLoaded(data));

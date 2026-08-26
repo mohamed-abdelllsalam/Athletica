@@ -2,12 +2,13 @@ import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/info/domain/entities/client_answers.dart';
 import 'package:athletica/features/info/domain/repositories/info_repository.dart';
 
-/// Creates the client's answers for the first time (POST /client/answers).
-class SubmitClientAnswersUseCase {
-  const SubmitClientAnswersUseCase(this._repository);
+/// Updates already-submitted answers (PATCH /client/answers) so that
+/// editing existing answers never creates duplicates.
+class UpdateClientAnswersUseCase {
+  const UpdateClientAnswersUseCase(this._repository);
 
   final InfoRepository _repository;
 
   Future<ApiResult<void>> call(ClientAnswerPayload answers) =>
-      _repository.submitAnswers(answers);
+      _repository.updateAnswers(answers);
 }

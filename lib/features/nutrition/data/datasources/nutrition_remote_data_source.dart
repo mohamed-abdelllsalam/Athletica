@@ -28,9 +28,23 @@ class NutritionRemoteDataSourceImpl implements NutritionRemoteDataSource {
 
   @override
   Future<TodayMealsModel> getTodayMeals() async {
-    final response = await _dio.get(ApiEndpoints.nutritionToday);
-    final data = response.data as Map<String, dynamic>? ?? {};
-    return TodayMealsModel.fromJson(data);
+    final defaultFuture = _dio.get(ApiEndpoints.nutritionToday);
+    final arFuture = _dio.get(
+      ApiEndpoints.nutritionToday,
+      queryParameters: {'lang': 'ar'},
+    );
+    final enFuture = _dio.get(
+      ApiEndpoints.nutritionToday,
+      queryParameters: {'lang': 'en'},
+    );
+
+    final results = await Future.wait([defaultFuture, arFuture, enFuture]);
+    final defaultData = results[0].data as Map<String, dynamic>? ?? {};
+    final arData = results[1].data as Map<String, dynamic>? ?? {};
+    final enData = results[2].data as Map<String, dynamic>? ?? {};
+
+    _mergeFoodNames(defaultData, arData, enData);
+    return TodayMealsModel.fromJson(defaultData);
   }
 
   @override
@@ -63,9 +77,23 @@ class NutritionRemoteDataSourceImpl implements NutritionRemoteDataSource {
 
   @override
   Future<MyPlanModel> getMyPlanDetails(String planId) async {
-    final response = await _dio.get(ApiEndpoints.nutritionMyPlan(planId));
-    final data = response.data as Map<String, dynamic>? ?? {};
-    final model = MyPlanModel.fromResponse(data);
+    final defaultFuture = _dio.get(ApiEndpoints.nutritionMyPlan(planId));
+    final arFuture = _dio.get(
+      ApiEndpoints.nutritionMyPlan(planId),
+      queryParameters: {'lang': 'ar'},
+    );
+    final enFuture = _dio.get(
+      ApiEndpoints.nutritionMyPlan(planId),
+      queryParameters: {'lang': 'en'},
+    );
+
+    final results = await Future.wait([defaultFuture, arFuture, enFuture]);
+    final defaultData = results[0].data as Map<String, dynamic>? ?? {};
+    final arData = results[1].data as Map<String, dynamic>? ?? {};
+    final enData = results[2].data as Map<String, dynamic>? ?? {};
+
+    _mergeFoodNames(defaultData, arData, enData);
+    final model = MyPlanModel.fromResponse(defaultData);
     if (model == null) {
       throw StateError('plan_details_missing');
     }
@@ -83,6 +111,71 @@ class NutritionRemoteDataSourceImpl implements NutritionRemoteDataSource {
     );
     final data = response.data as Map<String, dynamic>? ?? {};
     return NutritionHistoryModel.fromJson(data);
+  }
+
+  /// Merges localized food names from [arData] and [enData] into [defaultData]
+  /// by matching `food_id` across all three responses.
+  void _mergeFoodNames(
+    Map<String, dynamic> defaultData,
+    Map<String, dynamic> arData,
+    Map<String, dynamic> enData,
+  ) {
+    final arMap = _buildFoodNameMap(arData);
+    final enMap = _buildFoodNameMap(enData);
+    _injectNames(defaultData, arMap, enMap);
+  }
+
+  /// Extracts a `{ food_id → food_name }` map from a response.
+  ///
+  /// Handles both the flat shape (`meals` at top level, used by `/today`)
+  /// and the nested shape (`plan.meals`, used by `/my/plans/:id`).
+  Map<String, String> _buildFoodNameMap(Map<String, dynamic> data) {
+    final meals = _extractMeals(data);
+    final map = <String, String>{};
+    for (final meal in meals) {
+      if (meal is! Map<String, dynamic>) continue;
+      final foods = meal['foods'] as List<dynamic>? ?? [];
+      for (final food in foods) {
+        if (food is! Map<String, dynamic>) continue;
+        final id = food['food_id'] as String? ?? food['id'] as String? ?? '';
+        final name = food['food_name'] as String? ?? '';
+        if (id.isNotEmpty && name.isNotEmpty) {
+          map[id] = name;
+        }
+      }
+    }
+    return map;
+  }
+
+  void _injectNames(
+    Map<String, dynamic> data,
+    Map<String, String> arMap,
+    Map<String, String> enMap,
+  ) {
+    final meals = _extractMeals(data);
+    for (final meal in meals) {
+      if (meal is! Map<String, dynamic>) continue;
+      final foods = meal['foods'] as List<dynamic>? ?? [];
+      for (final food in foods) {
+        if (food is! Map<String, dynamic>) continue;
+        final id = food['food_id'] as String? ?? food['id'] as String? ?? '';
+        if (id.isEmpty) continue;
+        final ar = arMap[id];
+        final en = enMap[id];
+        if (ar != null) food['food_name_ar'] = ar;
+        if (en != null) food['food_name_en'] = en;
+      }
+    }
+  }
+
+  /// Returns the meals list from either `/today` (flat) or `/my/plans/:id`
+  /// (nested inside `plan`).
+  List<dynamic> _extractMeals(Map<String, dynamic> data) {
+    final plan = data['plan'];
+    if (plan is Map<String, dynamic>) {
+      return plan['meals'] as List<dynamic>? ?? [];
+    }
+    return data['meals'] as List<dynamic>? ?? [];
   }
 
   String _formatDate(DateTime date) {

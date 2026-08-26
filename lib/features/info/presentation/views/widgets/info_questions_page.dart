@@ -4,17 +4,25 @@ import 'package:athletica/features/info/presentation/views/widgets/info_question
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+/// Dynamically renders every question returned by the API as a scrollable
+/// list. No question content is hardcoded; each item renders by type.
 class InfoQuestionsPage extends StatelessWidget {
   const InfoQuestionsPage({
     super.key,
     required this.questions,
-    required this.selections,
+    required this.answers,
+    required this.textControllers,
     required this.onSelected,
+    required this.onTextChanged,
   });
 
   final List<ClientQuestion> questions;
-  final Map<String, int> selections;
+
+  /// Answers keyed by question id (int index / String value).
+  final Map<String, Object> answers;
+  final Map<String, TextEditingController> textControllers;
   final void Function(String questionId, int choiceIndex) onSelected;
+  final void Function(String questionId, String text) onTextChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +36,13 @@ class InfoQuestionsPage extends StatelessWidget {
           SizedBox(height: 16.h),
           for (int i = 0; i < questions.length; i++) ...[
             InfoQuestionItem(
+              key: ValueKey(questions[i].id),
               question: questions[i],
-              selectedIndex: selections[questions[i].id],
+              answer: answers[questions[i].id],
+              textController: textControllers[questions[i].id],
               onSelected: (choiceIndex) =>
                   onSelected(questions[i].id, choiceIndex),
+              onTextChanged: (text) => onTextChanged(questions[i].id, text),
             ),
             if (i != questions.length - 1) SizedBox(height: 22.h),
           ],

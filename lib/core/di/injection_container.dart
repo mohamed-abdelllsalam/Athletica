@@ -112,6 +112,7 @@ import 'package:athletica/features/info/domain/repositories/info_repository.dart
 import 'package:athletica/features/info/domain/usecases/get_client_answers_usecase.dart';
 import 'package:athletica/features/info/domain/usecases/get_client_questions_usecase.dart';
 import 'package:athletica/features/info/domain/usecases/submit_client_answers_usecase.dart';
+import 'package:athletica/features/info/domain/usecases/update_client_answers_usecase.dart';
 import 'package:athletica/features/info/presentation/cubits/info_cubit.dart';
 import 'package:athletica/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:athletica/features/profile/data/repositories/profile_repository_impl.dart';
@@ -212,6 +213,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => MarkProfileCompleteUseCase(sl()));
   sl.registerLazySingleton(() => GetClientQuestionsUseCase(sl()));
   sl.registerLazySingleton(() => SubmitClientAnswersUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
@@ -289,7 +291,7 @@ void setupDependencies() {
   sl.registerFactory(() => SplashCubit(sl()));
   sl.registerFactory(() => CompleteProfileCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
-  sl.registerFactory(() => InfoCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => InfoCubit(sl(), sl(), sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileCubit(sl()));
   sl.registerFactory(() => CoachClientsCubit(sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));
@@ -313,7 +315,7 @@ void setupDependencies() {
   );
   sl.registerFactory(() => SaveNutritionPlanCubit(sl(), sl(), sl()));
   sl.registerFactory(
-    () => TemplateDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
+    () => TemplateDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
   );
   sl.registerFactory(() => AssignPlanCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileInfoCubit(sl()));

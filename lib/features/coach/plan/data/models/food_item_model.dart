@@ -14,12 +14,16 @@ class FoodItemModel {
     required this.protein,
     required this.carbs,
     required this.fat,
+    this.nameEn,
+    this.nameAr,
     this.categoryName = '',
   });
 
   final String id;
   final String categoryId;
   final String name;
+  final String? nameEn;
+  final String? nameAr;
   final int baseGrams;
   final num calories;
   final num protein;
@@ -35,6 +39,8 @@ class FoodItemModel {
         id: json['id'] as String,
         categoryId: (json['category_id'] as String?) ?? '',
         name: (json['name'] as String?) ?? '',
+        nameEn: json['name_en'] as String?,
+        nameAr: json['name_ar'] as String?,
         baseGrams: (json['base_grams'] as num?)?.toInt() ?? 100,
         calories: (json['calories'] as num?) ?? 0,
         protein: (json['protein'] as num?) ?? 0,
@@ -48,6 +54,8 @@ class FoodItemModel {
         id: id,
         categoryId: categoryId,
         name: name,
+        nameEn: nameEn,
+        nameAr: nameAr,
         baseGrams: baseGrams,
         calories: calories,
         protein: protein,
@@ -59,6 +67,8 @@ class FoodItemModel {
   FoodItem toEntity() => FoodItem(
         id: id,
         name: name,
+        nameEn: nameEn,
+        nameAr: nameAr,
         emoji: _emojiForCategory(categoryName),
         category: categoryName,
         categoryId: categoryId,
@@ -69,28 +79,24 @@ class FoodItemModel {
         fatGrams: fat.round(),
       );
 
-  static String _emojiForCategory(String categoryName) {
-    switch (categoryName) {
-      case 'Proteins':
-      case 'Meat':
-      case 'Seafood':
-        return '🍗';
-      case 'Fruits':
-        return '🍎';
-      case 'Vegetables':
-        return '🥦';
-      case 'Grains':
-        return '🌾';
-      case 'Legumes':
-        return '🫘';
-      case 'Dairy':
-        return '🥛';
-      case 'Healthy Fats':
-      case 'Fats & Oils':
-      case 'Nuts':
-        return '🥑';
-      default:
-        return '🍽️';
+  /// Category matching is keyword-based on the combined en/ar label so it
+  /// keeps working whichever language the backend sends per category.
+  static String _emojiForCategory(String categoryLabel) {
+    final s = categoryLabel.toLowerCase();
+    if (_containsAny(s, ['protein', 'meat', 'seafood', 'لحوم', 'بروتين'])) {
+      return '🍗';
     }
+    if (_containsAny(s, ['fruit', 'فواكه'])) return '🍎';
+    if (_containsAny(s, ['vegetable', 'خضروات'])) return '🥦';
+    if (_containsAny(s, ['grain', 'حبوب'])) return '🌾';
+    if (_containsAny(s, ['legume', 'بقوليات'])) return '🫘';
+    if (_containsAny(s, ['dairy', 'ألبان', 'الالبان'])) return '🥛';
+    if (_containsAny(s, ['fat', 'oil', 'nut', 'دهون', 'زيوت', 'مكسرات'])) {
+      return '🥑';
+    }
+    return '🍽️';
   }
+
+  static bool _containsAny(String haystack, List<String> needles) =>
+      needles.any(haystack.contains);
 }

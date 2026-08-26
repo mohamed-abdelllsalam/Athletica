@@ -340,6 +340,8 @@ class _NutritionPlanDetailViewBodyState
             );
           case TemplateDetailLoaded(:final plan):
             return _buildContent(context, plan);
+          case TemplateDetailDeleted():
+            return const SizedBox.shrink();
         }
       },
       ),
@@ -348,9 +350,16 @@ class _NutritionPlanDetailViewBodyState
 
   Widget _buildContent(BuildContext context, NutritionPlan displayPlan) {
     return PopScope(
-      canPop: !widget.isCreateMode,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
-        if (didPop || !widget.isCreateMode) return;
+        if (didPop) return;
+        if (!widget.isCreateMode) {
+          Navigator.pop(
+            context,
+            context.read<TemplateDetailCubit>().hasChanges,
+          );
+          return;
+        }
         await _exitWithResolution();
       },
       child: Column(
@@ -361,7 +370,7 @@ class _NutritionPlanDetailViewBodyState
             child: GestureDetector(
               onTap: () async {
                 if (!widget.isCreateMode) {
-                  Navigator.pop(context);
+                  Navigator.pop(context, context.read<TemplateDetailCubit>().hasChanges);
                   return;
                 }
                 await _exitWithResolution();
@@ -413,12 +422,53 @@ class _NutritionPlanDetailViewBodyState
                           hasError: _nameHasError,
                         ),
                       ] else
-                        Text(
-                          displayPlan.name,
-                          style: AppTextStyles.bold24(context).copyWith(
-                            color: AppColors.textPrimary,
-                            fontSize: 20.sp,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                displayPlan.name,
+                                style: AppTextStyles.bold24(context).copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 20.sp,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            GestureDetector(
+                              onTap: () =>
+                                  _showEditMetaSheet(context, displayPlan),
+                              child: Container(
+                                width: 32.r,
+                                height: 32.r,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceDark,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Icon(
+                                  Icons.edit_outlined,
+                                  color: AppColors.primaryBlue,
+                                  size: 16.sp,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            GestureDetector(
+                              onTap: () => _confirmDeleteTemplate(context),
+                              child: Container(
+                                width: 32.r,
+                                height: 32.r,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceDark,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Icon(
+                                  Icons.delete_outline,
+                                  color: const Color(0xFFFF5252),
+                                  size: 16.sp,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       SizedBox(height: 6.h),
                       Row(
@@ -605,6 +655,87 @@ class _NutritionPlanDetailViewBodyState
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Shows a confirmation dialog, then deletes the template and pops the
+  /// detail screen so the list can refresh.
+  Future<void> _confirmDeleteTemplate(BuildContext context) async {
+    final plan = context.read<TemplateDetailCubit>().state is TemplateDetailLoaded
+        ? (context.read<TemplateDetailCubit>().state as TemplateDetailLoaded).plan
+        : null;
+    final clientCount = plan?.clientCount ?? 0;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          'Delete template?',
+          style: AppTextStyles.bold20(context)
+              .copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          clientCount > 0
+              ? 'This template is assigned to $clientCount client(s). '
+                  'You must remove all assigned plans first before deleting.'
+              : 'This will permanently delete this template and cannot be undone.',
+          style: AppTextStyles.medium14(context)
+              .copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.medium14(context)
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          if (clientCount == 0)
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5252),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+              child: const Text('Delete'),
+            ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      final deleted =
+          await context.read<TemplateDetailCubit>().deleteTemplate();
+      if (deleted && context.mounted) {
+        Navigator.pop(context, true);
+      }
+    }
+  }
+
+  /// Opens the template meta editor (name/description) for persisted
+  /// templates; create mode already edits these inline.
+  void _showEditMetaSheet(BuildContext context, NutritionPlan plan) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardBackground,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => _EditTemplateMetaSheet(
+        initialName: plan.name,
+        initialDescription: plan.description,
+        onSave: ({required title, required description}) => context
+            .read<TemplateDetailCubit>()
+            .updateTemplateMeta(title: title, description: description),
       ),
     );
   }
@@ -1693,6 +1824,219 @@ class _AssignToClientSheetState extends State<_AssignToClientSheet> {
     );
   }
 }
+
+// ── Template meta editor (view mode) ─────────────────────────────────────────
+
+/// Edit sheet for a persisted template's name/description
+/// (`PUT /nutrition/templates/:id`). Returns `null` from [onSave] on success;
+/// a string is surfaced inline as the failure reason.
+class _EditTemplateMetaSheet extends StatefulWidget {
+  const _EditTemplateMetaSheet({
+    required this.initialName,
+    required this.initialDescription,
+    required this.onSave,
+  });
+
+  final String initialName;
+  final String initialDescription;
+  final Future<String?> Function({required String title, required String description})
+      onSave;
+
+  @override
+  State<_EditTemplateMetaSheet> createState() => _EditTemplateMetaSheetState();
+}
+
+class _EditTemplateMetaSheetState extends State<_EditTemplateMetaSheet> {
+  late final TextEditingController _nameController =
+      TextEditingController(text: widget.initialName);
+  late final TextEditingController _descriptionController =
+      TextEditingController(text: widget.initialDescription);
+  bool _nameHasError = false;
+  bool _descriptionHasError = false;
+  bool _saving = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim();
+    final nameError = name.isEmpty;
+    final descriptionError = description.isEmpty;
+    if (nameError || descriptionError) {
+      setState(() {
+        _nameHasError = nameError;
+        _descriptionHasError = descriptionError;
+      });
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
+
+    final error = await widget.onSave(title: name, description: description);
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      _saving = false;
+      _errorMessage = error;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: EdgeInsets.all(20.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDark,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Edit plan',
+              style: AppTextStyles.semiBold14(context)
+                  .copyWith(color: AppColors.textPrimary, fontSize: 16.sp),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Plan Name',
+              style: AppTextStyles.meduim12(context)
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 6.h),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(10.r),
+                border: _nameHasError
+                    ? Border.all(color: Colors.redAccent)
+                    : null,
+              ),
+              child: TextField(
+                controller: _nameController,
+                autofocus: true,
+                onChanged: (_) {
+                  if (_nameHasError && _nameController.text.trim().isNotEmpty) {
+                    setState(() => _nameHasError = false);
+                  }
+                },
+                style: AppTextStyles.medium14(context)
+                    .copyWith(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Plan name',
+                  hintStyle: AppTextStyles.medium14(context)
+                      .copyWith(color: AppColors.textTertiary),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Description',
+              style: AppTextStyles.meduim12(context)
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 6.h),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(10.r),
+                border: _descriptionHasError
+                    ? Border.all(color: Colors.redAccent)
+                    : null,
+              ),
+              child: TextField(
+                controller: _descriptionController,
+                maxLines: 3,
+                minLines: 1,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                onChanged: (_) {
+                  if (_descriptionHasError &&
+                      _descriptionController.text.trim().isNotEmpty) {
+                    setState(() => _descriptionHasError = false);
+                  }
+                },
+                style: AppTextStyles.medium14(context)
+                    .copyWith(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Add a program description…',
+                  hintStyle: AppTextStyles.medium14(context)
+                      .copyWith(color: AppColors.textTertiary),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+            if (_errorMessage != null) ...[
+              SizedBox(height: 8.h),
+              Text(
+                _errorMessage!,
+                style: AppTextStyles.meduim12(context)
+                    .copyWith(color: Colors.redAccent),
+              ),
+            ],
+            SizedBox(height: 16.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                child: _saving
+                    ? SizedBox(
+                        width: 20.r,
+                        height: 20.r,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Save',
+                        style: AppTextStyles.semiBold14(context)
+                            .copyWith(color: Colors.white),
+                      ),
+              ),
+            ),
+            SizedBox(height: 8.h),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DatePickerCard extends StatelessWidget {
   const _DatePickerCard({
     required this.label,

@@ -29,7 +29,9 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
   /// Persisted across searches/filter changes so previously selected foods
   /// are never lost when the visible list shrinks.
   final Map<String, FoodItem> _selectedFoods = {};
-  String _selectedFilter = 'All';
+
+  /// Selected category id; null means "All" (no API-side filtering).
+  String? _selectedCategoryId;
   Timer? _debounce;
 
   Set<String> get _existingIds => widget.existingFoodIds;
@@ -48,23 +50,15 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
     });
   }
 
-  void _onFilterChanged(String filter) {
-    setState(() => _selectedFilter = filter);
-    final cubit = context.read<FoodsCubit>();
-    final state = cubit.state;
-    final categoryId = state is FoodsLoaded && filter != 'All'
-        ? state.categories
-            .where((c) => c.name == filter)
-            .map((c) => c.id)
-            .firstOrNull
-        : null;
-    cubit.selectCategory(categoryId ?? '');
+  void _onFilterChanged(String? categoryId) {
+    setState(() => _selectedCategoryId = categoryId);
+    context.read<FoodsCubit>().selectCategory(categoryId ?? '');
   }
 
   List<FoodItem> get _selected => _selectedFoods.values.toList();
 
   String _summaryText() =>
-      _selected.map((f) => f.name).join(' / ');
+      _selected.map((f) => f.displayName).join(' / ');
 
   void _toggleSelection(FoodItem food) {
     if (_existingIds.contains(food.id)) {
@@ -72,7 +66,7 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('${food.name} is already in this meal.'),
+            content: Text('${food.displayName} is already in this meal.'),
           ),
         );
       return;
@@ -90,7 +84,7 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
     setState(() {
       _selectedFoods.clear();
       _searchController.clear();
-      _selectedFilter = 'All';
+      _selectedCategoryId = null;
     });
     context.read<FoodsCubit>().load();
   }
@@ -150,9 +144,11 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
         }
 
         final loaded = state as FoodsLoaded;
-        final filters = [
-          'All',
-          ...loaded.categories.map((c) => c.name),
+        final filterItems = <({String? id, String label})>[
+          const (id: null, label: 'All'),
+          ...loaded.categories.map(
+            (c) => (id: c.id as String?, label: c.displayName),
+          ),
         ];
         final items = loaded.foods;
         final selected = _selected;
@@ -298,7 +294,7 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
                                       SizedBox(width: 12.w),
                                       Expanded(
                                         child: Text(
-                                          food.name,
+                                          food.displayName,
                                           style: AppTextStyles.medium14(context)
                                               .copyWith(
                                                   color:
@@ -337,8 +333,8 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
                   ),
                   SizedBox(width: 10.w),
                   _FilterRail(
-                    selected: _selectedFilter,
-                    filters: filters,
+                    selectedId: _selectedCategoryId,
+                    items: filterItems,
                     onChanged: _onFilterChanged,
                   ),
                 ],
@@ -381,14 +377,15 @@ class _RoundedIconButton extends StatelessWidget {
 
 class _FilterRail extends StatelessWidget {
   const _FilterRail({
-    required this.selected,
-    required this.filters,
+    required this.selectedId,
+    required this.items,
     required this.onChanged,
   });
 
-  final String selected;
-  final List<String> filters;
-  final ValueChanged<String> onChanged;
+  /// Currently selected category id; null = All.
+  final String? selectedId;
+  final List<({String? id, String label})> items;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -409,13 +406,13 @@ class _FilterRail extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               physics: const BouncingScrollPhysics(),
-              itemCount: filters.length,
+              itemCount: items.length,
               separatorBuilder: (_, _) => SizedBox(height: 8.h),
               itemBuilder: (context, index) {
-                final filter = filters[index];
-                final isSelected = filter == selected;
+                final item = items[index];
+                final isSelected = item.id == selectedId;
                 return GestureDetector(
-                  onTap: () => onChanged(filter),
+                  onTap: () => onChanged(item.id),
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 10.w,
@@ -428,8 +425,10 @@ class _FilterRail extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Text(
-                      filter,
+                      item.label,
                       textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.meduim12(context).copyWith(
                         color: isSelected
                             ? Colors.white

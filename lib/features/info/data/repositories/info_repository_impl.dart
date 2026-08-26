@@ -26,9 +26,23 @@ class InfoRepositoryImpl implements InfoRepository {
   }
 
   @override
-  Future<ApiResult<void>> submitAnswers(Map<String, int> answers) async {
+  Future<ApiResult<void>> submitAnswers(ClientAnswerPayload answers) async {
     try {
       await _dataSource.submitAnswers(answers);
+      return const ApiSuccess(null);
+    } on DioException catch (e) {
+      return ApiError(_mapDioError(e));
+    } catch (_) {
+      return const ApiError(
+        UnknownFailure('Something went wrong. Please try again.'),
+      );
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> updateAnswers(ClientAnswerPayload answers) async {
+    try {
+      await _dataSource.updateAnswers(answers);
       return const ApiSuccess(null);
     } on DioException catch (e) {
       return ApiError(_mapDioError(e));

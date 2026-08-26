@@ -3,25 +3,34 @@ import 'package:athletica/features/info/domain/entities/client_answers.dart';
 class ClientAnswerModel extends ClientAnswer {
   const ClientAnswerModel({
     required super.questionId,
-    required super.answerIndex,
+    required super.answer,
     super.question,
-    super.value,
   });
 
+  /// Parses an answer while preserving the backend's raw value shape:
+  /// choice answers may arrive as `0` or `"0"`, text answers as strings.
+  ///
+  /// Type resolution (index vs text) happens where the matching question
+  /// type is known — the parsing layer must not guess and drop information.
   factory ClientAnswerModel.fromJson(Map<String, dynamic> json) {
     final questionId = json['question_id'] as String? ?? '';
-    final rawAnswer = json['answer'];
-    final answerIndex = rawAnswer is int
-        ? rawAnswer
-        : int.tryParse(rawAnswer?.toString() ?? '') ?? -1;
+    final question = json['question'] as String? ?? questionId;
     return ClientAnswerModel(
       questionId: questionId,
-      answerIndex: answerIndex,
-      question: json['question'] as String? ?? questionId,
-      value:
-          json['value'] as String? ??
-          (answerIndex >= 0 ? '$answerIndex' : rawAnswer?.toString() ?? ''),
+      answer: _parseRawAnswer(json['answer']),
+      question: question,
     );
+  }
+
+  static Object _parseRawAnswer(Object? raw) {
+    if (raw == null) return '';
+    if (raw is num) {
+      final asInt = raw.toInt();
+      // Preserve integers exactly (choice indexes); keep others as text.
+      return asInt == raw ? asInt : raw.toString();
+    }
+    if (raw is bool) return raw.toString();
+    return raw.toString();
   }
 }
 

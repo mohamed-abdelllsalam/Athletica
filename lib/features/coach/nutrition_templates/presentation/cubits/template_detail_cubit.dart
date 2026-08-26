@@ -1,10 +1,12 @@
 ﻿import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_food_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_meal_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/delete_nutrition_template_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/delete_template_food_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/delete_template_meal_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/get_nutrition_template_detail_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/reorder_template_meals_usecase.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/usecases/update_nutrition_template_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/update_template_food_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/update_template_meal_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_template_ui_mapper.dart';
@@ -37,9 +39,12 @@ final class TemplateDetailError extends TemplateDetailState {
   final String message;
 }
 
+final class TemplateDetailDeleted extends TemplateDetailState {}
+
 class TemplateDetailCubit extends Cubit<TemplateDetailState> {
   TemplateDetailCubit(
     this._getDetail,
+    this._updateMeta,
     this._addMeal,
     this._updateMeal,
     this._reorderMeals,
@@ -47,9 +52,11 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     this._updateFood,
     this._deleteFood,
     this._deleteMeal,
+    this._deleteTemplate,
   ) : super(TemplateDetailInitial());
 
   final GetNutritionTemplateDetailUseCase _getDetail;
+  final UpdateNutritionTemplateUseCase _updateMeta;
   final AddTemplateMealUseCase _addMeal;
   final UpdateTemplateMealUseCase _updateMeal;
   final ReorderTemplateMealsUseCase _reorderMeals;
@@ -57,8 +64,14 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
   final UpdateTemplateFoodUseCase _updateFood;
   final DeleteTemplateFoodUseCase _deleteFood;
   final DeleteTemplateMealUseCase _deleteMeal;
+  final DeleteNutritionTemplateUseCase _deleteTemplate;
 
   static const _mapper = NutritionTemplateUiMapper();
+
+  /// True once this template was mutated since [load] (meta/meal/food
+  /// edits). The opening screen consumes it to know when its cached list
+  /// must be silently refreshed.
+  bool hasChanges = false;
 
   String get _templateId => switch (state) {
         TemplateDetailLoaded(:final plan) => plan.id,
@@ -66,6 +79,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       };
 
   Future<void> load(String templateId) async {
+    hasChanges = false;
     emit(TemplateDetailLoading());
 
     final result = await _getDetail(templateId);
@@ -98,6 +112,34 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     }
   }
 
+  /// Persists the template's meta (title/description) via
+  /// `PUT /nutrition/templates/:id`, then refreshes.
+  ///
+  /// Returns `null` on success, or a user-facing failure message so the
+  /// caller (edit sheet) can surface it inline without popping the modal.
+  Future<String?> updateTemplateMeta({
+    required String title,
+    required String description,
+  }) async {
+    if (state is! TemplateDetailLoaded) return 'Template is not loaded.';
+    if (title.trim().isEmpty) return 'Name is required.';
+    if (description.trim().isEmpty) return 'Description is required.';
+
+    final result = await _updateMeta(
+      _templateId,
+      title: title.trim(),
+      description: description.trim(),
+    );
+    switch (result) {
+      case ApiSuccess():
+        hasChanges = true;
+        await refresh();
+        return null;
+      case ApiError(:final failure):
+        return failure.message;
+    }
+  }
+
   /// Adds a meal to the persisted template (view mode "+ Add Meal").
   Future<void> addMeal() async {
     final state = this.state;
@@ -107,6 +149,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     final result = await _addMeal(_templateId, mealType: mealType);
     switch (result) {
       case ApiSuccess():
+        hasChanges = true;
         await refresh();
       case ApiError(:final failure):
         emit(state.copyWith(message: failure.message));
@@ -159,6 +202,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     final result = await _reorderMeals(_templateId, orders);
     switch (result) {
       case ApiSuccess():
+        hasChanges = true;
         // Re-sync with server truth so the UI never shows an order the
         // backend did not actually persist.
         await refresh();
@@ -180,9 +224,29 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     final result = await _deleteMeal(_templateId, mealId);
     switch (result) {
       case ApiSuccess():
+        hasChanges = true;
         await refresh();
       case ApiError(:final failure):
         emit(state.copyWith(message: failure.message));
+    }
+  }
+
+  /// Deletes the entire template. Returns `true` on success so the caller
+  /// can pop the detail screen and refresh the list.
+  Future<bool> deleteTemplate() async {
+    if (_templateId.isEmpty) return false;
+
+    final result = await _deleteTemplate(_templateId);
+    switch (result) {
+      case ApiSuccess():
+        emit(TemplateDetailDeleted());
+        return true;
+      case ApiError(:final failure):
+        final state = this.state;
+        if (state is TemplateDetailLoaded) {
+          emit(state.copyWith(message: failure.message));
+        }
+        return false;
     }
   }
 
@@ -290,6 +354,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       }
     }
 
+    hasChanges = true;
     await refresh();
   }
 

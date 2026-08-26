@@ -6,6 +6,7 @@ class ClientQuestionModel extends ClientQuestion {
     required super.groupKey,
     required super.question,
     required super.choices,
+    super.questionType,
     super.language,
     super.createdAt,
   });
@@ -16,6 +17,7 @@ class ClientQuestionModel extends ClientQuestion {
       groupKey: json['group_key'] as String? ?? '',
       question: json['question'] as String,
       choices: (json['choices'] as List<dynamic>? ?? const []).cast<String>(),
+      questionType: QuestionType.fromApi(json['question_type']),
       language: json['language'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)

@@ -1,3 +1,5 @@
+import 'package:athletica/core/utils/bilingual_label.dart';
+
 class FoodItem {
   const FoodItem({
     required this.id,
@@ -10,10 +12,16 @@ class FoodItem {
     required this.proteinGrams,
     required this.carbsGrams,
     required this.fatGrams,
+    this.nameEn,
+    this.nameAr,
   });
 
   final String id;
+
+  /// Default catalog name (backend fallback language).
   final String name;
+  final String? nameEn;
+  final String? nameAr;
   final String emoji;
   final String category;
   final String categoryId;
@@ -22,4 +30,11 @@ class FoodItem {
   final int proteinGrams;
   final int carbsGrams;
   final int fatGrams;
+
+  /// Both API-provided languages joined, e.g. "دجاج / Chicken".
+  String get displayName => buildBilingualLabel(
+        primary: name,
+        arabic: nameAr,
+        english: nameEn,
+      );
 }

@@ -127,12 +127,12 @@ class _MacroCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16.sp, color: accentColor),
+              Icon(icon, size: 14.sp, color: accentColor),
               SizedBox(width: 4.w),
               Flexible(
                 child: Text(
                   label,
-                  style: AppTextStyles.meduim12(context).copyWith(
+                  style: AppTextStyles.meduim11(context).copyWith(
                     color: AppColors.textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -141,21 +141,24 @@ class _MacroCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 8.h),
-          Row(
+           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                value,
-                style: AppTextStyles.bold20(context).copyWith(
-                  color: accentColor,
+              Flexible(
+                child: Text(
+                  value,
+                  style: AppTextStyles.semiBold14(context).copyWith(
+                    color: accentColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 2.w),
               Padding(
-                padding: EdgeInsets.only(bottom: 2.h),
+                padding: EdgeInsets.only(bottom: 1.h),
                 child: Text(
                   'Gram',
-                  style: AppTextStyles.meduim11(context).copyWith(
+                  style: AppTextStyles.semiBold10(context).copyWith(
                     color: AppColors.textSecondary,
                   ),
                 ),
