@@ -3,6 +3,7 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/meal_type_labels.dart';
 import 'package:athletica/core/widgets/app_shimmer.dart';
+import 'package:athletica/core/widgets/bilingual_text.dart';
 import 'package:athletica/features/nutrition/domain/entities/meal_food.dart';
 import 'package:athletica/features/nutrition/domain/entities/my_plan.dart';
 import 'package:athletica/features/nutrition/presentation/cubits/my_plan_details_cubit.dart';
@@ -165,22 +166,22 @@ class _PlanContent extends StatelessWidget {
               color: AppColors.cardBackground,
               borderRadius: BorderRadius.circular(16.r),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  plan.title,
-                  style: AppTextStyles.bold20(context)
-                      .copyWith(color: AppColors.textPrimary),
-                ),
-                if (plan.description.isNotEmpty) ...[
-                  SizedBox(height: 6.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    plan.description,
-                    style: AppTextStyles.medium13(context)
-                        .copyWith(color: AppColors.textSecondary),
+                    plan.title,
+                    style: AppTextStyles.bold20(context)
+                        .copyWith(color: AppColors.textPrimary),
                   ),
-                ],
+                  if (plan.description.isNotEmpty) ...[
+                    SizedBox(height: 6.h),
+                    Text(
+                      plan.description,
+                      style: AppTextStyles.medium13(context)
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
                 SizedBox(height: 10.h),
                 Row(
                   children: [
@@ -317,13 +318,23 @@ class _FoodRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  food.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.medium14(context)
-                      .copyWith(color: AppColors.textPrimary),
-                ),
+                if (food.nameEn != null &&
+                    food.nameAr != null &&
+                    food.nameEn != food.nameAr)
+                  BilingualText(
+                    english: food.nameEn!,
+                    arabic: food.nameAr!,
+                    style: AppTextStyles.medium14(context)
+                        .copyWith(color: AppColors.textPrimary),
+                  )
+                else
+                  Text(
+                    food.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.medium14(context)
+                        .copyWith(color: AppColors.textPrimary),
+                  ),
                 Text(
                   '${_formatNum(food.quantity)} ${food.servingUnit} · '
                   'P ${_formatNum(food.protein)} · C ${_formatNum(food.carbs)}'

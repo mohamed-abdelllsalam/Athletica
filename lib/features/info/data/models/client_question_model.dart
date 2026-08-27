@@ -9,6 +9,11 @@ class ClientQuestionModel extends ClientQuestion {
     super.questionType,
     super.language,
     super.createdAt,
+    super.questionEn,
+    super.questionAr,
+    super.choicesEn,
+    super.choicesAr,
+    super.arabicId,
   });
 
   factory ClientQuestionModel.fromJson(Map<String, dynamic> json) {

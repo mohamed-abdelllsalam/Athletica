@@ -1,5 +1,4 @@
 import 'package:athletica/core/network/api_endpoints.dart';
-import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/features/info/data/models/client_answers_model.dart';
 import 'package:athletica/features/info/data/models/client_question_model.dart';
 import 'package:athletica/features/info/domain/entities/client_answers.dart';
@@ -51,54 +50,53 @@ class InfoRemoteDataSourceImpl implements InfoRemoteDataSource {
         .toList();
   }
 
-  /// Merges the Arabic and English question sets by [ClientQuestion.id].
+  /// Merges Arabic and English question sets by [ClientQuestion.groupKey].
   ///
-  /// The Arabic response defines order and is the fallback whenever a label
-  /// has no translation. Questions present in only one language pass through
-  /// untouched. If a question's choice counts differ between languages the
-  /// Arabic version is kept whole (safe against backend inconsistencies).
+  /// English records define canonical ordering and provide the primary [id]
+  /// used for answer submission. Arabic records are matched by [groupKey]
+  /// and their [id] is stored as [ClientQuestion.arabicId] so saved answers
+  /// referencing either language can be restored.
+  ///
+  /// Questions present in only one language pass through untouched.
+  /// If a question's choice counts differ between languages the English
+  /// version is preferred; the Arabic version is kept whole as fallback.
   static List<ClientQuestion> mergeQuestions({
     required List<ClientQuestionModel> arabic,
     required List<ClientQuestionModel> english,
   }) {
     if (english.isEmpty) return arabic;
 
-    final englishById = {for (final q in english) q.id: q};
+    final arabicByGroupKey = {for (final q in arabic) q.groupKey: q};
     final merged = <ClientQuestion>[];
-    for (final ar in arabic) {
-      final en = englishById[ar.id];
-      if (en == null || en.choices.length != ar.choices.length) {
-        merged.add(ar);
+
+    for (final en in english) {
+      final ar = arabicByGroupKey.remove(en.groupKey);
+      if (ar == null || en.choices.length != ar.choices.length) {
+        merged.add(en);
         continue;
       }
       merged.add(
         ClientQuestionModel(
-          id: ar.id,
-          groupKey: ar.groupKey,
-          questionType: ar.questionType,
-          language: ar.language ?? en.language,
-          createdAt: ar.createdAt,
-          question: buildBilingualLabel(
-            primary: ar.question,
-            arabic: ar.question,
-            english: en.question,
-          ),
-          choices: [
-            for (var i = 0; i < ar.choices.length; i++)
-              buildBilingualLabel(
-                primary: ar.choices[i],
-                arabic: ar.choices[i],
-                english: en.choices[i],
-              ),
-          ],
+          id: en.id,
+          groupKey: en.groupKey,
+          questionType: en.questionType,
+          language: en.language,
+          createdAt: en.createdAt,
+          questionEn: en.question,
+          questionAr: ar.question,
+          choicesEn: en.choices,
+          choicesAr: ar.choices,
+          arabicId: ar.id,
+          question: en.question,
+          choices: en.choices,
         ),
       );
     }
-    // Questions only returned for English (never expected, but don't drop).
-    final mergedIds = merged.map((q) => q.id).toSet();
-    for (final en in english) {
-      if (!mergedIds.contains(en.id)) merged.add(en);
+
+    for (final ar in arabicByGroupKey.values) {
+      merged.add(ar);
     }
+
     return merged;
   }
 

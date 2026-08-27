@@ -120,16 +120,18 @@ class NutritionRemoteDataSourceImpl implements NutritionRemoteDataSource {
     Map<String, dynamic> arData,
     Map<String, dynamic> enData,
   ) {
-    final arMap = _buildFoodNameMap(arData);
-    final enMap = _buildFoodNameMap(enData);
+    final arMap = _buildFoodNameMap(arData, langKey: 'name_ar');
+    final enMap = _buildFoodNameMap(enData, langKey: 'name_en');
     _injectNames(defaultData, arMap, enMap);
   }
 
   /// Extracts a `{ food_id → food_name }` map from a response.
-  ///
-  /// Handles both the flat shape (`meals` at top level, used by `/today`)
-  /// and the nested shape (`plan.meals`, used by `/my/plans/:id`).
-  Map<String, String> _buildFoodNameMap(Map<String, dynamic> data) {
+  /// Reads both `food_name` and `name_ar`/`name_en` to handle different
+  /// API naming conventions across `?lang=` variants.
+  Map<String, String> _buildFoodNameMap(
+    Map<String, dynamic> data, {
+    String? langKey,
+  }) {
     final meals = _extractMeals(data);
     final map = <String, String>{};
     for (final meal in meals) {
@@ -138,10 +140,13 @@ class NutritionRemoteDataSourceImpl implements NutritionRemoteDataSource {
       for (final food in foods) {
         if (food is! Map<String, dynamic>) continue;
         final id = food['food_id'] as String? ?? food['id'] as String? ?? '';
-        final name = food['food_name'] as String? ?? '';
-        if (id.isNotEmpty && name.isNotEmpty) {
-          map[id] = name;
-        }
+        if (id.isEmpty) continue;
+        final name = (food['food_name'] as String? ?? '').trim();
+        final localizedName = langKey != null
+            ? (food[langKey] as String? ?? '').trim()
+            : '';
+        final best = localizedName.isNotEmpty ? localizedName : name;
+        if (best.isNotEmpty) map[id] = best;
       }
     }
     return map;

@@ -22,8 +22,14 @@ class ClientQuestion {
     this.questionType = QuestionType.choice,
     this.language,
     this.createdAt,
+    this.questionEn,
+    this.questionAr,
+    this.choicesEn,
+    this.choicesAr,
+    this.arabicId,
   });
 
+  /// Primary identifier — English record ID, used for answer submission.
   final String id;
   final String groupKey;
   final String question;
@@ -31,6 +37,14 @@ class ClientQuestion {
   final QuestionType questionType;
   final String? language;
   final DateTime? createdAt;
+  final String? questionEn;
+  final String? questionAr;
+  final List<String>? choicesEn;
+  final List<String>? choicesAr;
+
+  /// Arabic record ID — used to match saved answers that reference
+  /// the Arabic question instead of the English one.
+  final String? arabicId;
 
   bool get isTextQuestion => questionType == QuestionType.text;
 }

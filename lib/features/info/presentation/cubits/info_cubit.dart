@@ -65,15 +65,22 @@ class InfoCubit extends Cubit<InfoState> {
   /// them to UI-ready values, following each question's type:
   /// choice -> int index ("0" strings are parsed safely), text -> String.
   /// Invalid or out-of-range choice indexes and empty text are dropped.
+  ///
+  /// Saved answers may reference either the English or Arabic question ID,
+  /// so both are mapped to the merged question's canonical ID.
   static Map<String, Object> restoreAnswers(
     List<ClientQuestion> questions,
     ClientAnswers saved,
   ) {
-    final questionById = {for (final q in questions) q.id: q};
+    final questionByAnyId = <String, ClientQuestion>{
+      for (final q in questions) q.id: q,
+      for (final q in questions)
+        if (q.arabicId != null) q.arabicId!: q,
+    };
     final restored = <String, Object>{};
 
     for (final answer in saved.answers) {
-      final question = questionById[answer.questionId];
+      final question = questionByAnyId[answer.questionId];
       if (question == null) continue;
 
       if (question.questionType == QuestionType.choice) {

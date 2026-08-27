@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/bilingual_text.dart';
 import 'package:athletica/features/info/domain/entities/client_question.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -31,12 +32,21 @@ class InfoQuestionItem extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          question.question,
-          style: AppTextStyles.extraBold14(
-            context,
-          ).copyWith(color: Colors.white),
-        ),
+        if (question.questionEn != null && question.questionAr != null)
+          BilingualText(
+            english: question.questionEn!,
+            arabic: question.questionAr!,
+            style: AppTextStyles.extraBold14(
+              context,
+            ).copyWith(color: Colors.white),
+          )
+        else
+          Text(
+            question.question,
+            style: AppTextStyles.extraBold14(
+              context,
+            ).copyWith(color: Colors.white),
+          ),
         SizedBox(height: 10.h),
         if (question.isTextQuestion)
           _buildTextInput(context)
@@ -51,6 +61,12 @@ class InfoQuestionItem extends StatelessWidget {
       for (int i = 0; i < question.choices.length; i++) ...[
         _ChoiceTile(
           label: question.choices[i],
+          labelEn: question.choicesEn != null && i < question.choicesEn!.length
+              ? question.choicesEn![i]
+              : null,
+          labelAr: question.choicesAr != null && i < question.choicesAr!.length
+              ? question.choicesAr![i]
+              : null,
           isSelected: answer == i,
           onTap: () => onSelected(i),
         ),
@@ -89,11 +105,15 @@ class InfoQuestionItem extends StatelessWidget {
 class _ChoiceTile extends StatelessWidget {
   const _ChoiceTile({
     required this.label,
+    this.labelEn,
+    this.labelAr,
     required this.isSelected,
     required this.onTap,
   });
 
   final String label;
+  final String? labelEn;
+  final String? labelAr;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -144,12 +164,20 @@ class _ChoiceTile extends StatelessWidget {
             ),
             SizedBox(width: 12.w),
             Expanded(
-              child: Text(
-                label,
-                style: AppTextStyles.medium14(
-                  context,
-                ).copyWith(color: Colors.white),
-              ),
+              child: labelEn != null && labelAr != null
+                  ? BilingualText(
+                      english: labelEn!,
+                      arabic: labelAr!,
+                      style: AppTextStyles.medium14(
+                        context,
+                      ).copyWith(color: Colors.white),
+                    )
+                  : Text(
+                      label,
+                      style: AppTextStyles.medium14(
+                        context,
+                      ).copyWith(color: Colors.white),
+                    ),
             ),
           ],
         ),
