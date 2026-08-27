@@ -6,6 +6,7 @@ import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/domain/entities/user_entity.dart';
 import 'package:athletica/features/auth/domain/repositories/auth_repository.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
@@ -145,11 +146,17 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<void>> logout() async {
     try {
-      await TokenStorageService.instance.clearAll();
-      return const ApiSuccess(null);
+      debugPrint('[AuthRepo] Calling server logout...');
+      await _remoteDataSource.logout();
+      debugPrint('[AuthRepo] Server logout succeeded.');
+    } on DioException catch (e) {
+      debugPrint('[AuthRepo] Server logout failed: ${e.message}');
     } catch (e) {
-      return ApiError(UnknownFailure(e.toString()));
+      debugPrint('[AuthRepo] Server logout failed: $e');
     }
+    await TokenStorageService.instance.clearAll();
+    debugPrint('[AuthRepo] Local tokens cleared.');
+    return const ApiSuccess(null);
   }
 
   @override

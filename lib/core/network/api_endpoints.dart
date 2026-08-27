@@ -11,6 +11,7 @@ class ApiEndpoints {
   static const String login = 'auth/login';
   static const String requestPasswordReset = 'auth/reset-password';
   static const String confirmPasswordReset = 'auth/reset-password/confirm';
+  static const String logout = 'auth/logout';
 
   static const List<String> publicAuthPaths = [
     signup,

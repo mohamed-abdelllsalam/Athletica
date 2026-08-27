@@ -28,6 +28,8 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<bool> hasSubmittedClientAnswers();
+
+  Future<void> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -104,6 +106,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       ApiEndpoints.confirmPasswordReset,
       data: {'email': email, 'code': code, 'password': password},
     );
+  }
+
+  @override
+  Future<void> logout() async {
+    await _dio.post(ApiEndpoints.logout);
   }
 
   @override
