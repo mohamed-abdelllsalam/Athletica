@@ -36,6 +36,7 @@ migrate_working_dir/
 /NUTRITION_API_FOR_FLUTTER.md
 /DOC_2.md
 /DOC_3.md
+/DOC_4.md
 # Symbolication related
 app.*.symbols
 
