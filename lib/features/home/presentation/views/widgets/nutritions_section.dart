@@ -1,6 +1,7 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/assigned/presentation/views/assigned_view.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_cubit.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_state.dart';
 import 'package:athletica/features/client_coach/presentation/views/widgets/coach_code_dialog.dart';
@@ -40,9 +41,53 @@ class NutritionsSection extends StatelessWidget {
                 SizedBox(height: 16.h),
               ],
               if (hasCoach)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: _MyPlanButton(),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pushNamed(
+                            context, AssignedView.routeName),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Assigned Plans',
+                              style: AppTextStyles.semiBold14(context)
+                                  .copyWith(color: AppColors.primaryBlue),
+                            ),
+                            SizedBox(width: 4.w),
+                            Icon(
+                              Icons.chevron_right,
+                              color: AppColors.primaryBlue,
+                              size: 18.sp,
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pushNamed(
+                            context, MyPlanDetailsView.routeName),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'My Plan',
+                              style: AppTextStyles.semiBold14(context)
+                                  .copyWith(color: AppColors.primaryBlue),
+                            ),
+                            SizedBox(width: 4.w),
+                            Icon(
+                              Icons.chevron_right,
+                              color: AppColors.primaryBlue,
+                              size: 18.sp,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               BlocBuilder<NutritionTodayCubit, NutritionTodayState>(
                 builder: (context, state) {
@@ -127,37 +172,6 @@ class _NoCoachBanner extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Opens the client's plan details (meals + foods). Only shown when the
-/// client has a coach.
-class _MyPlanButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: GestureDetector(
-        onTap: () =>
-            Navigator.pushNamed(context, MyPlanDetailsView.routeName),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'My Plan',
-              style: AppTextStyles.semiBold14(context)
-                  .copyWith(color: AppColors.primaryBlue),
-            ),
-            SizedBox(width: 4.w),
-            Icon(
-              Icons.chevron_right,
-              color: AppColors.primaryBlue,
-              size: 18.sp,
-            ),
-          ],
         ),
       ),
     );

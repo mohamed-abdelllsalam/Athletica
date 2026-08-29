@@ -7,6 +7,7 @@ import 'package:athletica/features/coach/clients/presentation/cubits/coach_clien
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_state.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_state.dart';
+import 'package:athletica/features/coach/clients/presentation/views/coach_client_detail_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_join_requests_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_assigned_client_card.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_join_requests_banner.dart';
@@ -48,9 +49,11 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
     if (_query.isEmpty) return clients;
     final lower = _query.toLowerCase();
     return clients
-        .where((c) =>
-            c.name.toLowerCase().contains(lower) ||
-            c.email.toLowerCase().contains(lower))
+        .where(
+          (c) =>
+              c.name.toLowerCase().contains(lower) ||
+              c.email.toLowerCase().contains(lower),
+        )
         .toList();
   }
 
@@ -62,25 +65,29 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
         title: Text(
           'Remove client?',
-          style: AppTextStyles.bold20(context)
-              .copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.bold20(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
         ),
         content: Text(
           '${client.name} and all their plan data will be removed from your roster.',
-          style: AppTextStyles.medium14(context)
-              .copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             ),
           ),
           ElevatedButton(
@@ -108,8 +115,7 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
     return BlocProvider(
       create: (_) => sl<CoachJoinRequestsCubit>()..loadRequests(),
       child: BlocListener<CoachClientsCubit, CoachClientsState>(
-        listenWhen: (previous, current) =>
-            current is CoachClientsActionError,
+        listenWhen: (previous, current) => current is CoachClientsActionError,
         listener: (context, state) {
           if (state is CoachClientsActionError) {
             _showSnackBar(context, state.message);
@@ -124,8 +130,9 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
                   child: Text(
                     'Total Clients',
-                    style: AppTextStyles.bold24(context)
-                        .copyWith(color: AppColors.textPrimary),
+                    style: AppTextStyles.bold24(
+                      context,
+                    ).copyWith(color: AppColors.textPrimary),
                   ),
                 ),
                 SizedBox(height: 16.h),
@@ -139,28 +146,31 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
                 SizedBox(height: 16.h),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: BlocBuilder<CoachJoinRequestsCubit,
-                      CoachJoinRequestsState>(
-                    builder: (context, joinState) {
-                      return CoachJoinRequestsBanner(
-                        count: joinState.requests.length,
-                        onTap: () async {
-                          await Navigator.pushNamed(
-                            context,
-                            CoachJoinRequestsView.routeName,
+                  child:
+                      BlocBuilder<
+                        CoachJoinRequestsCubit,
+                        CoachJoinRequestsState
+                      >(
+                        builder: (context, joinState) {
+                          return CoachJoinRequestsBanner(
+                            count: joinState.requests.length,
+                            onTap: () async {
+                              await Navigator.pushNamed(
+                                context,
+                                CoachJoinRequestsView.routeName,
+                              );
+                              if (context.mounted) {
+                                context
+                                    .read<CoachJoinRequestsCubit>()
+                                    .loadRequests();
+                                // Accepted/rejected requests change the roster,
+                                // so reload it instead of showing stale data.
+                                context.read<CoachClientsCubit>().loadClients();
+                              }
+                            },
                           );
-                          if (context.mounted) {
-                            context
-                                .read<CoachJoinRequestsCubit>()
-                                .loadRequests();
-                            // Accepted/rejected requests change the roster,
-                            // so reload it instead of showing stale data.
-                            context.read<CoachClientsCubit>().loadClients();
-                          }
                         },
-                      );
-                    },
-                  ),
+                      ),
                 ),
                 SizedBox(height: 16.h),
                 Expanded(child: _buildBody(state)),
@@ -174,62 +184,68 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
 
   Widget _buildBody(CoachClientsState state) {
     return switch (state) {
-      CoachClientsInitial() ||
-      CoachClientsLoading() =>
-        AppShimmer(
-          child: ListView.separated(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            itemCount: 6,
-            separatorBuilder: (_, _) => SizedBox(height: 12.h),
-            itemBuilder: (_, _) => SkeletonBox(height: 88.h, radius: 14.r),
-          ),
+      CoachClientsInitial() || CoachClientsLoading() => AppShimmer(
+        child: ListView.separated(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          itemCount: 6,
+          separatorBuilder: (_, _) => SizedBox(height: 12.h),
+          itemBuilder: (_, _) => SkeletonBox(height: 88.h, radius: 14.r),
         ),
+      ),
       CoachClientsError(:final message) => Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.error_outline,
-                    color: AppColors.textSecondary, size: 48.sp),
-                SizedBox(height: 12.h),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.medium14(context)
-                      .copyWith(color: AppColors.textSecondary),
-                ),
-                SizedBox(height: 16.h),
-                TextButton(
-                  onPressed: () =>
-                      context.read<CoachClientsCubit>().loadClients(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: AppColors.textSecondary,
+                size: 48.sp,
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
+              ),
+              SizedBox(height: 16.h),
+              TextButton(
+                onPressed: () =>
+                    context.read<CoachClientsCubit>().loadClients(),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
         ),
+      ),
       CoachClientsActionInProgress() ||
       CoachClientsLoaded() ||
-      CoachClientsActionError() =>
-        _buildList(_filter(state.clients), state),
+      CoachClientsActionError() => _buildList(_filter(state.clients), state),
     };
   }
 
-  Widget _buildList(List<CoachAssignedClient> clients, CoachClientsState state) {
+  Widget _buildList(
+    List<CoachAssignedClient> clients,
+    CoachClientsState state,
+  ) {
     if (clients.isEmpty) {
       return Center(
         child: Text(
           _query.isEmpty ? 'No clients yet.' : 'No results for "$_query".',
-          style: AppTextStyles.medium14(context)
-              .copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
         ),
       );
     }
 
-    final removingId =
-        state is CoachClientsActionInProgress ? state.removingRelationId : null;
+    final removingId = state is CoachClientsActionInProgress
+        ? state.removingRelationId
+        : null;
 
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
@@ -248,8 +264,7 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
               color: const Color(0xFFFF5252),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child:
-                Icon(Icons.delete_outline, color: Colors.white, size: 26.sp),
+            child: Icon(Icons.delete_outline, color: Colors.white, size: 26.sp),
           ),
           confirmDismiss: (_) async {
             await _confirmRemove(context, client);
@@ -258,7 +273,16 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
           child: CoachAssignedClientCard(
             client: client,
             removing: client.relationId == removingId,
-            onTap: () => _confirmRemove(context, client),
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                CoachClientDetailView.routeName,
+                arguments: {
+                  'clientId': client.clientId,
+                  'clientName': client.name,
+                },
+              );
+            },
           ),
         );
       },
@@ -283,12 +307,14 @@ class _SearchBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: AppTextStyles.medium14(context)
-            .copyWith(color: AppColors.textPrimary),
+        style: AppTextStyles.medium14(
+          context,
+        ).copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search',
-          hintStyle: AppTextStyles.medium14(context)
-              .copyWith(color: AppColors.textSecondary),
+          hintStyle: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
           prefixIcon: Icon(
             Icons.search,
             color: AppColors.textSecondary,

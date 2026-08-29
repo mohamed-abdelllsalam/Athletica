@@ -114,4 +114,11 @@ class ApiEndpoints {
       'nutrition/meals/$mealLogId/complete';
   static String nutritionMealUncomplete(String mealLogId) =>
       'nutrition/meals/$mealLogId/uncomplete';
+
+  // Client assigned plans (workout + nutrition)
+  static const String clientAssigned = 'client/assigned';
+  static String assignWorkoutTemplate(String templateId) =>
+      'workout-templates/$templateId/assign';
+  static String assignNutritionToClient(String templateId) =>
+      'nutrition/templates/$templateId/assign';
 }

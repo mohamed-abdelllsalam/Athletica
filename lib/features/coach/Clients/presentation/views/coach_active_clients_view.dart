@@ -84,7 +84,10 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
                   onTap: () => Navigator.pushNamed(
                     context,
                     CoachClientDetailView.routeName,
-                    arguments: client,
+                    arguments: {
+                      'clientId': client.id,
+                      'clientName': client.name,
+                    },
                   ),
                 );
               },

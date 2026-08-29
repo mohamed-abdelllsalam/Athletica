@@ -1,16 +1,23 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
+import 'package:athletica/features/coach/clients/domain/entities/client_detail.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/client_detail_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_info_view.dart';
 import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachClientDetailViewBody extends StatefulWidget {
-  const CoachClientDetailViewBody({super.key, required this.client});
+  const CoachClientDetailViewBody({
+    super.key,
+    required this.clientId,
+    required this.clientName,
+  });
 
-  final CoachClient client;
+  final String clientId;
+  final String clientName;
 
   @override
   State<CoachClientDetailViewBody> createState() =>
@@ -37,47 +44,119 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     }
   }
 
+  void _confirmDeactivate(BuildContext context, NutritionPlanSummary plan) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text(
+          'Deactivate Plan',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'This will deactivate "${plan.title}" and remove all meal logs. The client will no longer see this plan.',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<ClientDetailCubit>().deleteNutritionPlan(plan.id);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Deactivate', style: TextStyle(color: AppColors.textPrimary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryAppColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(context),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: BlocBuilder<ClientDetailCubit, ClientDetailState>(
+          builder: (context, state) {
+            if (state is ClientDetailLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state is ClientDetailError) {
+              return Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Text(
+                      state.message,
+                      style: AppTextStyles.medium14(context)
+                          .copyWith(color: AppColors.textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
                     SizedBox(height: 16.h),
-                    _buildProfileSection(context),
-                    SizedBox(height: 16.h),
-                    _buildMessageButton(context),
-                    SizedBox(height: 12.h),
-                    _buildInformationButton(context),
-                    SizedBox(height: 24.h),
-                    _buildAssignedPlanSection(context),
-                    SizedBox(height: 24.h),
-                    _buildProgressOverviewSection(context),
-                    SizedBox(height: 8.h),
-                    Divider(color: AppColors.surfaceDark, thickness: 1),
-                    SizedBox(height: 8.h),
-                    _buildSubscriptionInfoSection(context),
-                    SizedBox(height: 32.h),
+                    ElevatedButton(
+                      onPressed: () {
+                        context
+                            .read<ClientDetailCubit>()
+                            .loadClientDetail(widget.clientId);
+                      },
+                      child: const Text('Retry'),
+                    ),
                   ],
                 ),
-              ),
-            ),
-          ],
+              );
+            }
+
+            if (state is ClientDetailLoaded) {
+              return _buildContent(context, state.detail);
+            }
+
+            return const SizedBox.shrink();
+          },
         ),
       ),
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildContent(BuildContext context, ClientDetail detail) {
+    final client = detail.client;
+    return Column(
+      children: [
+        _buildAppBar(context, client),
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 16.h),
+                _buildProfileSection(context, client),
+                SizedBox(height: 16.h),
+                _buildMessageButton(context, client),
+                SizedBox(height: 12.h),
+                _buildInformationButton(context, detail),
+                SizedBox(height: 24.h),
+                _buildAssignedPlanSection(context, detail),
+                SizedBox(height: 24.h),
+                _buildProgressOverviewSection(context, detail),
+                SizedBox(height: 8.h),
+                Divider(color: AppColors.surfaceDark, thickness: 1),
+                SizedBox(height: 8.h),
+                SizedBox(height: 32.h),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context, ClientProfile client) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       child: Row(
@@ -92,7 +171,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           ),
           SizedBox(width: 8.w),
           Text(
-            widget.client.name,
+            client.displayName,
             style: AppTextStyles.semiBold15(
               context,
             ).copyWith(color: AppColors.textPrimary),
@@ -102,7 +181,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     );
   }
 
-  Widget _buildProfileSection(BuildContext context) {
+  Widget _buildProfileSection(BuildContext context, ClientProfile client) {
     return Row(
       children: [
         ClipRRect(
@@ -111,8 +190,8 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
             width: 90.r,
             height: 90.r,
             color: AppColors.surfaceDark,
-            child: widget.client.imageAsset != null
-                ? Image.asset(widget.client.imageAsset!, fit: BoxFit.cover)
+            child: client.profileImage != null
+                ? Image.network(client.profileImage!, fit: BoxFit.cover)
                 : Icon(
                     Icons.person,
                     color: AppColors.textSecondary,
@@ -125,23 +204,31 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.client.name,
+              client.displayName,
               style: AppTextStyles.bold20(
                 context,
               ).copyWith(color: AppColors.textPrimary),
             ),
+            SizedBox(height: 4.h),
+            if (client.goal != null)
+              Text(
+                client.goal!,
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
+              ),
             SizedBox(height: 8.h),
             Row(
               children: [
                 _StatItem(
                   label: 'Height',
-                  value: '${widget.client.heightCm ?? '--'} Cm',
+                  value: '${client.heightCm ?? '--'} Cm',
                   context: context,
                 ),
                 SizedBox(width: 24.w),
                 _StatItem(
                   label: 'Weight',
-                  value: '${widget.client.weightKg ?? '--'} Kg',
+                  value: '${client.weightKg ?? '--'} Kg',
                   context: context,
                 ),
               ],
@@ -152,21 +239,18 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     );
   }
 
-  Widget _buildMessageButton(BuildContext context) {
+  Widget _buildMessageButton(BuildContext context, ClientProfile client) {
     return SizedBox(
       width: double.infinity,
       height: 50.h,
       child: ElevatedButton(
         onPressed: () {
-          final contact = ChatContactsData.contacts.firstWhere(
-            (c) => c.id == widget.client.id,
-            orElse: () => ChatContact(
-              id: widget.client.id,
-              name: widget.client.name,
-              goals: widget.client.goals,
-              heightCm: widget.client.heightCm,
-              weightKg: widget.client.weightKg,
-            ),
+          final contact = ChatContact(
+            id: client.id,
+            name: client.displayName,
+            goals: client.goal != null ? [client.goal!] : [],
+            heightCm: client.heightCm?.toInt(),
+            weightKg: client.weightKg?.toInt(),
           );
           Navigator.pushNamed(
             context,
@@ -183,7 +267,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           elevation: 0,
         ),
         child: Text(
-          'Message ${widget.client.name.split(' ').first}',
+          'Message ${client.displayName.split(' ').first}',
           style: AppTextStyles.semiBold15(
             context,
           ).copyWith(color: AppColors.textPrimary),
@@ -192,7 +276,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     );
   }
 
-  Widget _buildInformationButton(BuildContext context) {
+  Widget _buildInformationButton(BuildContext context, ClientDetail detail) {
     return SizedBox(
       width: double.infinity,
       height: 50.h,
@@ -200,7 +284,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
         onPressed: () => Navigator.pushNamed(
           context,
           CoachClientInfoView.routeName,
-          arguments: widget.client,
+          arguments: detail,
         ),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.surfaceDark, width: 1.5),
@@ -225,12 +309,8 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     );
   }
 
-  Widget _buildAssignedPlanSection(BuildContext context) {
-    final workoutPlan = widget.client.assignedWorkoutPlan ?? 'Workout Upper';
-    final workoutSubtitle =
-        widget.client.workoutPlanSubtitle ?? 'Upper Body Strength';
-    final dietPlan = widget.client.assignedDietPlan ?? 'Diet Plan';
-    final dietSubtitle = widget.client.dietPlanSubtitle ?? 'Muscle Gain Diet';
+  Widget _buildAssignedPlanSection(BuildContext context, ClientDetail detail) {
+    final nutritionPlan = detail.nutritionPlan;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,24 +322,36 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 12.h),
-        _PlanCard(
-          iconData: Icons.fitness_center,
-          iconBgColor: AppColors.primaryBlue,
-          title: workoutPlan,
-          subtitle: workoutSubtitle,
-        ),
-        SizedBox(height: 10.h),
-        _PlanCard(
-          iconData: Icons.receipt_long,
-          iconBgColor: AppColors.streakGreen,
-          title: dietPlan,
-          subtitle: dietSubtitle,
-        ),
+        if (nutritionPlan != null)
+          _PlanCard(
+            iconData: Icons.receipt_long,
+            iconBgColor: AppColors.streakGreen,
+            title: nutritionPlan.title,
+            subtitle: nutritionPlan.description ?? 'Nutrition Plan',
+            isActive: nutritionPlan.isActive,
+            onDelete: () => _confirmDeactivate(context, nutritionPlan),
+          )
+        else
+          _AssignPlanCard(
+            onPressed: () async {
+              await Navigator.pushNamed(
+                context,
+                'nutrition-templates-list',
+                arguments: {'clientId': detail.client.id},
+              );
+              if (context.mounted) {
+                context.read<ClientDetailCubit>().loadClientDetail(widget.clientId);
+              }
+            },
+          ),
       ],
     );
   }
 
-  Widget _buildProgressOverviewSection(BuildContext context) {
+  Widget _buildProgressOverviewSection(BuildContext context, ClientDetail detail) {
+    final nutritionStreak = detail.nutritionStreak;
+    final workoutStreak = detail.workoutStreak;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -270,6 +362,24 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 12.h),
+        _buildStreakRow(
+          context,
+          title: 'Nutrition Streak',
+          icon: Icons.local_fire_department_rounded,
+          iconColor: const Color(0xFF5ED1A0),
+          currentStreak: nutritionStreak.current,
+          lastDate: nutritionStreak.lastDate,
+        ),
+        SizedBox(height: 10.h),
+        _buildStreakRow(
+          context,
+          title: 'Workout Streak',
+          icon: Icons.local_fire_department_rounded,
+          iconColor: const Color(0xFFB76CFF),
+          currentStreak: workoutStreak.current,
+          lastDate: workoutStreak.lastDate,
+        ),
+        SizedBox(height: 16.h),
         _TabSelector(
           tabs: _tabs,
           selectedIndex: _selectedTabIndex,
@@ -284,72 +394,109 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     );
   }
 
-  Widget _buildSubscriptionInfoSection(BuildContext context) {
-    final isActive = widget.client.subscriptionActive;
-    final expiresInDays = widget.client.expiresInDays;
-    final startDate = widget.client.subscriptionStartDate ?? '--';
-    final endDate = widget.client.subscriptionEndDate ?? '--';
-    final durationMonths = widget.client.subscriptionDurationMonths ?? 1;
+  Widget _buildStreakRow(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required int currentStreak,
+    required String? lastDate,
+  }) {
+    final now = DateTime.now();
+    final days = List.generate(7, (i) {
+      final date = now.subtract(Duration(days: 6 - i));
+      if (i == 6) return 'Today';
+      final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return weekdays[date.weekday - 1];
+    });
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Subscription Information',
-              style: AppTextStyles.semiBold15(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 28.r,
+            height: 28.r,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(8.r),
             ),
-            Row(
+            child: Icon(icon, color: iconColor, size: 18.sp),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 8.r,
-                  height: 8.r,
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? AppColors.streakGreen
-                        : AppColors.textSecondary,
-                    shape: BoxShape.circle,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextStyles.semiBold14(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
+                    ),
+                    if (lastDate != null)
+                      Text(
+                        'Last: $lastDate',
+                        style: AppTextStyles.meduim11(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
+                      ),
+                  ],
                 ),
-                SizedBox(width: 4.w),
-                Text(
-                  isActive ? 'Active' : 'Inactive',
-                  style: AppTextStyles.medium14(context).copyWith(
-                    color: isActive
-                        ? AppColors.streakGreen
-                        : AppColors.textSecondary,
-                  ),
+                SizedBox(height: 8.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(days.length, (index) {
+                    final isDone = index < currentStreak;
+                    return Column(
+                      children: [
+                        Container(
+                          width: 24.r,
+                          height: 24.r,
+                          decoration: BoxDecoration(
+                            color: isDone
+                                ? iconColor.withValues(alpha: 0.18)
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: isDone
+                                  ? iconColor
+                                  : AppColors.textSecondary.withValues(
+                                      alpha: 0.65,
+                                    ),
+                              width: 1.3,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isDone ? Icons.check_rounded : Icons.close_rounded,
+                            size: 14.sp,
+                            color: isDone ? iconColor : AppColors.textSecondary,
+                          ),
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          days[index],
+                          style: AppTextStyles.meduim11(
+                            context,
+                          ).copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    );
+                  }),
                 ),
               ],
             ),
-          ],
-        ),
-        SizedBox(height: 16.h),
-        _SubscriptionRow(
-          icon: Icons.access_time_rounded,
-          label: 'Duration',
-          value: '$durationMonths Month',
-        ),
-        SizedBox(height: 14.h),
-        _SubscriptionRow(
-          icon: Icons.calendar_month_outlined,
-          label: 'Start date',
-          value: startDate,
-        ),
-        SizedBox(height: 14.h),
-        _SubscriptionRow(
-          icon: Icons.calendar_month_outlined,
-          label: 'End date',
-          value: endDate,
-          trailingHighlight: expiresInDays != null
-              ? '(In $expiresInDays days)'
-              : null,
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -569,12 +716,16 @@ class _PlanCard extends StatelessWidget {
     required this.iconBgColor,
     required this.title,
     required this.subtitle,
+    this.isActive = true,
+    this.onDelete,
   });
 
   final IconData iconData;
   final Color iconBgColor;
   final String title;
   final String subtitle;
+  final bool isActive;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -583,6 +734,9 @@ class _PlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(12.r),
+        border: isActive
+            ? null
+            : Border.all(color: AppColors.textSecondary.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         children: [
@@ -596,86 +750,87 @@ class _PlanCard extends StatelessWidget {
             child: Icon(iconData, color: iconBgColor, size: 20.sp),
           ),
           SizedBox(width: 12.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.semiBold14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                subtitle,
-                style: AppTextStyles.meduim12(
-                  context,
-                ).copyWith(color: AppColors.textSecondary),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.semiBold14(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.meduim12(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
           ),
+          if (onDelete != null)
+            GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                padding: EdgeInsets.all(6.r),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 18.sp,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-// ---------- Subscription Row ----------
+// ---------- Assign Plan Card ----------
 
-class _SubscriptionRow extends StatelessWidget {
-  const _SubscriptionRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.trailingHighlight,
-  });
+class _AssignPlanCard extends StatelessWidget {
+  const _AssignPlanCard({required this.onPressed});
 
-  final IconData icon;
-  final String label;
-  final String value;
-  final String? trailingHighlight;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 36.r,
-          height: 36.r,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Icon(icon, color: AppColors.primaryBlue, size: 18.sp),
-        ),
-        SizedBox(width: 12.w),
-        Text(
-          label,
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        const Spacer(),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: value,
-                style: AppTextStyles.medium14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-              ),
-              if (trailingHighlight != null)
-                TextSpan(
-                  text: ' $trailingHighlight',
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.streakFire),
-                ),
-            ],
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 20.h),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: AppColors.primaryBlue.withValues(alpha: 0.3),
+            width: 1.5,
           ),
         ),
-      ],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_circle_outline,
+              color: AppColors.primaryBlue,
+              size: 24.sp,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              'Assign Nutrition Plan',
+              style: AppTextStyles.semiBold14(
+                context,
+              ).copyWith(color: AppColors.primaryBlue),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

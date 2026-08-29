@@ -1,4 +1,5 @@
 import 'package:athletica/core/network/api_endpoints.dart';
+import 'package:athletica/features/coach/clients/data/models/client_detail_model.dart';
 import 'package:athletica/features/coach/clients/data/models/coach_assigned_client_model.dart';
 import 'package:athletica/features/coach/clients/data/models/coach_client_model.dart';
 import 'package:dio/dio.dart';
@@ -9,11 +10,14 @@ abstract class CoachClientsRemoteDataSource {
   /// `GET /coach/clients` — clients assigned via the coach-client flow.
   Future<List<CoachAssignedClientModel>> getAssignedClients();
 
+  /// `GET /coach/clients/:id` — detailed client profile with plans and streaks.
+  Future<ClientDetailModel> getClientDetail(String clientId);
+
   /// `DELETE /coach/clients/:id` — removes the assignment (cascades plans).
-  ///
-  /// NOTE: the live backend expects the **client profile id** in [clientId],
-  /// NOT the roster relation id, despite the API doc saying otherwise.
   Future<void> removeAssignedClient(String clientId);
+
+  /// `DELETE /nutrition/plans/:planId` — deactivates the plan.
+  Future<void> deleteNutritionPlan(String planId);
 }
 
 class CoachClientsRemoteDataSourceImpl implements CoachClientsRemoteDataSource {
@@ -45,7 +49,18 @@ class CoachClientsRemoteDataSourceImpl implements CoachClientsRemoteDataSource {
   }
 
   @override
+  Future<ClientDetailModel> getClientDetail(String clientId) async {
+    final response = await _dio.get(ApiEndpoints.coachClient(clientId));
+    return ClientDetailModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  @override
   Future<void> removeAssignedClient(String coachClientId) async {
     await _dio.delete(ApiEndpoints.coachClient(coachClientId));
+  }
+
+  @override
+  Future<void> deleteNutritionPlan(String planId) async {
+    await _dio.delete(ApiEndpoints.nutritionPlan(planId));
   }
 }

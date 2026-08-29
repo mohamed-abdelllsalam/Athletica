@@ -1,7 +1,7 @@
 import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
 
 /// Parses a `GET /coach/clients` entry:
-/// `{ id, client: { id, user: { username, email }, goal, height, weight }, assigned_at }`
+/// `{ id, client: { id, user: { username, email, name }, profile_image, gender, birth_date, height, weight, goal }, assigned_at }`
 ///
 /// NOTE: for removal, the backend expects the nested `client.id`, not the
 /// entry-level `id`.
@@ -12,9 +12,12 @@ class CoachAssignedClientModel {
     required this.name,
     required this.email,
     required this.goal,
-    required this.heightCm,
-    required this.weightKg,
-    required this.assignedAt,
+    this.profileImage,
+    this.gender,
+    this.birthDate,
+    this.heightCm,
+    this.weightKg,
+    this.assignedAt,
   });
 
   final String relationId;
@@ -22,6 +25,9 @@ class CoachAssignedClientModel {
   final String name;
   final String email;
   final String goal;
+  final String? profileImage;
+  final String? gender;
+  final DateTime? birthDate;
   final num? heightCm;
   final num? weightKg;
   final DateTime? assignedAt;
@@ -32,9 +38,12 @@ class CoachAssignedClientModel {
     return CoachAssignedClientModel(
       relationId: json['id'] as String? ?? '',
       clientId: client['id'] as String? ?? '',
-      name: user['username'] as String? ?? '',
+      name: user['name'] as String? ?? user['username'] as String? ?? '',
       email: user['email'] as String? ?? '',
       goal: client['goal'] as String? ?? '',
+      profileImage: client['profile_image'] as String?,
+      gender: client['gender'] as String?,
+      birthDate: DateTime.tryParse(client['birth_date'] as String? ?? ''),
       heightCm: client['height'] as num?,
       weightKg: client['weight'] as num?,
       assignedAt: DateTime.tryParse(json['assigned_at'] as String? ?? ''),
@@ -47,6 +56,9 @@ class CoachAssignedClientModel {
         name: name,
         email: email,
         goal: goal,
+        profileImage: profileImage,
+        gender: gender,
+        birthDate: birthDate,
         heightCm: heightCm,
         weightKg: weightKg,
         assignedAt: assignedAt,

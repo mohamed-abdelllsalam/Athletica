@@ -11,6 +11,15 @@ class CoachClientInfoViewBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final questions = client.assessmentQuestions.isEmpty
+        ? const [
+            ClientHealthQuestion(
+              question: 'No assessment details available yet.',
+              answer: 'Waiting for client response',
+            ),
+          ]
+        : client.assessmentQuestions;
+
     return Scaffold(
       backgroundColor: AppColors.primaryAppColor,
       body: SafeArea(
@@ -20,11 +29,11 @@ class CoachClientInfoViewBody extends StatelessWidget {
             Expanded(
               child: ListView.separated(
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-                itemCount: client.assessmentQuestions.length,
-                separatorBuilder: (context, index) => SizedBox(height: 24.h),
+                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 24.h),
+                itemCount: questions.length,
+                separatorBuilder: (_, _) => SizedBox(height: 20.h),
                 itemBuilder: (context, index) {
-                  final q = client.assessmentQuestions[index];
+                  final q = questions[index];
                   return _QuestionItem(
                     number: index + 1,
                     question: q.question,
@@ -41,18 +50,17 @@ class CoachClientInfoViewBody extends StatelessWidget {
 
   Widget _buildAppBar(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(
-              Icons.arrow_back_ios,
-              color: AppColors.textPrimary,
-              size: 20.sp,
-            ),
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Icon(
+            Icons.arrow_back_ios,
+            color: AppColors.textPrimary,
+            size: 20.sp,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -76,33 +84,33 @@ class _QuestionItem extends StatelessWidget {
       children: [
         Text(
           'Q$number',
-          style: AppTextStyles.semiBold14(context).copyWith(
-            color: AppColors.primaryBlue,
-          ),
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.primaryPurple),
         ),
-        SizedBox(height: 4.h),
+        SizedBox(height: 8.h),
         Text(
           question,
-          style: AppTextStyles.semiBold15(context).copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: AppTextStyles.semiBold15(
+            context,
+          ).copyWith(color: AppColors.textPrimary, height: 1.25),
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: 12.h),
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(12.r),
           ),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   answer,
-                  style: AppTextStyles.semiBold14(context).copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyles.semiBold14(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -110,8 +118,8 @@ class _QuestionItem extends StatelessWidget {
                 width: 26.r,
                 height: 26.r,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(6.r),
+                  color: AppColors.primaryPurple,
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Icon(
                   Icons.check,

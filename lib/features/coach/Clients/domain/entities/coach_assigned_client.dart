@@ -10,6 +10,9 @@ class CoachAssignedClient {
     required this.name,
     required this.email,
     this.goal = '',
+    this.profileImage,
+    this.gender,
+    this.birthDate,
     this.heightCm,
     this.weightKg,
     this.assignedAt,
@@ -20,6 +23,9 @@ class CoachAssignedClient {
   final String name;
   final String email;
   final String goal;
+  final String? profileImage;
+  final String? gender;
+  final DateTime? birthDate;
   final num? heightCm;
   final num? weightKg;
   final DateTime? assignedAt;

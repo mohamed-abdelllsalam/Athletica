@@ -7,7 +7,7 @@ import 'package:athletica/features/auth/presentation/views/sign_up_email_verific
 import 'package:athletica/features/auth/presentation/views/sign_up_view.dart';
 import 'package:athletica/features/auth/presentation/views/verify_your_identity_view.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
-import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
+import 'package:athletica/features/coach/clients/domain/entities/client_detail.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_active_clients_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_detail_view.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_info_view.dart';
@@ -27,6 +27,7 @@ import 'package:athletica/features/coach/messages/presentation/views/coach_messa
 import 'package:athletica/features/coach/plan/domain/entities/coach_plan_client.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
 import 'package:athletica/features/coach/plan/presentation/views/client_plan_detail_view.dart';
+import 'package:athletica/features/coach/plan/presentation/views/assign_plan_templates_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/nutrition_plan_detail_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/nutrition_plans_list_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_plans_list_view.dart';
@@ -46,6 +47,7 @@ import 'package:athletica/features/profile/presentation/views/profile_view.dart'
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
 import 'package:athletica/features/workout_session/presentation/views/workout_session_view.dart';
+import 'package:athletica/features/assigned/presentation/views/assigned_view.dart';
 import 'package:flutter/material.dart';
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -66,6 +68,12 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case NutritionPlansListView.routeName:
       return MaterialPageRoute(
         builder: (context) => const NutritionPlansListView(),
+      );
+    case AssignPlanTemplatesView.routeName:
+      final args = settings.arguments! as Map<String, dynamic>;
+      final clientId = args['clientId'] as String;
+      return MaterialPageRoute(
+        builder: (context) => AssignPlanTemplatesView(clientId: clientId),
       );
     case NutritionPlanDetailView.routeName:
       final plan = settings.arguments;
@@ -92,14 +100,19 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         builder: (context) => const CoachJoinRequestsView(),
       );
     case CoachClientDetailView.routeName:
-      final client = settings.arguments! as CoachClient;
+      final args = settings.arguments! as Map<String, dynamic>;
+      final clientId = args['clientId'] as String;
+      final clientName = args['clientName'] as String;
       return MaterialPageRoute(
-        builder: (context) => CoachClientDetailView(client: client),
+        builder: (context) => CoachClientDetailView(
+          clientId: clientId,
+          clientName: clientName,
+        ),
       );
     case CoachClientInfoView.routeName:
-      final client = settings.arguments! as CoachClient;
+      final detail = settings.arguments! as ClientDetail;
       return MaterialPageRoute(
-        builder: (context) => CoachClientInfoView(client: client),
+        builder: (context) => CoachClientInfoView(detail: detail),
       );
     case CoachMessagesView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachMessagesView());
@@ -142,6 +155,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case CoachSubscriptionView.routeName:
       return MaterialPageRoute(
         builder: (context) => const CoachSubscriptionView(),
+      );
+    case AssignedView.routeName:
+      return MaterialPageRoute(
+        builder: (context) => const AssignedView(),
       );
     case OnBoardingView.routeName:
       return MaterialPageRoute(builder: (context) => const OnBoardingView());
