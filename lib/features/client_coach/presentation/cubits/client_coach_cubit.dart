@@ -24,10 +24,12 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
     final result = await _getMyCoach();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(data == null
             ? const ClientCoachNoCoach()
             : ClientCoachLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(ClientCoachError(failure.message));
     }
   }
@@ -44,6 +46,7 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
     final result = await _submitToken(token);
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(
           ClientCoachRequestSent(
             data.status,
@@ -52,6 +55,7 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
         );
         await loadCoach();
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(ClientCoachError(failure.message));
     }
   }
@@ -75,6 +79,7 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
         await loadCoach();
         return true;
       case ApiError(:final failure):
+        if (isClosed) return false;
         emit(ClientCoachError(failure.message));
         return false;
     }

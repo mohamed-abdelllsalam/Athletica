@@ -12,8 +12,10 @@ class CompleteProfileCubit extends Cubit<CompleteProfileState> {
     emit(const CompleteProfileLoading());
     try {
       await _markProfileComplete();
+      if (isClosed) return;
       emit(const CompleteProfileSuccess());
     } catch (_) {
+      if (isClosed) return;
       emit(const CompleteProfileError('Failed to save profile. Try again.'));
     }
   }

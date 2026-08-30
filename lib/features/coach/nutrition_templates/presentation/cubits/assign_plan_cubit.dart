@@ -58,8 +58,10 @@ class AssignPlanCubit extends Cubit<AssignPlanState> {
     final result = await _getAssignedClients();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(AssignPlanClientsLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AssignPlanClientsError(failure.message));
     }
   }
@@ -88,8 +90,10 @@ class AssignPlanCubit extends Cubit<AssignPlanState> {
     );
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(AssignPlanSuccess());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AssignPlanError(failure.message, clients));
     }
   }
@@ -113,6 +117,7 @@ class AssignPlanCubit extends Cubit<AssignPlanState> {
       case ApiSuccess():
         await loadClients();
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AssignPlanClientsError(failure.message));
     }
   }

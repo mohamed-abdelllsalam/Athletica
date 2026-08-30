@@ -22,11 +22,14 @@ class CoachInviteCubit extends Cubit<CoachInviteState> {
         final hasCode = data.code.trim().isNotEmpty;
         final inviteLink = data.inviteUrl.trim();
         if (!hasCode && inviteLink.isEmpty) {
+          if (isClosed) return;
           emit(CoachInviteError('Invite code not available.'));
         } else {
+          if (isClosed) return;
           emit(CoachInviteSuccess(data));
         }
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(CoachInviteError(failure.message));
     }
   }
@@ -39,8 +42,10 @@ class CoachInviteCubit extends Cubit<CoachInviteState> {
     final result = await _revokeInvite();
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(CoachInviteRevoked());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(CoachInviteError(failure.message));
     }
   }

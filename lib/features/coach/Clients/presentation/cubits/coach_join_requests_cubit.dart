@@ -24,8 +24,10 @@ class CoachJoinRequestsCubit extends Cubit<CoachJoinRequestsState> {
     final result = await _getRequests();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(CoachJoinRequestsLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(CoachJoinRequestsError(failure.message));
     }
   }
@@ -48,12 +50,14 @@ class CoachJoinRequestsCubit extends Cubit<CoachJoinRequestsState> {
     final result = await action(requestId);
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(
           CoachJoinRequestsLoaded(
             requests.where((r) => r.id != requestId).toList(),
           ),
         );
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(CoachJoinRequestsActionError(requests, failure.message));
     }
   }

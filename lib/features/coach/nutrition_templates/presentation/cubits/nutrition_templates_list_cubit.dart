@@ -66,6 +66,7 @@ class NutritionTemplatesListCubit extends Cubit<NutritionTemplatesListState> {
     switch (result) {
       case ApiSuccess(:final data):
         final plans = await _hydrate(data.templates);
+        if (isClosed) return;
         emit(NutritionTemplatesListLoaded(
           plans: plans,
           currentPage: data.pagination.page,
@@ -73,7 +74,10 @@ class NutritionTemplatesListCubit extends Cubit<NutritionTemplatesListState> {
         ));
       case ApiError(:final failure):
         // On silent-refresh failure keep the existing data visible.
-        if (!isSilentRefresh) emit(NutritionTemplatesListError(failure.message));
+        if (!isSilentRefresh) {
+          if (isClosed) return;
+          emit(NutritionTemplatesListError(failure.message));
+        }
     }
   }
 
@@ -95,12 +99,14 @@ class NutritionTemplatesListCubit extends Cubit<NutritionTemplatesListState> {
         final newPlans = (await _hydrate(data.templates))
             .where((p) => !existingIds.contains(p.id))
             .toList();
+        if (isClosed) return;
         emit(NutritionTemplatesListLoaded(
           plans: [...state.plans, ...newPlans],
           currentPage: data.pagination.page,
           totalPages: data.pagination.totalPages,
         ));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(NutritionTemplatesListError(failure.message));
     }
   }

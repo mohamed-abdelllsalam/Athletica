@@ -25,8 +25,10 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
     final result = await _getTodayMeals();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(NutritionTodayLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(NutritionTodayError(failure.message));
     }
   }
@@ -49,11 +51,14 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
 
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(NutritionTodayLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(NutritionTodayLoaded(
           _withCompletion(current.meals, mealLogId, !targetCompleted),
         ));
+        if (isClosed) return;
         emit(NutritionTodayError(failure.message));
     }
   }

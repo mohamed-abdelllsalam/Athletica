@@ -41,8 +41,10 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
     final result = await _getClientDetail(clientId);
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(ClientDetailLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(ClientDetailError(failure.message));
     }
   }
@@ -58,6 +60,7 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
           await loadClientDetail(_currentClientId!);
         }
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(ClientDetailError(failure.message));
     }
   }

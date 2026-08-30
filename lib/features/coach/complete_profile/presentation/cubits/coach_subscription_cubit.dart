@@ -12,8 +12,10 @@ class CoachSubscriptionCubit extends Cubit<CoachSubscriptionState> {
     emit(const CoachSubscriptionLoading());
     try {
       await _markProfileComplete();
+      if (isClosed) return;
       emit(const CoachSubscriptionSuccess());
     } catch (_) {
+      if (isClosed) return;
       emit(const CoachSubscriptionError('Failed to save profile. Try again.'));
     }
   }

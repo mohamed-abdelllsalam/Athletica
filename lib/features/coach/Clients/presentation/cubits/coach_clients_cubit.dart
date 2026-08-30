@@ -20,8 +20,10 @@ class CoachClientsCubit extends Cubit<CoachClientsState> {
     final result = await _getAssignedClients();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(CoachClientsLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(CoachClientsError(failure.message));
     }
   }
@@ -40,12 +42,14 @@ class CoachClientsCubit extends Cubit<CoachClientsState> {
     final result = await _removeAssignedClient(client.clientId);
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(
           CoachClientsLoaded(
             clients.where((c) => c.relationId != client.relationId).toList(),
           ),
         );
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(CoachClientsActionError(clients, failure.message));
     }
   }

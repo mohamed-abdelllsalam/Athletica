@@ -16,8 +16,10 @@ class CoachHomeStatsCubit extends Cubit<CoachHomeStatsState> {
     final result = await _getCoachHomeStats();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(CoachHomeStatsLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(CoachHomeStatsError(failure.message));
     }
   }

@@ -8,6 +8,7 @@ class UploadVideoCubit extends Cubit<UploadVideoState> {
     emit(UploadVideoLoading());
     // Stub — replace with actual file pick + upload call.
     await Future.delayed(const Duration(seconds: 1));
+    if (isClosed) return;
     emit(UploadVideoFailure());
   }
 

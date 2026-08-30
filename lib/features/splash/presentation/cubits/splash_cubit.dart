@@ -22,6 +22,7 @@ class SplashCubit extends Cubit<SplashState> {
       ClientReady() => HomeView.routeName,
       CoachReady() => CoachHomeView.routeName,
     };
+    if (isClosed) return;
     emit(SplashNavigate(route));
   }
 }

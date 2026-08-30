@@ -36,6 +36,7 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
       case ApiSuccess(:final data):
         templateId = data.id;
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(SaveNutritionPlanError(failure.message));
         return;
     }
@@ -57,6 +58,7 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
         case ApiSuccess(:final data):
           mealId = data.id;
         case ApiError(:final failure):
+          if (isClosed) return;
           emit(SaveNutritionPlanError(failure.message));
           return;
       }
@@ -74,6 +76,7 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
         );
         switch (foodResult) {
           case ApiError(:final failure):
+            if (isClosed) return;
             emit(SaveNutritionPlanError(failure.message));
             return;
           case ApiSuccess():
@@ -82,6 +85,7 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
       }
     }
 
+    if (isClosed) return;
     emit(SaveNutritionPlanSuccess());
   }
 

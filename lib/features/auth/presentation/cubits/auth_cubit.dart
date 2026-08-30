@@ -52,11 +52,14 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _loginUseCase(email: email, password: password);
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(LoginSuccess(data));
       case ApiError(:final failure):
         if (failure is EmailNotVerifiedFailure) {
+          if (isClosed) return;
           emit(EmailVerificationRequired(failure.message));
         } else {
+          if (isClosed) return;
           emit(AuthFailureState(failure.message));
         }
     }
@@ -75,8 +78,10 @@ class AuthCubit extends Cubit<AuthState> {
     );
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(RegisterSuccess());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AuthFailureState(failure.message));
     }
   }
@@ -94,8 +99,10 @@ class AuthCubit extends Cubit<AuthState> {
     );
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(RegisterSuccess());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AuthFailureState(failure.message));
     }
   }
@@ -108,8 +115,10 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _verifyEmailUseCase(email: email, code: code);
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(VerificationSuccess());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AuthFailureState(failure.message));
     }
   }
@@ -119,8 +128,10 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _resendVerificationUseCase(email: email);
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(VerificationCodeResent());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AuthFailureState(failure.message));
     }
   }
@@ -130,8 +141,10 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _requestPasswordResetUseCase(email: email);
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(ResetRequestSuccess(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AuthFailureState(failure.message));
     }
   }
@@ -149,8 +162,10 @@ class AuthCubit extends Cubit<AuthState> {
     );
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(ResetPasswordSuccess());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AuthFailureState(failure.message));
     }
   }
@@ -158,8 +173,10 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> checkAuthStatus() async {
     try {
       final status = await _checkAuthStatusUseCase();
+      if (isClosed) return;
       emit(AuthStatusChecked(status));
     } catch (e) {
+      if (isClosed) return;
       emit(AuthFailureState('Failed to verify session. Please try again.'));
     }
   }
@@ -169,8 +186,10 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _logoutUseCase();
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return;
         emit(AuthInitial());
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AuthFailureState(failure.message));
     }
   }

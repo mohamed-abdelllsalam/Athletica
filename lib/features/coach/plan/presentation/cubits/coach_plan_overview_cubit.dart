@@ -75,11 +75,13 @@ class CoachPlanOverviewCubit extends Cubit<CoachPlanOverviewState> {
       if (!isSilentRefresh &&
           plansCount == 0 &&
           clientsCount == 0) {
+        if (isClosed) return;
         emit(CoachPlanOverviewError(error));
       }
       return;
     }
 
+    if (isClosed) return;
     emit(CoachPlanOverviewLoaded(
       nutritionPlans: plansCount,
       activeClients: clientsCount,

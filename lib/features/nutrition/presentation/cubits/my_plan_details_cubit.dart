@@ -54,11 +54,13 @@ class MyPlanDetailsCubit extends Cubit<MyPlanDetailsState> {
       case ApiSuccess(:final data):
         planId = data?.id ?? '';
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(MyPlanDetailsError(failure.message));
         return;
     }
 
     if (planId.isEmpty) {
+      if (isClosed) return;
       emit(const MyPlanDetailsNoPlan());
       return;
     }
@@ -66,8 +68,10 @@ class MyPlanDetailsCubit extends Cubit<MyPlanDetailsState> {
     final detailsResult = await _getPlanDetails(planId);
     switch (detailsResult) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(MyPlanDetailsLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(MyPlanDetailsError(failure.message));
     }
   }

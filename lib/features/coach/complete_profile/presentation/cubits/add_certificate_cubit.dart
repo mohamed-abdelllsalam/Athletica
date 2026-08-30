@@ -15,6 +15,7 @@ class AddCertificateCubit extends Cubit<AddCertificateState> {
     emit(AddCertificateSaving());
     // Stub — replace with actual use case call.
     await Future.delayed(const Duration(seconds: 1));
+    if (isClosed) return;
     emit(AddCertificateSuccess());
   }
 }

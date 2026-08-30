@@ -24,6 +24,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
 
     final trainerId = await TokenStorageService.instance.getTrainerId();
     if (trainerId == null) {
+      if (isClosed) return;
       emit(SaveWorkoutPlanError('Trainer ID not found. Please log in again.'));
       return;
     }
@@ -40,6 +41,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
       case ApiSuccess(:final data):
         templateId = data.id;
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(SaveWorkoutPlanError(failure.message));
         return;
     }
@@ -59,6 +61,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
         case ApiSuccess(:final data):
           dayId = data.id;
         case ApiError(:final failure):
+          if (isClosed) return;
           emit(SaveWorkoutPlanError(failure.message));
           return;
       }
@@ -79,6 +82,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
         );
         switch (itemResult) {
           case ApiError(:final failure):
+            if (isClosed) return;
             emit(SaveWorkoutPlanError(failure.message));
             return;
           case ApiSuccess():
@@ -87,6 +91,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
       }
     }
 
+    if (isClosed) return;
     emit(SaveWorkoutPlanSuccess());
   }
 

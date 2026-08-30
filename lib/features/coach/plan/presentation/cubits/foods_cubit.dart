@@ -78,6 +78,7 @@ class FoodsCubit extends Cubit<FoodsState> {
     if (seq != _seq) return;
     switch (categoriesResult) {
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(FoodsError(failure.message));
         return;
       case ApiSuccess():
@@ -93,9 +94,11 @@ class FoodsCubit extends Cubit<FoodsState> {
     if (seq != _seq) return;
     switch (foodsResult) {
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(FoodsError(failure.message));
         return;
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(FoodsLoaded(
           foods: data.foods,
           categories: categoriesResult.data,
@@ -147,6 +150,7 @@ class FoodsCubit extends Cubit<FoodsState> {
 
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(FoodsLoaded(
           foods: data.foods,
           categories: current.categories,
@@ -155,9 +159,11 @@ class FoodsCubit extends Cubit<FoodsState> {
         ));
       case ApiError(:final failure):
         if (current.foods.isEmpty) {
+          if (isClosed) return;
           emit(FoodsError(failure.message));
         } else {
           // Keep showing the last good list.
+          if (isClosed) return;
           emit(current.copyWith(isFiltering: false));
         }
     }
@@ -180,12 +186,14 @@ class FoodsCubit extends Cubit<FoodsState> {
     if (seq != _seq) return;
     switch (result) {
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(FoodsError(failure.message));
         return;
       case ApiSuccess(:final data):
         final existingIds = state.foods.map((f) => f.id).toSet();
         final newFoods =
             data.foods.where((f) => !existingIds.contains(f.id)).toList();
+        if (isClosed) return;
         emit(FoodsLoaded(
           foods: [...state.foods, ...newFoods],
           categories: state.categories,

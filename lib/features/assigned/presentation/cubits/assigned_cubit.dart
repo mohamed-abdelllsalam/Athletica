@@ -63,8 +63,10 @@ class AssignedCubit extends Cubit<AssignedState> {
     final result = await _getAssigned();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(AssignedLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(AssignedError(failure.message));
     }
   }
@@ -80,6 +82,7 @@ class AssignedCubit extends Cubit<AssignedState> {
         await loadAssigned();
       case ApiError(:final failure):
         _actionState = AssignActionError(failure.message, AssignType.workout);
+        if (isClosed) return;
         emit(_clamp());
     }
   }
@@ -96,6 +99,7 @@ class AssignedCubit extends Cubit<AssignedState> {
       case ApiError(:final failure):
         _actionState =
             AssignActionError(failure.message, AssignType.nutrition);
+        if (isClosed) return;
         emit(_clamp());
     }
   }

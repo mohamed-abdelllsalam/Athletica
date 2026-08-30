@@ -37,6 +37,7 @@ class InfoCubit extends Cubit<InfoState> {
       case ApiSuccess(:final data):
         await _loadSavedAnswers(data);
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(InfoQuestionsError(failure.message));
     }
   }
@@ -53,6 +54,7 @@ class InfoCubit extends Cubit<InfoState> {
     }
 
     _hasExistingAnswers = saved.answers.isNotEmpty;
+    if (isClosed) return;
     emit(
       InfoQuestionsLoaded(
         questions,
@@ -109,6 +111,7 @@ class InfoCubit extends Cubit<InfoState> {
         ? await _updateAnswers(answers)
         : await _submitAnswers(answers);
     if (result case ApiError(:final failure)) {
+      if (isClosed) return;
       emit(InfoError(failure.message));
       return;
     }
@@ -116,8 +119,10 @@ class InfoCubit extends Cubit<InfoState> {
 
     try {
       await _markProfileComplete();
+      if (isClosed) return;
       emit(const InfoSuccess());
     } catch (_) {
+      if (isClosed) return;
       emit(const InfoError('Failed to complete profile. Please try again.'));
     }
   }

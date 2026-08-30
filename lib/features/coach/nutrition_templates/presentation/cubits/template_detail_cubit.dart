@@ -85,8 +85,10 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     final result = await _getDetail(templateId);
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(TemplateDetailLoaded(plan: _mapper.toPlan(data)));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(TemplateDetailError(failure.message));
     }
   }
@@ -96,8 +98,10 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     final result = await _getDetail(_templateId);
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(TemplateDetailLoaded(plan: _mapper.toPlan(data)));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(TemplateDetailLoaded(
           plan: (state as TemplateDetailLoaded).plan,
           message: failure.message,
@@ -152,6 +156,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
         hasChanges = true;
         await refresh();
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(state.copyWith(message: failure.message));
     }
   }
@@ -208,6 +213,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
         await refresh();
       case ApiError(:final failure):
         // Roll back to server truth and surface the error.
+        if (isClosed) return;
         emit(TemplateDetailLoaded(
           plan: current.plan,
           message: failure.message,
@@ -227,6 +233,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
         hasChanges = true;
         await refresh();
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(state.copyWith(message: failure.message));
     }
   }
@@ -239,11 +246,13 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     final result = await _deleteTemplate(_templateId);
     switch (result) {
       case ApiSuccess():
+        if (isClosed) return false;
         emit(TemplateDetailDeleted());
         return true;
       case ApiError(:final failure):
         final state = this.state;
         if (state is TemplateDetailLoaded) {
+          if (isClosed) return false;
           emit(state.copyWith(message: failure.message));
         }
         return false;
@@ -275,6 +284,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
             await _deleteFood(_templateId, editedMeal.id, relationId);
         switch (result) {
           case ApiError(:final failure):
+            if (isClosed) return;
             emit(state.copyWith(message: failure.message));
             return;
           case ApiSuccess():
@@ -300,6 +310,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       );
       switch (result) {
         case ApiError(:final failure):
+          if (isClosed) return;
           emit(state.copyWith(message: failure.message));
           return;
         case ApiSuccess():
@@ -326,6 +337,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       );
       switch (result) {
         case ApiError(:final failure):
+          if (isClosed) return;
           emit(state.copyWith(message: failure.message));
           return;
         case ApiSuccess():
@@ -347,6 +359,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       );
       switch (result) {
         case ApiError(:final failure):
+          if (isClosed) return;
           emit(state.copyWith(message: failure.message));
           return;
         case ApiSuccess():

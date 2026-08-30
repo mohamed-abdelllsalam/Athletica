@@ -16,8 +16,10 @@ class ProfileInfoCubit extends Cubit<ProfileInfoState> {
     switch (result) {
       case ApiSuccess(:final data):
         _loaded = true;
+        if (isClosed) return;
         emit(ProfileInfoLoaded(data.answers));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(ProfileInfoError(failure.message));
     }
   }

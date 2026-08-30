@@ -18,6 +18,7 @@ class WorkoutTemplatesListCubit extends Cubit<WorkoutTemplatesListState> {
 
     final trainerId = await TokenStorageService.instance.getTrainerId();
     if (trainerId == null) {
+      if (isClosed) return;
       emit(WorkoutTemplatesListError(
           'Trainer ID not found. Please log in again.'));
       return;
@@ -26,8 +27,10 @@ class WorkoutTemplatesListCubit extends Cubit<WorkoutTemplatesListState> {
     final result = await _getTemplates(trainerId);
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(WorkoutTemplatesListLoaded(data.map(_toProgram).toList()));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(WorkoutTemplatesListError(failure.message));
     }
   }

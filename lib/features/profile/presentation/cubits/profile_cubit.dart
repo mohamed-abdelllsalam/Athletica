@@ -14,8 +14,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     final result = await _getClientProfile();
     switch (result) {
       case ApiSuccess(:final data):
+        if (isClosed) return;
         emit(ProfileLoaded(data));
       case ApiError(:final failure):
+        if (isClosed) return;
         emit(ProfileError(failure.message));
     }
   }
