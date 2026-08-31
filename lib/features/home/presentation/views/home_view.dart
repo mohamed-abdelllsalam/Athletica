@@ -18,40 +18,43 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  bool _dialogShown = false;
+  bool _checking = true;
+  bool _profileComplete = false;
 
   @override
   void initState() {
     super.initState();
     sl<ProfileCubit>().loadProfile(forceRefresh: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_dialogShown) {
-        _checkProfileAndShowDialog();
-      }
+      if (mounted) _checkProfileCompletion();
     });
   }
 
-  Future<void> _checkProfileAndShowDialog() async {
+  Future<void> _checkProfileCompletion() async {
     final isComplete = await TokenStorageService.instance.isProfileComplete();
-    if (isComplete || !mounted || _dialogShown) return;
+    if (isComplete) {
+      if (mounted) setState(() { _checking = false; _profileComplete = true; });
+      return;
+    }
 
     final useCase = sl<CheckClientProfileCompletionUseCase>();
     final result = await useCase();
-    if (!mounted || _dialogShown) return;
+    if (!mounted) return;
 
     switch (result) {
       case ApiSuccess(:final data):
-        if (!data && mounted) {
-          _dialogShown = true;
+        if (data) {
+          await TokenStorageService.instance.saveProfileComplete();
+          if (mounted) setState(() { _checking = false; _profileComplete = true; });
+        } else {
+          if (mounted) setState(() { _checking = false; _profileComplete = false; });
           final shouldComplete = await showCompleteProfileDialog(context);
           if (shouldComplete && mounted) {
-            Navigator.pushNamed(context, InfoView.routeName);
+            Navigator.pushReplacementNamed(context, InfoView.routeName);
           }
-        } else if (data) {
-          await TokenStorageService.instance.saveProfileComplete();
         }
       case ApiError():
-        // Network/server errors — do not show dialog.
+        if (mounted) setState(() { _checking = false; _profileComplete = true; });
     }
   }
 
@@ -59,7 +62,15 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: sl<ProfileCubit>(),
-      child: const Scaffold(body: HomeViewBody()),
+      child: Scaffold(
+        body: _checking
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : _profileComplete
+                ? const HomeViewBody()
+                : const SizedBox.shrink(),
+      ),
     );
   }
 }

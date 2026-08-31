@@ -361,5 +361,5 @@ void setupDependencies() {
     () => TemplateDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
   );
   sl.registerFactory(() => AssignPlanCubit(sl(), sl(), sl()));
-  sl.registerLazySingleton(() => ProfileInfoCubit(sl()));
+  sl.registerLazySingleton(() => ProfileInfoCubit(sl(), sl()));
 }

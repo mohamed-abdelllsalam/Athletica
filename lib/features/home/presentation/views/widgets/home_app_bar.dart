@@ -28,9 +28,10 @@ class HomeAppBar extends StatelessWidget {
                       ? state.profile.profileImage
                       : null;
               final name =
-                  state is ProfileLoaded ? state.profile.name : '...';
+                  state is ProfileLoaded ? state.profile.name.split(' ').first : '...';
 
               return Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
                     onTap: () =>
@@ -50,10 +51,13 @@ class HomeAppBar extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 12.w),
-                  Text(
-                    name,
-                    style: AppTextStyles.semiBold15(context)
-                        .copyWith(color: AppColors.textPrimary),
+                  Flexible(
+                    child: Text(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.semiBold15(context)
+                          .copyWith(color: AppColors.textPrimary),
+                    ),
                   ),
                 ],
               );
