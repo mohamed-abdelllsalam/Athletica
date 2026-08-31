@@ -1,4 +1,4 @@
-import 'package:athletica/features/profile/domain/entities/client_profile_entity.dart';
+import 'package:athletica/features/profile/domain/entities/user_profile_entity.dart';
 
 sealed class ProfileState {}
 
@@ -11,7 +11,28 @@ final class ProfileLoaded extends ProfileState {
   final ClientProfileEntity profile;
 }
 
+final class ProfileUpdating extends ProfileState {
+  ProfileUpdating(this.profile);
+  final ClientProfileEntity profile;
+}
+
 final class ProfileError extends ProfileState {
-  ProfileError(this.message);
+  ProfileError(this.message, {this.profile});
   final String message;
+  final ClientProfileEntity? profile;
+}
+
+final class ProfileImageUploading extends ProfileState {
+  ProfileImageUploading(this.profile);
+  final ClientProfileEntity profile;
+}
+
+final class ProfileImageUploaded extends ProfileState {
+  ProfileImageUploaded(this.profile);
+  final ClientProfileEntity profile;
+}
+
+final class ProfileImageDeleted extends ProfileState {
+  ProfileImageDeleted(this.profile);
+  final ClientProfileEntity profile;
 }

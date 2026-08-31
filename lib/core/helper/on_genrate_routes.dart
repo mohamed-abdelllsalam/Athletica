@@ -1,4 +1,7 @@
+import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:athletica/features/auth/presentation/views/reset_otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/reset_password_view.dart';
 import 'package:athletica/features/auth/presentation/views/role_selection_view.dart';
@@ -89,7 +92,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const CoachClientsView());
     case CoachActiveClientsView.routeName:
       return MaterialPageRoute(
-        builder: (context) => const CoachActiveClientsView(),
+        builder: (context) => BlocProvider(
+          create: (_) => sl<CoachClientsCubit>()..loadClients(),
+          child: const CoachActiveClientsView(),
+        ),
       );
     case CoachExpiringSubscriptionsView.routeName:
       return MaterialPageRoute(

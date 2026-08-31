@@ -1,60 +1,55 @@
 import 'dart:io';
 
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_state.dart';
 import 'package:athletica/features/profile/domain/usecases/delete_profile_image_usecase.dart';
-import 'package:athletica/features/profile/domain/usecases/get_client_profile_usecase.dart';
-import 'package:athletica/features/profile/domain/usecases/update_client_profile_usecase.dart';
+import 'package:athletica/features/profile/domain/usecases/get_coach_profile_usecase.dart';
+import 'package:athletica/features/profile/domain/usecases/update_coach_profile_usecase.dart';
 import 'package:athletica/features/profile/domain/usecases/upload_profile_image_usecase.dart';
-import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class ProfileCubit extends Cubit<ProfileState> {
-  ProfileCubit(
-    this._getClientProfile,
-    this._updateClientProfile,
+class CoachProfileCubit extends Cubit<CoachProfileState> {
+  CoachProfileCubit(
+    this._getCoachProfile,
+    this._updateCoachProfile,
     this._uploadProfileImage,
     this._deleteProfileImage,
-  ) : super(ProfileInitial());
+  ) : super(const CoachProfileInitial());
 
-  final GetClientProfileUseCase _getClientProfile;
-  final UpdateClientProfileUseCase _updateClientProfile;
+  final GetCoachProfileUseCase _getCoachProfile;
+  final UpdateCoachProfileUseCase _updateCoachProfile;
   final UploadProfileImageUseCase _uploadProfileImage;
   final DeleteProfileImageUseCase _deleteProfileImage;
 
   Future<void> loadProfile({bool forceRefresh = false}) async {
-    if (!forceRefresh && (state is ProfileLoaded || state is ProfileLoading)) {
+    if (!forceRefresh &&
+        (state is CoachProfileLoaded || state is CoachProfileLoading)) {
       return;
     }
-    emit(ProfileLoading());
-    final result = await _getClientProfile();
+    emit(const CoachProfileLoading());
+    final result = await _getCoachProfile();
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return;
-        emit(ProfileLoaded(data));
+        emit(CoachProfileLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message));
+        emit(CoachProfileError(failure.message));
     }
   }
 
   Future<void> updateProfile({
-    String? gender,
-    DateTime? birthDate,
-    double? height,
-    double? weight,
-    String? goal,
+    String? bio,
+    String? specialization,
   }) async {
     final currentProfile =
-        state is ProfileLoaded ? (state as ProfileLoaded).profile : null;
+        state is CoachProfileLoaded ? (state as CoachProfileLoaded).profile : null;
     if (currentProfile != null) {
-      emit(ProfileUpdating(currentProfile));
+      emit(CoachProfileUpdating(currentProfile));
     }
-    final result = await _updateClientProfile(
-      gender: gender,
-      birthDate: birthDate,
-      height: height,
-      weight: weight,
-      goal: goal,
+    final result = await _updateCoachProfile(
+      bio: bio,
+      specialization: specialization,
     );
     switch (result) {
       case ApiSuccess():
@@ -62,15 +57,15 @@ class ProfileCubit extends Cubit<ProfileState> {
         await loadProfile(forceRefresh: true);
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message, profile: currentProfile));
+        emit(CoachProfileError(failure.message, profile: currentProfile));
     }
   }
 
   Future<void> uploadImage(File imageFile) async {
     final currentProfile =
-        state is ProfileLoaded ? (state as ProfileLoaded).profile : null;
+        state is CoachProfileLoaded ? (state as CoachProfileLoaded).profile : null;
     if (currentProfile != null) {
-      emit(ProfileImageUploading(currentProfile));
+      emit(CoachProfileImageUploading(currentProfile));
     }
     final result = await _uploadProfileImage(imageFile);
     switch (result) {
@@ -79,15 +74,15 @@ class ProfileCubit extends Cubit<ProfileState> {
         await loadProfile(forceRefresh: true);
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message, profile: currentProfile));
+        emit(CoachProfileError(failure.message, profile: currentProfile));
     }
   }
 
   Future<void> deleteImage() async {
     final currentProfile =
-        state is ProfileLoaded ? (state as ProfileLoaded).profile : null;
+        state is CoachProfileLoaded ? (state as CoachProfileLoaded).profile : null;
     if (currentProfile != null) {
-      emit(ProfileImageUploading(currentProfile));
+      emit(CoachProfileImageUploading(currentProfile));
     }
     final result = await _deleteProfileImage();
     switch (result) {
@@ -96,7 +91,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         await loadProfile(forceRefresh: true);
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message, profile: currentProfile));
+        emit(CoachProfileError(failure.message, profile: currentProfile));
     }
   }
 }

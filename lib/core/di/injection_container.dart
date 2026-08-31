@@ -3,6 +3,7 @@ import 'package:athletica/features/auth/data/datasources/auth_remote_data_source
 import 'package:athletica/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:athletica/features/auth/domain/repositories/auth_repository.dart';
 import 'package:athletica/features/auth/domain/usecases/check_auth_status_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/check_client_profile_completion_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/confirm_password_reset_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/login_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/logout_usecase.dart';
@@ -120,7 +121,13 @@ import 'package:athletica/features/info/presentation/cubits/info_cubit.dart';
 import 'package:athletica/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:athletica/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:athletica/features/profile/domain/repositories/profile_repository.dart';
+import 'package:athletica/features/profile/domain/usecases/delete_profile_image_usecase.dart';
 import 'package:athletica/features/profile/domain/usecases/get_client_profile_usecase.dart';
+import 'package:athletica/features/profile/domain/usecases/get_coach_profile_usecase.dart';
+import 'package:athletica/features/profile/domain/usecases/update_client_profile_usecase.dart';
+import 'package:athletica/features/profile/domain/usecases/update_coach_profile_usecase.dart';
+import 'package:athletica/features/profile/domain/usecases/upload_profile_image_usecase.dart';
+import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_info_cubit.dart';
 import 'package:athletica/features/splash/presentation/cubits/splash_cubit.dart';
@@ -226,12 +233,18 @@ void setupDependencies() {
   sl.registerLazySingleton(() => ConfirmPasswordResetUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
+  sl.registerLazySingleton(() => CheckClientProfileCompletionUseCase(sl()));
   sl.registerLazySingleton(() => MarkProfileCompleteUseCase(sl()));
   sl.registerLazySingleton(() => GetClientQuestionsUseCase(sl()));
   sl.registerLazySingleton(() => SubmitClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => UpdateClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
+  sl.registerLazySingleton(() => GetCoachProfileUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateCoachProfileUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateClientProfileUseCase(sl()));
+  sl.registerLazySingleton(() => UploadProfileImageUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteProfileImageUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachAssignedClientsUseCase(sl()));
   sl.registerLazySingleton(() => GetClientDetailUseCase(sl()));
@@ -315,7 +328,12 @@ void setupDependencies() {
   sl.registerFactory(() => CompleteProfileCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl(), sl(), sl(), sl()));
-  sl.registerLazySingleton(() => ProfileCubit(sl()));
+  sl.registerLazySingleton(
+    () => ProfileCubit(sl(), sl(), sl(), sl()),
+  );
+  sl.registerFactory(
+    () => CoachProfileCubit(sl(), sl(), sl(), sl()),
+  );
   sl.registerFactory(() => CoachClientsCubit(sl(), sl()));
   sl.registerFactory(() => ClientDetailCubit(sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));

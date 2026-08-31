@@ -25,10 +25,10 @@ class HomeAppBar extends StatelessWidget {
             builder: (context, state) {
               final imageUrl =
                   state is ProfileLoaded
-                      ? state.profile.client.profileImage
+                      ? state.profile.profileImage
                       : null;
               final name =
-                  state is ProfileLoaded ? state.profile.client.name : '...';
+                  state is ProfileLoaded ? state.profile.name : '...';
 
               return Row(
                 children: [

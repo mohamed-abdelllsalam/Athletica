@@ -16,7 +16,7 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void initState() {
     super.initState();
-    sl<ProfileCubit>().loadProfile();
+    sl<ProfileCubit>().loadProfile(forceRefresh: true);
   }
 
   @override

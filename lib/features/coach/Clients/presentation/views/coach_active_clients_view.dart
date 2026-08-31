@@ -1,10 +1,12 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/coach/clients/domain/entities/coach_client.dart';
-import 'package:athletica/features/coach/clients/domain/entities/coach_clients_data.dart';
+import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_state.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_detail_view.dart';
-import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_client_card.dart';
+import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_assigned_client_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachActiveClientsView extends StatefulWidget {
@@ -20,14 +22,16 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
-  static final List<CoachClient> _activeClients = CoachClientsData.clients
-      .where((c) => c.subscriptionActive)
-      .toList();
+  @override
+  void initState() {
+    super.initState();
+    context.read<CoachClientsCubit>().loadClients();
+  }
 
-  List<CoachClient> get _filtered {
-    if (_query.isEmpty) return _activeClients;
+  List<CoachAssignedClient> _filtered(List<CoachAssignedClient> all) {
+    if (_query.isEmpty) return all;
     final lower = _query.toLowerCase();
-    return _activeClients
+    return all
         .where((c) => c.name.toLowerCase().contains(lower))
         .toList();
   }
@@ -40,7 +44,6 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
 
   @override
   Widget build(BuildContext context) {
-    final clients = _filtered;
     return Scaffold(
       backgroundColor: AppColors.primaryAppColor,
       appBar: AppBar(
@@ -71,24 +74,72 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
             ),
           ),
           Expanded(
-            child: ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              itemCount: clients.length,
-              separatorBuilder: (_, _) => SizedBox(height: 12.h),
-              itemBuilder: (context, index) {
-                final client = clients[index];
-                return CoachClientCard(
-                  client: client,
-                  showPercent: true,
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    CoachClientDetailView.routeName,
-                    arguments: {
-                      'clientId': client.id,
-                      'clientName': client.name,
-                    },
-                  ),
+            child: BlocBuilder<CoachClientsCubit, CoachClientsState>(
+              builder: (context, state) {
+                if (state is CoachClientsLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryBlue,
+                    ),
+                  );
+                }
+
+                if (state is CoachClientsError) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          state.message,
+                          style: AppTextStyles.medium14(context)
+                              .copyWith(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 16.h),
+                        OutlinedButton(
+                          onPressed: () =>
+                              context.read<CoachClientsCubit>().loadClients(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final clients = state.clients;
+                final filtered = _filtered(clients);
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _query.isEmpty
+                          ? 'No active clients yet'
+                          : 'No clients match "$_query"',
+                      style: AppTextStyles.medium14(context)
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                  itemBuilder: (context, index) {
+                    final client = filtered[index];
+                    return CoachAssignedClientCard(
+                      client: client,
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        CoachClientDetailView.routeName,
+                        arguments: {
+                          'clientId': client.clientId,
+                          'clientName': client.name,
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),

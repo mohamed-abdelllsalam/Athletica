@@ -2,19 +2,28 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
-import 'package:athletica/features/coach/profile/domain/entities/coach_profile_entity.dart';
+import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
+import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_state.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_edit_profile_view.dart';
-import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_certificate_item.dart';
 import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_profile_info_row.dart';
 import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class CoachProfileViewBody extends StatelessWidget {
+class CoachProfileViewBody extends StatefulWidget {
   const CoachProfileViewBody({super.key});
 
-  static const CoachProfileEntity _profile = CoachProfileEntity.mock;
+  @override
+  State<CoachProfileViewBody> createState() => _CoachProfileViewBodyState();
+}
+
+class _CoachProfileViewBodyState extends State<CoachProfileViewBody> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<CoachProfileCubit>().loadProfile();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,20 +46,49 @@ class CoachProfileViewBody extends StatelessWidget {
       },
       builder: (context, authState) {
         final isLoggingOut = authState is AuthLoading;
-        return _ProfileBody(profile: _profile, isLoggingOut: isLoggingOut);
+        return BlocBuilder<CoachProfileCubit, CoachProfileState>(
+          builder: (context, profileState) {
+            return _ProfileBody(
+              profileState: profileState,
+              isLoggingOut: isLoggingOut,
+            );
+          },
+        );
       },
     );
   }
 }
 
 class _ProfileBody extends StatelessWidget {
-  const _ProfileBody({required this.profile, required this.isLoggingOut});
+  const _ProfileBody({required this.profileState, required this.isLoggingOut});
 
-  final CoachProfileEntity profile;
+  final CoachProfileState profileState;
   final bool isLoggingOut;
 
   @override
   Widget build(BuildContext context) {
+    final profile = switch (profileState) {
+      CoachProfileLoaded(:final profile) => profile,
+      CoachProfileUpdating(:final profile) => profile,
+      CoachProfileImageUploading(:final profile) => profile,
+      CoachProfileImageUploaded(:final profile) => profile,
+      CoachProfileImageDeleted(:final profile) => profile,
+      CoachProfileError(:final profile?) => profile,
+      _ => null,
+    };
+
+    if (profileState is CoachProfileLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryBlue),
+      );
+    }
+
+    if (profile == null) {
+      return const Center(
+        child: Text('Failed to load profile', style: TextStyle(color: Colors.red)),
+      );
+    }
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -59,7 +97,7 @@ class _ProfileBody extends StatelessWidget {
           SizedBox(height: 8.h),
           _buildAppBar(context),
           SizedBox(height: 20.h),
-          _buildProfileHeader(context),
+          _buildProfileHeader(context, profile),
           SizedBox(height: 24.h),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -75,33 +113,24 @@ class _ProfileBody extends StatelessWidget {
                 CoachProfileInfoRow(
                   icon: Icons.mail_outline_rounded,
                   label: 'Email',
-                  value: profile.user.email,
+                  value: profile.email,
                 ),
                 SizedBox(height: 14.h),
                 CoachProfileInfoRow(
                   icon: Icons.phone_outlined,
                   label: 'Phone',
-                  value: profile.user.phone,
-                ),
-                SizedBox(height: 14.h),
-                CoachProfileInfoRow(
-                  icon: Icons.star_outline_rounded,
-                  label: 'Rating',
-                  value: profile.profile.rating == 0
-                      ? 'No ratings yet'
-                      : profile.profile.rating.toStringAsFixed(1),
+                  value: profile.phone.isNotEmpty ? profile.phone : 'Not specified',
                 ),
                 SizedBox(height: 14.h),
                 CoachProfileInfoRow(
                   icon: Icons.fitness_center_outlined,
-                  label: 'Experience',
-                  value: profile.profile.yearsExperience == 0
-                      ? 'Not specified'
-                      : '${profile.profile.yearsExperience} years',
+                  label: 'Specialization',
+                  value: profile.specialization.isNotEmpty
+                      ? profile.specialization
+                      : 'Not specified',
                 ),
                 SizedBox(height: 24.h),
-                if (profile.profile.bio.isNotEmpty &&
-                    profile.profile.bio != 'Pending') ...[
+                if (profile.bio.isNotEmpty) ...[
                   Text(
                     'Bio',
                     style: AppTextStyles.bold20(context)
@@ -109,23 +138,12 @@ class _ProfileBody extends StatelessWidget {
                   ),
                   SizedBox(height: 10.h),
                   Text(
-                    profile.profile.bio,
+                    profile.bio,
                     style: AppTextStyles.regular13(context).copyWith(
                       color: AppColors.textSecondary,
                       height: 1.6,
                     ),
                   ),
-                  SizedBox(height: 24.h),
-                ],
-                if (profile.profile.certifications.isNotEmpty &&
-                    profile.profile.certifications != 'Pending') ...[
-                  Text(
-                    'Certificates',
-                    style: AppTextStyles.bold20(context)
-                        .copyWith(color: AppColors.textPrimary),
-                  ),
-                  SizedBox(height: 14.h),
-                  CoachCertificateItem(name: profile.profile.certifications),
                   SizedBox(height: 24.h),
                 ],
                 SizedBox(
@@ -185,8 +203,18 @@ class _ProfileBody extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () =>
-                Navigator.pushNamed(context, CoachEditProfileView.routeName),
+            onTap: () {
+              final cubit = context.read<CoachProfileCubit>();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: cubit,
+                    child: const CoachEditProfileView(),
+                  ),
+                ),
+              );
+            },
             child: Icon(
               Icons.edit_outlined,
               color: AppColors.textPrimary,
@@ -198,23 +226,24 @@ class _ProfileBody extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context) {
+  Widget _buildProfileHeader(BuildContext context, dynamic profile) {
     return Center(
       child: Column(
         children: [
           CircleAvatar(
             radius: 48.r,
             backgroundColor: AppColors.cardBackground,
-            backgroundImage: profile.user.profileImage != null
-                ? NetworkImage(profile.user.profileImage!)
+            backgroundImage: profile.profileImage != null &&
+                    profile.profileImage!.isNotEmpty
+                ? NetworkImage(profile.profileImage!)
                 : null,
-            child: profile.user.profileImage == null
+            child: profile.profileImage == null || profile.profileImage!.isEmpty
                 ? Icon(Icons.person, size: 48.sp, color: AppColors.textSecondary)
                 : null,
           ),
           SizedBox(height: 14.h),
           Text(
-            profile.user.name,
+            profile.name,
             style: AppTextStyles.bold24(context)
                 .copyWith(color: AppColors.textPrimary),
           ),

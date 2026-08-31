@@ -184,6 +184,18 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> markProfileComplete() =>
       TokenStorageService.instance.saveProfileComplete();
 
+  @override
+  Future<ApiResult<bool>> checkClientProfileCompletion() async {
+    try {
+      final isComplete = await _remoteDataSource.checkClientProfileCompletion();
+      return ApiSuccess(isComplete);
+    } on DioException catch (e) {
+      return ApiError(_mapDioError(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
   String? _extractMessage(dynamic value) {
     if (value is String) return value;
     if (value is List && value.isNotEmpty) return value.join(', ');

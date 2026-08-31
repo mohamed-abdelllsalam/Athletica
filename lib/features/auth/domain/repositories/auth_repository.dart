@@ -40,4 +40,6 @@ abstract class AuthRepository {
   Future<AuthStatus> getAuthStatus();
 
   Future<void> markProfileComplete();
+
+  Future<ApiResult<bool>> checkClientProfileCompletion();
 }

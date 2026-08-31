@@ -29,6 +29,11 @@ abstract class AuthRemoteDataSource {
 
   Future<bool> hasSubmittedClientAnswers();
 
+  /// Returns `true` if the client's profile/answers are complete.
+  /// Throws on network/server errors so the caller can distinguish
+  /// "incomplete profile" from "request failed".
+  Future<bool> checkClientProfileCompletion();
+
   Future<void> logout();
 }
 
@@ -123,5 +128,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (_) {
       return false;
     }
+  }
+
+  @override
+  Future<bool> checkClientProfileCompletion() async {
+    final response = await _dio.get(ApiEndpoints.clientAnswers);
+    final data = response.data as Map<String, dynamic>?;
+    final answers = data?['answers'] as List<dynamic>? ?? const [];
+    return answers.isNotEmpty;
   }
 }

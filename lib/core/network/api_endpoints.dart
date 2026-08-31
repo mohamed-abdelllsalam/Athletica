@@ -30,6 +30,10 @@ class ApiEndpoints {
     );
   }
 
+  // ── Profile ─────────────────────────────────────────────────────────────
+  static const String profile = 'profile';
+  static const String profileImage = 'profile/image';
+
   static const String clientQuestions = 'client/questions';
   static const String clientAnswers = 'client/answers';
   static const String clientProfile = 'client-profiles/me';

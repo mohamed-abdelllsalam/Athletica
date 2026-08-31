@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
@@ -6,8 +8,9 @@ import 'package:athletica/features/profile/presentation/views/edit_profile_view.
 import 'package:athletica/features/profile/presentation/views/profile_info_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileViewBody extends StatefulWidget {
   const ProfileViewBody({super.key});
@@ -18,12 +21,20 @@ class ProfileViewBody extends StatefulWidget {
 
 class _ProfileViewBodyState extends State<ProfileViewBody> {
   int _selectedTabIndex = 0;
+  final ImagePicker _picker = ImagePicker();
+  File? _pendingImage;
 
   static const _tabs = ['Daily', 'Weekly', 'Monthly'];
   static const _dailyData = [0.80, 0.75, 0.45, 0.60, 0.75, 0.85, 0.95];
   static const _weeklyData = [0.50, 0.60, 0.70, 0.65, 0.80, 0.72, 0.90];
   static const _monthlyData = [0.30, 0.45, 0.55, 0.60, 0.70, 0.80, 0.85];
   static const _xLabels = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Today'];
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<ProfileCubit>().loadProfile();
+  }
 
   List<double> get _currentData {
     switch (_selectedTabIndex) {
@@ -34,6 +45,121 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
       default:
         return _dailyData;
     }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image == null || !mounted) return;
+
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Photo',
+            toolbarColor: AppColors.primaryAppColor,
+            toolbarWidgetColor: AppColors.textPrimary,
+            activeControlsWidgetColor: AppColors.primaryBlue,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Photo',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+          ),
+        ],
+      );
+
+      if (croppedFile != null && mounted) {
+        setState(() => _pendingImage = File(croppedFile.path));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _saveImage() {
+    if (_pendingImage != null) {
+      context.read<ProfileCubit>().uploadImage(_pendingImage!);
+      setState(() => _pendingImage = null);
+    }
+  }
+
+  void _cancelPreview() {
+    setState(() => _pendingImage = null);
+  }
+
+  void _showImagePickerDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 32.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: AppColors.textTertiary,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              'Change Photo',
+              style: AppTextStyles.bold20(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
+            ),
+            SizedBox(height: 20.h),
+            Row(
+              children: [
+                Expanded(
+                  child: _PhotoOptionButton(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Camera',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.camera);
+                    },
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: _PhotoOptionButton(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Gallery',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.gallery);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -97,7 +223,7 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                 curr is ProfileLoaded || curr is ProfileLoading,
             builder: (context, state) {
               final name =
-                  state is ProfileLoaded ? state.profile.client.name : '...';
+                  state is ProfileLoaded ? state.profile.name : '...';
               return Text(
                 name,
                 style: AppTextStyles.semiBold15(context)
@@ -116,67 +242,119 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
           curr is ProfileLoaded || curr is ProfileLoading,
       builder: (context, state) {
         final profile = state is ProfileLoaded ? state.profile : null;
-        final name = profile?.client.name ?? '—';
-        final imageUrl = profile?.client.profileImage;
-        final height = profile?.heightCm != null
-            ? '${profile!.heightCm} Cm'
-            : '—';
-        final weight = profile?.weightKg != null
-            ? '${profile!.weightKg} Kg'
-            : '—';
+        final name = profile?.name ?? '—';
+        final imageUrl = profile?.profileImage;
+        final height =
+            profile?.height != null ? '${profile!.height} Cm' : '—';
+        final weight =
+            profile?.weight != null ? '${profile!.weight} Kg' : '—';
 
-        return Row(
+        return Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(50.r),
-              child: Container(
-                width: 90.r,
-                height: 90.r,
-                color: AppColors.surfaceDark,
-                child: imageUrl != null
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Icon(
-                          Icons.person,
-                          color: AppColors.textSecondary,
-                          size: 40.sp,
-                        ),
-                      )
-                    : Icon(
-                        Icons.person,
-                        color: AppColors.textSecondary,
-                        size: 40.sp,
-                      ),
-              ),
-            ),
-            SizedBox(width: 16.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Text(
-                  name,
-                  style: AppTextStyles.bold20(context)
-                      .copyWith(color: AppColors.textPrimary),
-                ),
-                SizedBox(height: 8.h),
-                Row(
-                  children: [
-                    _StatItem(
-                      label: 'Height',
-                      value: height,
-                      context: context,
+                GestureDetector(
+                  onTap: _showImagePickerDialog,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(50.r),
+                    child: Container(
+                      width: 90.r,
+                      height: 90.r,
+                      color: AppColors.surfaceDark,
+                      child: _pendingImage != null
+                          ? Image.file(
+                              _pendingImage!,
+                              fit: BoxFit.cover,
+                            )
+                          : (imageUrl != null && imageUrl.isNotEmpty
+                              ? Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => Icon(
+                                    Icons.person,
+                                    color: AppColors.textSecondary,
+                                    size: 40.sp,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.person,
+                                  color: AppColors.textSecondary,
+                                  size: 40.sp,
+                                )),
                     ),
-                    SizedBox(width: 24.w),
-                    _StatItem(
-                      label: 'Weight',
-                      value: weight,
-                      context: context,
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: AppTextStyles.bold20(context)
+                          .copyWith(color: AppColors.textPrimary),
+                    ),
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: [
+                        _StatItem(
+                          label: 'Height',
+                          value: height,
+                          context: context,
+                        ),
+                        SizedBox(width: 24.w),
+                        _StatItem(
+                          label: 'Weight',
+                          value: weight,
+                          context: context,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
+            if (_pendingImage != null) ...[
+              SizedBox(height: 12.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _saveImage,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                      ),
+                      child: Text(
+                        'Save Photo',
+                        style: AppTextStyles.semiBold14(context)
+                            .copyWith(color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _cancelPreview,
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.textTertiary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyles.semiBold14(context)
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         );
       },
@@ -188,7 +366,7 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
       children: [
         Expanded(
           child: OutlinedButton(
-            onPressed: () {},
+            onPressed: _showImagePickerDialog,
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: AppColors.textSecondary, width: 1),
               shape: RoundedRectangleBorder(
@@ -207,8 +385,18 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
         SizedBox(width: 12.w),
         Expanded(
           child: OutlinedButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, EditProfileView.routeName),
+            onPressed: () {
+              final cubit = context.read<ProfileCubit>();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: cubit,
+                    child: const EditProfileView(),
+                  ),
+                ),
+              );
+            },
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: AppColors.textSecondary, width: 1),
               shape: RoundedRectangleBorder(
@@ -755,6 +943,47 @@ class _StatItem extends StatelessWidget {
           ).copyWith(color: AppColors.textPrimary),
         ),
       ],
+    );
+  }
+}
+
+// ---------- Photo Option Button ----------
+
+class _PhotoOptionButton extends StatelessWidget {
+  const _PhotoOptionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 18.h),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: AppColors.textTertiary, width: 0.5),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.textPrimary, size: 26.sp),
+            SizedBox(height: 8.h),
+            Text(
+              label,
+              style: AppTextStyles.medium13(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

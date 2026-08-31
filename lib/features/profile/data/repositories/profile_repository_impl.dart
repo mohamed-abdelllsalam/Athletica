@@ -1,7 +1,10 @@
+import 'dart:io';
+
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/profile/data/datasources/profile_remote_data_source.dart';
-import 'package:athletica/features/profile/domain/entities/client_profile_entity.dart';
+import 'package:athletica/features/profile/domain/entities/user_profile_entity.dart';
 import 'package:athletica/features/profile/domain/repositories/profile_repository.dart';
 import 'package:dio/dio.dart';
 
@@ -11,12 +14,93 @@ class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileRemoteDataSource _dataSource;
 
   @override
+  Future<ApiResult<CoachProfileEntity>> getCoachProfile() async {
+    try {
+      final model = await _dataSource.getProfile();
+      return ApiSuccess(model.toCoachEntity());
+    } on DioException catch (e) {
+      return ApiError(mapDioException(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<ApiResult<ClientProfileEntity>> getClientProfile() async {
     try {
-      final model = await _dataSource.getClientProfile();
-      return ApiSuccess(model.toEntity());
+      final model = await _dataSource.getProfile();
+      return ApiSuccess(model.toClientEntity());
     } on DioException catch (e) {
-      return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
+      return ApiError(mapDioException(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<CoachProfileEntity>> updateCoachProfile({
+    String? bio,
+    String? specialization,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (bio != null) data['bio'] = bio;
+      if (specialization != null) data['specialization'] = specialization;
+      final model = await _dataSource.updateProfile(data: data);
+      return ApiSuccess(model.toCoachEntity());
+    } on DioException catch (e) {
+      return ApiError(mapDioException(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<ClientProfileEntity>> updateClientProfile({
+    String? gender,
+    DateTime? birthDate,
+    double? height,
+    double? weight,
+    String? goal,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (gender != null) data['gender'] = gender;
+      if (birthDate != null) {
+        data['birth_date'] =
+            '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
+      }
+      if (height != null) data['height'] = height;
+      if (weight != null) data['weight'] = weight;
+      if (goal != null) data['goal'] = goal;
+      final model = await _dataSource.updateProfile(data: data);
+      return ApiSuccess(model.toClientEntity());
+    } on DioException catch (e) {
+      return ApiError(mapDioException(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<String>> uploadProfileImage(File imageFile) async {
+    try {
+      final url = await _dataSource.uploadProfileImage(imageFile);
+      return ApiSuccess(url);
+    } on DioException catch (e) {
+      return ApiError(mapDioException(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> deleteProfileImage() async {
+    try {
+      await _dataSource.deleteProfileImage();
+      return const ApiSuccess(null);
+    } on DioException catch (e) {
+      return ApiError(mapDioException(e));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
     }

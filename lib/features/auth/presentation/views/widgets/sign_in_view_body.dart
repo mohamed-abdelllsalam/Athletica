@@ -11,10 +11,8 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_passwo
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
-import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
-import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -54,13 +52,13 @@ class _SignInViewBodyState extends State<SignInViewBody> {
       case ClientProfileIncomplete():
         Navigator.pushNamedAndRemoveUntil(
           context,
-          InfoView.routeName,
+          HomeView.routeName,
           (_) => false,
         );
       case CoachProfileIncomplete():
         Navigator.pushNamedAndRemoveUntil(
           context,
-          CoachCompleteProfileView.routeName,
+          CoachHomeView.routeName,
           (_) => false,
         );
       case ClientReady():
