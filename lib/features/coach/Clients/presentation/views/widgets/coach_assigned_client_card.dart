@@ -95,18 +95,33 @@ class CoachAssignedClientCard extends StatelessWidget {
               SizedBox(width: 10.w),
               Column(
                 children: [
-                  Container(
-                    width: 56.r,
-                    height: 56.r,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(28.r),
-                    ),
-                    child: Text(
-                      _initials,
-                      style: AppTextStyles.bold20(context)
-                          .copyWith(color: AppColors.textPrimary),
+                  ClipOval(
+                    child: Container(
+                      width: 56.r,
+                      height: 56.r,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceDark,
+                        shape: BoxShape.circle,
+                      ),
+                      child: client.profileImage != null &&
+                              client.profileImage!.isNotEmpty
+                          ? Image.network(
+                              client.profileImage!,
+                              width: 56.r,
+                              height: 56.r,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Text(
+                                _initials,
+                                style: AppTextStyles.bold20(context)
+                                    .copyWith(color: AppColors.textPrimary),
+                              ),
+                            )
+                          : Text(
+                              _initials,
+                              style: AppTextStyles.bold20(context)
+                                  .copyWith(color: AppColors.textPrimary),
+                            ),
                     ),
                   ),
                   SizedBox(height: 8.h),

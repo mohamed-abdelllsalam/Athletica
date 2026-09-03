@@ -15,18 +15,35 @@ class CoachBarChart extends StatelessWidget {
     0.68,
     0.58,
   ];
-  static const List<String> _labels = [
-    'Fri',
-    'Sat',
-    'Sun',
+
+  static const _dayLabels = [
     'Mon',
     'Tue',
     'Wed',
-    'Today',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
   ];
+
+  List<String> _buildLabels() {
+    final today = DateTime.now().weekday % 7;
+    final labels = <String>[];
+    for (int i = 6; i >= 0; i--) {
+      final dayIndex = (today - i + 7) % 7;
+      if (i == 0) {
+        labels.add('Today');
+      } else {
+        labels.add(_dayLabels[dayIndex]);
+      }
+    }
+    return labels;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final labels = _buildLabels();
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: SizedBox(
@@ -38,7 +55,7 @@ class CoachBarChart extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(_data.length, (i) {
-                return _buildBar(context, _data[i], _labels[i], barAreaHeight);
+                return _buildBar(context, _data[i], labels[i], barAreaHeight);
               }),
             );
           },

@@ -1,7 +1,6 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/assigned/presentation/views/assigned_view.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_cubit.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_state.dart';
 import 'package:athletica/features/client_coach/presentation/views/widgets/coach_code_dialog.dart';
@@ -44,28 +43,8 @@ class NutritionsSection extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pushNamed(
-                            context, AssignedView.routeName),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Assigned Plans',
-                              style: AppTextStyles.semiBold14(context)
-                                  .copyWith(color: AppColors.primaryBlue),
-                            ),
-                            SizedBox(width: 4.w),
-                            Icon(
-                              Icons.chevron_right,
-                              color: AppColors.primaryBlue,
-                              size: 18.sp,
-                            ),
-                          ],
-                        ),
-                      ),
                       GestureDetector(
                         onTap: () => Navigator.pushNamed(
                             context, MyPlanDetailsView.routeName),
