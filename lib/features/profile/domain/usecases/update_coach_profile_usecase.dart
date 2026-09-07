@@ -8,11 +8,17 @@ class UpdateCoachProfileUseCase {
   final ProfileRepository _repository;
 
   Future<ApiResult<CoachProfileEntity>> call({
+    String? username,
     String? bio,
     String? specialization,
+    String? phoneNumber,
+    String? location,
   }) =>
       _repository.updateCoachProfile(
+        username: username,
         bio: bio,
         specialization: specialization,
+        phoneNumber: phoneNumber,
+        location: location,
       );
 }

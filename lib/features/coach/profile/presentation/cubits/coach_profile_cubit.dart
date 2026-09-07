@@ -39,8 +39,11 @@ class CoachProfileCubit extends Cubit<CoachProfileState> {
   }
 
   Future<void> updateProfile({
+    String? username,
     String? bio,
     String? specialization,
+    String? phoneNumber,
+    String? location,
   }) async {
     final currentProfile =
         state is CoachProfileLoaded ? (state as CoachProfileLoaded).profile : null;
@@ -48,8 +51,11 @@ class CoachProfileCubit extends Cubit<CoachProfileState> {
       emit(CoachProfileUpdating(currentProfile));
     }
     final result = await _updateCoachProfile(
+      username: username,
       bio: bio,
       specialization: specialization,
+      phoneNumber: phoneNumber,
+      location: location,
     );
     switch (result) {
       case ApiSuccess():

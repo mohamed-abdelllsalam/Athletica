@@ -5,10 +5,12 @@ class UserProfileModel {
     required this.id,
     required this.email,
     required this.name,
-    this.phone = '',
+    this.phoneNumber,
+    this.location,
     this.profileImage,
     this.bio = '',
     this.specialization = '',
+    this.specializationDisplay,
     this.role,
     this.gender,
     this.birthDate,
@@ -22,10 +24,12 @@ class UserProfileModel {
   final String id;
   final String email;
   final String name;
-  final String phone;
+  final String? phoneNumber;
+  final String? location;
   final String? profileImage;
   final String bio;
   final String specialization;
+  final Map<String, String>? specializationDisplay;
   final String? role;
   final String? gender;
   final DateTime? birthDate;
@@ -39,37 +43,52 @@ class UserProfileModel {
     final user = json['user'] as Map<String, dynamic>? ?? {};
     final profile = json['profile'] as Map<String, dynamic>? ?? {};
 
+    final hasUserWrapper = json.containsKey('user');
+
+    final effectiveProfile = hasUserWrapper ? profile : json;
+
     return UserProfileModel(
-      id: user['id']?.toString() ?? '',
-      email: user['email']?.toString() ?? '',
-      name: user['username']?.toString() ?? '',
-      phone: user['phone']?.toString() ?? profile['phone']?.toString() ?? '',
-      profileImage: profile['profile_image']?.toString(),
-      bio: profile['bio']?.toString() ?? '',
-      specialization: profile['specialization']?.toString() ?? '',
-      role: user['role']?.toString(),
-      gender: profile['gender']?.toString(),
-      birthDate: profile['birth_date'] != null
-          ? DateTime.tryParse(profile['birth_date'] as String)
+      id: hasUserWrapper
+          ? (user['id']?.toString() ?? '')
+          : (effectiveProfile['id']?.toString() ?? ''),
+      email: hasUserWrapper
+          ? (user['email']?.toString() ?? '')
+          : '',
+      name: hasUserWrapper
+          ? (user['username']?.toString() ?? '')
+          : (effectiveProfile['username']?.toString() ?? ''),
+      phoneNumber: effectiveProfile['phone_number']?.toString(),
+      location: effectiveProfile['location']?.toString(),
+      profileImage: effectiveProfile['profile_image']?.toString(),
+      bio: effectiveProfile['bio']?.toString() ?? '',
+      specialization: effectiveProfile['specialization']?.toString() ?? '',
+      specializationDisplay: effectiveProfile['specialization_display'] != null
+          ? Map<String, String>.from(
+              effectiveProfile['specialization_display'] as Map)
           : null,
-      height: switch (profile['height']) {
+      role: user['role']?.toString(),
+      gender: effectiveProfile['gender']?.toString(),
+      birthDate: effectiveProfile['birth_date'] != null
+          ? DateTime.tryParse(effectiveProfile['birth_date'] as String)
+          : null,
+      height: switch (effectiveProfile['height']) {
         null => null,
         num n => n.toDouble(),
         String s => double.tryParse(s),
         _ => null,
       },
-      weight: switch (profile['weight']) {
+      weight: switch (effectiveProfile['weight']) {
         null => null,
         num n => n.toDouble(),
         String s => double.tryParse(s),
         _ => null,
       },
-      goal: profile['goal']?.toString(),
+      goal: effectiveProfile['goal']?.toString(),
       createdAt: user['created_at'] != null
           ? DateTime.tryParse(user['created_at'] as String)
           : null,
-      updatedAt: profile['updated_at'] != null
-          ? DateTime.tryParse(profile['updated_at'] as String)
+      updatedAt: effectiveProfile['updated_at'] != null
+          ? DateTime.tryParse(effectiveProfile['updated_at'] as String)
           : null,
     );
   }
@@ -78,10 +97,12 @@ class UserProfileModel {
         id: id,
         email: email,
         name: name,
-        phone: phone,
+        phoneNumber: phoneNumber,
+        location: location,
         profileImage: profileImage,
         bio: bio,
         specialization: specialization,
+        specializationDisplay: specializationDisplay,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );
@@ -90,7 +111,8 @@ class UserProfileModel {
         id: id,
         email: email,
         name: name,
-        phone: phone,
+        phoneNumber: phoneNumber,
+        location: location,
         profileImage: profileImage,
         gender: gender,
         birthDate: birthDate,

@@ -119,14 +119,24 @@ class _ProfileBody extends StatelessWidget {
                 CoachProfileInfoRow(
                   icon: Icons.phone_outlined,
                   label: 'Phone',
-                  value: profile.phone.isNotEmpty ? profile.phone : 'Not specified',
+                  value: profile.phoneNumber != null && profile.phoneNumber!.isNotEmpty
+                      ? profile.phoneNumber!
+                      : 'Not specified',
+                ),
+                SizedBox(height: 14.h),
+                CoachProfileInfoRow(
+                  icon: Icons.location_on_outlined,
+                  label: 'Location',
+                  value: profile.location != null && profile.location!.isNotEmpty
+                      ? profile.location!
+                      : 'Not specified',
                 ),
                 SizedBox(height: 14.h),
                 CoachProfileInfoRow(
                   icon: Icons.fitness_center_outlined,
                   label: 'Specialization',
                   value: profile.specialization.isNotEmpty
-                      ? profile.specialization
+                      ? profile.displayName(Localizations.localeOf(context).languageCode)
                       : 'Not specified',
                 ),
                 SizedBox(height: 24.h),

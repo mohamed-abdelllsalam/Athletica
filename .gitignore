@@ -37,6 +37,7 @@ migrate_working_dir/
 /DOC_2.md
 /DOC_3.md
 /DOC_4.md
+/DOC_5.md
 # Symbolication related
 app.*.symbols
 

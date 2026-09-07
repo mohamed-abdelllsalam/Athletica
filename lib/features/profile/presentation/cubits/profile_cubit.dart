@@ -38,11 +38,14 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   Future<void> updateProfile({
+    String? username,
     String? gender,
     DateTime? birthDate,
     double? height,
     double? weight,
     String? goal,
+    String? phoneNumber,
+    String? location,
   }) async {
     final currentProfile =
         state is ProfileLoaded ? (state as ProfileLoaded).profile : null;
@@ -50,11 +53,14 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileUpdating(currentProfile));
     }
     final result = await _updateClientProfile(
+      username: username,
       gender: gender,
       birthDate: birthDate,
       height: height,
       weight: weight,
       goal: goal,
+      phoneNumber: phoneNumber,
+      location: location,
     );
     switch (result) {
       case ApiSuccess():

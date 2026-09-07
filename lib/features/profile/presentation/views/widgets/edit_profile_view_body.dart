@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/profile/domain/entities/user_profile_entity.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:flutter/material.dart';
@@ -14,32 +15,42 @@ class EditProfileViewBody extends StatefulWidget {
 }
 
 class _EditProfileViewBodyState extends State<EditProfileViewBody> {
+  late final TextEditingController _usernameController;
   late final TextEditingController _genderController;
   late final TextEditingController _heightController;
   late final TextEditingController _weightController;
   late final TextEditingController _goalController;
+  late final TextEditingController _phoneNumberController;
+  String? _selectedLocation;
 
   bool _hasChanges = false;
+  String _initialUsername = '';
   String _initialGender = '';
   String _initialHeight = '';
   String _initialWeight = '';
   String _initialGoal = '';
+  String _initialPhoneNumber = '';
+  String _initialLocation = '';
 
   @override
   void initState() {
     super.initState();
+    _usernameController = TextEditingController();
     _genderController = TextEditingController();
     _heightController = TextEditingController();
     _weightController = TextEditingController();
     _goalController = TextEditingController();
+    _phoneNumberController = TextEditingController();
 
     _initializeFromProfile();
 
     for (final c in [
+      _usernameController,
       _genderController,
       _heightController,
       _weightController,
       _goalController,
+      _phoneNumberController,
     ]) {
       c.addListener(_onFieldChanged);
     }
@@ -49,31 +60,45 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
     final state = context.read<ProfileCubit>().state;
     if (state is ProfileLoaded) {
       final profile = state.profile;
+      _initialUsername = profile.name;
       _initialGender = profile.gender ?? '';
       _initialHeight = profile.height?.toString() ?? '';
       _initialWeight = profile.weight?.toString() ?? '';
       _initialGoal = profile.goal ?? '';
+      _initialPhoneNumber = profile.phoneNumber ?? '';
+      _initialLocation = profile.location ?? '';
+      _usernameController.text = _initialUsername;
       _genderController.text = _initialGender;
       _heightController.text = _initialHeight;
       _weightController.text = _initialWeight;
       _goalController.text = _initialGoal;
+      _phoneNumberController.text = _initialPhoneNumber;
+      _selectedLocation =
+          _initialLocation.isEmpty ? null : _initialLocation;
+      _onFieldChanged();
     }
   }
 
   void _onFieldChanged() {
-    final changed = _genderController.text != _initialGender ||
+    final changed = _usernameController.text.trim() !=
+            _initialUsername.trim() ||
+        _genderController.text != _initialGender ||
         _heightController.text != _initialHeight ||
         _weightController.text != _initialWeight ||
-        _goalController.text != _initialGoal;
+        _goalController.text != _initialGoal ||
+        _phoneNumberController.text.trim() != _initialPhoneNumber.trim() ||
+        (_selectedLocation ?? '') != _initialLocation;
     if (changed != _hasChanges) setState(() => _hasChanges = changed);
   }
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _genderController.dispose();
     _heightController.dispose();
     _weightController.dispose();
     _goalController.dispose();
+    _phoneNumberController.dispose();
     super.dispose();
   }
 
@@ -99,6 +124,13 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 24.h),
+                      _EditField(
+                        label: 'Username :',
+                        hint: 'Type your Username ..!',
+                        controller: _usernameController,
+                        keyboardType: TextInputType.text,
+                      ),
+                      SizedBox(height: 16.h),
                       _EditField(
                         label: 'Gender :',
                         hint: 'Type your Gender ..!',
@@ -126,6 +158,15 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
                         controller: _goalController,
                         keyboardType: TextInputType.text,
                       ),
+                      SizedBox(height: 16.h),
+                      _EditField(
+                        label: 'Phone Number :',
+                        hint: '+201234567890',
+                        controller: _phoneNumberController,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      SizedBox(height: 16.h),
+                      _buildLocationDropdown(),
                       SizedBox(height: 40.h),
                       BlocConsumer<ProfileCubit, ProfileState>(
                         listener: (context, state) {
@@ -194,12 +235,140 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
     );
   }
 
+  Widget _buildLocationDropdown() {
+    // Keep showing a legacy/custom value even if it is not in the fixed list.
+    final items = [
+      ...egyptLocations,
+      if (_initialLocation.isNotEmpty &&
+          !egyptLocations.contains(_initialLocation))
+        _initialLocation,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Location :',
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
+            ),
+            const Spacer(),
+            if (_selectedLocation != null)
+              GestureDetector(
+                onTap: () {
+                  setState(() => _selectedLocation = null);
+                  _onFieldChanged();
+                },
+                child: Text(
+                  'Clear',
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.primaryBlue),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        DropdownButtonFormField<String>(
+          initialValue: _selectedLocation,
+          isExpanded: true,
+          dropdownColor: AppColors.cardBackground,
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Select your Location ..!',
+            hintStyle: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textTertiary),
+            filled: true,
+            fillColor: AppColors.cardBackground,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: 14.h,
+            ),
+          ),
+          items: items.map((location) {
+            return DropdownMenuItem(
+              value: location,
+              child: Text(
+                location,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() => _selectedLocation = value);
+            _onFieldChanged();
+          },
+        ),
+      ],
+    );
+  }
+
   void _saveProfile() {
+    // Send only the fields that actually changed. Untouched fields are
+    // omitted so empty values can never fail backend validation, and an
+    // explicitly cleared phone/location is sent as "" (stored as null).
+    final username = _usernameController.text.trim();
+    final gender = _genderController.text.trim();
+    final goal = _goalController.text.trim();
+    final phoneNumber = _phoneNumberController.text.trim();
+
+    final newUsername =
+        username != _initialUsername.trim() && username.isNotEmpty
+            ? username
+            : null;
+    final newGender = _genderController.text != _initialGender &&
+            gender.isNotEmpty
+        ? _genderController.text
+        : null;
+    final newHeight = _heightController.text != _initialHeight
+        ? double.tryParse(_heightController.text.trim())
+        : null;
+    final newWeight = _weightController.text != _initialWeight
+        ? double.tryParse(_weightController.text.trim())
+        : null;
+    final newGoal =
+        _goalController.text != _initialGoal && goal.isNotEmpty
+            ? _goalController.text
+            : null;
+    final newPhoneNumber = phoneNumber != _initialPhoneNumber.trim()
+        ? phoneNumber
+        : null;
+    final newLocation = (_selectedLocation ?? '') != _initialLocation
+        ? (_selectedLocation ?? '')
+        : null;
+
+    // Nothing effective to send (e.g. whitespace-only edit): do not call
+    // the API, the backend would answer 400 no_fields_to_update.
+    if (newUsername == null &&
+        newGender == null &&
+        newHeight == null &&
+        newWeight == null &&
+        newGoal == null &&
+        newPhoneNumber == null &&
+        newLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No changes to save.')),
+      );
+      return;
+    }
+
     context.read<ProfileCubit>().updateProfile(
-          gender: _genderController.text,
-          height: double.tryParse(_heightController.text),
-          weight: double.tryParse(_weightController.text),
-          goal: _goalController.text,
+          username: newUsername,
+          gender: newGender,
+          height: newHeight,
+          weight: newWeight,
+          goal: newGoal,
+          phoneNumber: newPhoneNumber,
+          location: newLocation,
         );
   }
 

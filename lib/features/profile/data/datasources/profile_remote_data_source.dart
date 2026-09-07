@@ -53,9 +53,6 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     final response = await _dio.post(
       ApiEndpoints.profileImage,
       data: formData,
-      options: Options(
-        headers: {'Content-Type': 'multipart/form-data'},
-      ),
     );
     final data = _extractData(response.data);
     return data['profile_image']?.toString() ??

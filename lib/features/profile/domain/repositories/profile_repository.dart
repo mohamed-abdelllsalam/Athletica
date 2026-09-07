@@ -7,15 +7,21 @@ abstract class ProfileRepository {
   Future<ApiResult<CoachProfileEntity>> getCoachProfile();
   Future<ApiResult<ClientProfileEntity>> getClientProfile();
   Future<ApiResult<CoachProfileEntity>> updateCoachProfile({
+    String? username,
     String? bio,
     String? specialization,
+    String? phoneNumber,
+    String? location,
   });
   Future<ApiResult<ClientProfileEntity>> updateClientProfile({
+    String? username,
     String? gender,
     DateTime? birthDate,
     double? height,
     double? weight,
     String? goal,
+    String? phoneNumber,
+    String? location,
   });
   Future<ApiResult<String>> uploadProfileImage(File imageFile);
   Future<ApiResult<void>> deleteProfileImage();

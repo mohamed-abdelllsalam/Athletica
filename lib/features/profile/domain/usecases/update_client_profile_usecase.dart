@@ -8,17 +8,23 @@ class UpdateClientProfileUseCase {
   final ProfileRepository _repository;
 
   Future<ApiResult<ClientProfileEntity>> call({
+    String? username,
     String? gender,
     DateTime? birthDate,
     double? height,
     double? weight,
     String? goal,
+    String? phoneNumber,
+    String? location,
   }) =>
       _repository.updateClientProfile(
+        username: username,
         gender: gender,
         birthDate: birthDate,
         height: height,
         weight: weight,
         goal: goal,
+        phoneNumber: phoneNumber,
+        location: location,
       );
 }
