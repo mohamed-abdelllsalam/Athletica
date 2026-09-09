@@ -59,6 +59,21 @@ String? _messageForKey(String key) => switch (key) {
         'This template has active plans and cannot be deleted.',
       'template_has_no_meals' =>
         'Add at least one meal before assigning this template.',
+      'template_has_no_days' =>
+        'Add at least one day before assigning this template.',
+      'template_has_no_exercises' =>
+        'Add at least one exercise before assigning this template.',
+      'is_rest_invalid' => 'Cannot add exercises to a rest day.',
+      'day_orders_incomplete' => 'Day order must include all days.',
+      'day_number_conflict' => 'A day with this number already exists.',
+      'exercise_order_conflict' =>
+        'An exercise with this order already exists.',
+      'workout_today_only' => "Only today's workout can be updated.",
+      'exercise_not_completed' => 'This exercise is not completed.',
+      'sets_invalid' => 'Sets must be a positive number.',
+      'reps_invalid' => 'Reps must be a positive number.',
+      'workout_day_not_found' => 'Workout day not found.',
+      'exercise_log_not_found' => 'Exercise log not found.',
       'food_already_in_meal' => 'This food is already in the meal.',
       'food_archived' => 'This food is archived and cannot be added.',
       'meal_today_only' => "Only today's meals can be updated.",
@@ -83,6 +98,8 @@ String? _messageForKey(String key) => switch (key) {
       'client_not_assigned_to_coach' => 'This client is not assigned to you.',
       'coach_profile_not_found' => 'Coach profile not found.',
       'client_profile_not_found' => 'Client profile not found.',
+      'day_not_found' => 'Day not found.',
+      'exercise_not_found' => 'Exercise not found.',
       'username_already_taken' => 'This username is already taken.',
       'username_length' => 'Username must be between 1 and 100 characters.',
       'no_fields_to_update' => 'No changes to save.',

@@ -125,4 +125,60 @@ class ApiEndpoints {
       'workout-templates/$templateId/assign';
   static String assignNutritionToClient(String templateId) =>
       'nutrition/templates/$templateId/assign';
+
+  // ── Workout (documented contract: WORKOUT_API_DOC_1.md) ──────────────
+  // All routes live under /workout. Dio baseUrl already ends with /api/v1/,
+  // so relative paths resolve to /api/v1/workout/... (no double prefix).
+
+  // Exercise library (any authenticated user)
+  static const String workoutExercises = 'workout/exercises';
+  static String workoutExercise(String id) => 'workout/exercises/$id';
+
+  // Templates (coach)
+  static const String workoutTemplatesV1 = 'workout/templates';
+  static String workoutTemplate(String templateId) =>
+      'workout/templates/$templateId';
+  static String workoutTemplateDaysV1(String templateId) =>
+      'workout/templates/$templateId/days';
+  static String workoutTemplateDaysReorder(String templateId) =>
+      'workout/templates/$templateId/days/reorder';
+  static String workoutTemplateDay(String templateId, String dayId) =>
+      'workout/templates/$templateId/days/$dayId';
+  static String workoutTemplateDayExercises(String templateId, String dayId) =>
+      'workout/templates/$templateId/days/$dayId/exercises';
+  static String workoutTemplateDayExercise(
+    String templateId,
+    String dayId,
+    String exerciseId,
+  ) =>
+      'workout/templates/$templateId/days/$dayId/exercises/$exerciseId';
+  static String assignWorkoutTemplateV1(String templateId) =>
+      'workout/templates/$templateId/assign';
+
+  // Plans (coach)
+  static const String workoutPlans = 'workout/plans';
+  static String workoutPlan(String planId) => 'workout/plans/$planId';
+  static String workoutPlanDays(String planId) => 'workout/plans/$planId/days';
+  static String workoutPlanDaysReorder(String planId) =>
+      'workout/plans/$planId/days/reorder';
+  static String workoutPlanDay(String planId, String dayId) =>
+      'workout/plans/$planId/days/$dayId';
+  static String workoutPlanDayExercises(String planId, String dayId) =>
+      'workout/plans/$planId/days/$dayId/exercises';
+  static String workoutPlanDayExercise(
+    String planId,
+    String dayId,
+    String exerciseId,
+  ) =>
+      'workout/plans/$planId/days/$dayId/exercises/$exerciseId';
+
+  // Client daily tracking
+  static const String workoutToday = 'workout/today';
+  static const String workoutMyPlans = 'workout/my/plans';
+  static String workoutMyPlan(String planId) => 'workout/my/plans/$planId';
+  static const String workoutHistory = 'workout/history';
+  static String workoutExerciseComplete(String logId) =>
+      'workout/exercises/$logId/complete';
+  static String workoutExerciseUncomplete(String logId) =>
+      'workout/exercises/$logId/uncomplete';
 }

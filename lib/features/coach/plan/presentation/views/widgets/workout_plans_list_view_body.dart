@@ -2,13 +2,16 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_plan_detail_view.dart';
-import 'package:athletica/features/coach/workout_templates/presentation/cubits/workout_templates_list_cubit.dart';
-import 'package:athletica/features/coach/workout_templates/presentation/cubits/workout_templates_list_state.dart';
+import 'package:athletica/features/workout/domain/entities/workout_template.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_templates_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_templates_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+/// Coach template library — `GET /workout/templates` + `POST /workout/templates`.
+/// Visuals unchanged; hardcoded programs removed.
 class WorkoutPlansListViewBody extends StatefulWidget {
   const WorkoutPlansListViewBody({super.key});
 
@@ -18,12 +21,9 @@ class WorkoutPlansListViewBody extends StatefulWidget {
 }
 
 class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
   String _query = '';
   String _selectedCategory = 'All';
-  final List<WorkoutProgram> _extraPrograms = [];
-  List<WorkoutProgram> _apiPrograms = [];
-  bool _loading = false;
 
   static const List<String> _categories = [
     'All',
@@ -45,7 +45,7 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
   @override
   void initState() {
     super.initState();
-    context.read<WorkoutTemplatesListCubit>().loadTemplates();
+    _searchController = TextEditingController();
   }
 
   @override
@@ -54,63 +54,84 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
     super.dispose();
   }
 
-  List<WorkoutProgram> get _filtered {
-    final programs = [..._apiPrograms, ..._extraPrograms];
-    return programs.where((p) {
-      final matchesCategory =
-          _selectedCategory == 'All' || p.category == _selectedCategory;
+  bool _isArabic() =>
+      Localizations.localeOf(context).languageCode == 'ar';
+
+  List<WorkoutTemplateEntry> _filtered(List<WorkoutTemplateEntry> items) {
+    return items.where((t) {
       final matchesQuery = _query.isEmpty ||
-          p.name.toLowerCase().contains(_query.toLowerCase());
+          t.title.toLowerCase().contains(_query.toLowerCase()) ||
+          t.description.toLowerCase().contains(_query.toLowerCase());
+      // The workout API has no category field — every template maps to
+      // 'Custom' so the existing chips keep working without fake data.
+      final category = 'Custom';
+      final matchesCategory =
+          _selectedCategory == 'All' || category == _selectedCategory;
       return matchesCategory && matchesQuery;
     }).toList();
   }
 
+  WorkoutProgram _toProgram(WorkoutTemplateEntry t) => WorkoutProgram(
+        id: t.id,
+        name: t.title,
+        category: 'Custom',
+        splitType: '${t.dayCount} Days Split',
+        updatedAgo: _timeAgo(t.createdAt),
+        clientCount: 0,
+        iconAsset: 'assets/images/plan/upper_body_icon.svg',
+        description: t.description,
+        days: t.days
+            .map(
+              (d) => ProgramDay(
+                dayNumber: d.dayNumber,
+                name: d.title,
+                durationMinutes: 60,
+                exercises: d.exercises
+                    .map(
+                      (e) => ProgramExercise(
+                        id: e.exerciseId,
+                        name: e.exercise?.localizedName(_isArabic()) ??
+                            e.exerciseId,
+                      ),
+                    )
+                    .toList(),
+              ),
+            )
+            .toList(),
+      );
+
+  String _timeAgo(DateTime? date) {
+    if (date == null) return '—';
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays >= 1) return '${diff.inDays}d ago';
+    if (diff.inHours >= 1) return '${diff.inHours}h ago';
+    return 'Just now';
+  }
+
   Future<void> _createNewPlan() async {
-    final program = WorkoutProgram(
-      id: 'wp_${DateTime.now().millisecondsSinceEpoch}',
-      name: '',
-      category: 'Custom',
-      splitType: '0 Days Split',
-      updatedAgo: 'Just created',
-      clientCount: 0,
-      iconAsset: 'assets/images/plan/upper_body_icon.svg',
-      description: '',
-      days: [],
+    final result = await showDialog<(String, String)>(
+      context: context,
+      builder: (_) => const _CreateTemplateDialog(),
     );
-    final result = await Navigator.push<WorkoutProgram>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => WorkoutPlanDetailView(
-          program: program,
-          isCreateMode: true,
-        ),
-      ),
-    );
-    if (result != null) {
-      setState(() => _extraPrograms.add(result));
+    if (result == null || !mounted) return;
+    final ok = await context.read<WorkoutTemplatesCubit>().create(
+          title: result.$1,
+          description: result.$2,
+        );
+    if (!mounted) return;
+    if (!ok) {
+      final s = context.read<WorkoutTemplatesCubit>().state;
+      if (s is WorkoutTemplatesLoaded && s.mutationError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.mutationError!)),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final programs = _filtered;
-    return BlocListener<WorkoutTemplatesListCubit, WorkoutTemplatesListState>(
-      listener: (context, state) {
-        switch (state) {
-          case WorkoutTemplatesListLoading():
-            setState(() => _loading = true);
-          case WorkoutTemplatesListLoaded(:final programs):
-            setState(() {
-              _apiPrograms = programs;
-              _loading = false;
-            });
-          case WorkoutTemplatesListError():
-            setState(() => _loading = false);
-          case WorkoutTemplatesListInitial():
-            break;
-        }
-      },
-      child: Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 20.h),
@@ -185,48 +206,154 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
         ),
         SizedBox(height: 14.h),
         Expanded(
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : programs.isEmpty
-                  ? Center(
+          child: BlocBuilder<WorkoutTemplatesCubit, WorkoutTemplatesState>(
+            builder: (context, state) => switch (state) {
+              WorkoutTemplatesInitial() ||
+              WorkoutTemplatesLoading() =>
+                const Center(child: CircularProgressIndicator()),
+              WorkoutTemplatesError(:final message) => Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.w),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.medium14(context).copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        TextButton(
+                          onPressed: () =>
+                              context.read<WorkoutTemplatesCubit>().refresh(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              WorkoutTemplatesLoaded(:final items) => () {
+                  final programs =
+                      _filtered(items).map(_toProgram).toList();
+                  if (programs.isEmpty) {
+                    return Center(
                       child: Text(
                         'No programs found',
                         style: AppTextStyles.medium14(context).copyWith(
                           color: AppColors.textSecondary,
                         ),
                       ),
-                    )
-              : ListView.separated(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 20.w, vertical: 4.h),
-                  itemCount: programs.length,
-                  separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                  itemBuilder: (context, index) {
-                    final program = programs[index];
-                    final color = _iconColors[index % _iconColors.length];
-                    return _ProgramCard(
-                      program: program,
-                      iconColor: color,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              WorkoutPlanDetailView(program: program),
-                        ),
-                      ),
                     );
-                  },
-                ),
+                  }
+                  return RefreshIndicator(
+                    onRefresh: () =>
+                        context.read<WorkoutTemplatesCubit>().refresh(),
+                    child: ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 20.w, vertical: 4.h),
+                      itemCount: programs.length,
+                      separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                      itemBuilder: (context, index) {
+                        final program = programs[index];
+                        final color =
+                            _iconColors[index % _iconColors.length];
+                        return _ProgramCard(
+                          program: program,
+                          iconColor: color,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  WorkoutPlanDetailView(program: program),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }(),
+            },
+          ),
         ),
       ],
-      ),
     );
   }
 }
 
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({
+/// Owns its controllers so they are disposed with the dialog route itself —
+/// never dispose a dialog's controller right after `await showDialog`,
+/// the exit animation still paints its TextFields.
+class _CreateTemplateDialog extends StatefulWidget {
+  const _CreateTemplateDialog();
+
+  @override
+  State<_CreateTemplateDialog> createState() => _CreateTemplateDialogState();
+}
+
+class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController();
+    _descController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.cardBackground,
+      title: Text(
+        'Create Workout Template',
+        style: AppTextStyles.semiBold14(context)
+            .copyWith(color: AppColors.textPrimary),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(hintText: 'Title'),
+          ),
+          SizedBox(height: 8.h),
+          TextField(
+            controller: _descController,
+            decoration: const InputDecoration(hintText: 'Description'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            final title = _titleController.text.trim();
+            final desc = _descController.text.trim();
+            if (title.isEmpty || desc.isEmpty) return;
+            Navigator.pop(context, (title, desc));
+          },
+          child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {  const _SearchBar({
     required this.controller,
     required this.hint,
     required this.onChanged,
