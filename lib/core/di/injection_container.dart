@@ -143,6 +143,42 @@ import 'package:athletica/features/assigned/data/repositories/assigned_repositor
 import 'package:athletica/features/assigned/domain/repositories/assigned_repository.dart';
 import 'package:athletica/features/assigned/domain/usecases/assigned_usecases.dart';
 import 'package:athletica/features/assigned/presentation/cubits/assigned_cubit.dart';
+import 'package:athletica/features/workout/data/datasources/workout_remote_data_source.dart';
+import 'package:athletica/features/workout/data/repos/workout_repository_impl.dart';
+import 'package:athletica/features/workout/domain/repos/workout_repository.dart';
+import 'package:athletica/features/workout/domain/usecases/add_template_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/assign_workout_template_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/complete_workout_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/create_template_day_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/create_workout_template_v1_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/delete_template_day_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/delete_template_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/delete_workout_plan_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/delete_workout_template_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_my_workout_plan_details_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_my_workout_plan_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_today_workout_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_workout_exercises_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_workout_history_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_workout_plan_detail_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_workout_plans_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_workout_template_detail_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/get_workout_templates_v1_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/manage_plan_day_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/manage_plan_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/reorder_template_days_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/uncomplete_workout_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/update_plan_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/update_template_day_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/update_template_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/update_workout_plan_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/update_workout_template_usecase.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_exercises_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_my_plan_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_plans_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_template_detail_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_templates_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_today_cubit.dart';
 import 'package:get_it/get_it.dart';
 
 final GetIt sl = GetIt.instance;
@@ -329,6 +365,41 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetMyPlanDetailsUseCase(sl()));
   sl.registerLazySingleton(() => GetNutritionHistoryUseCase(sl()));
 
+  // Workout (documented contract: WORKOUT_API_DOC_1.md)
+  sl.registerLazySingleton<WorkoutRemoteDataSource>(
+    () => WorkoutRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<WorkoutRepository>(
+    () => WorkoutRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(() => GetWorkoutExercisesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateWorkoutTemplateV1UseCase(sl()));
+  sl.registerLazySingleton(() => GetWorkoutTemplatesV1UseCase(sl()));
+  sl.registerLazySingleton(() => GetWorkoutTemplateDetailUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateWorkoutTemplateUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteWorkoutTemplateUseCase(sl()));
+  sl.registerLazySingleton(() => CreateTemplateDayUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateTemplateDayUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteTemplateDayUseCase(sl()));
+  sl.registerLazySingleton(() => ReorderTemplateDaysUseCase(sl()));
+  sl.registerLazySingleton(() => AddTemplateExerciseUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateTemplateExerciseUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteTemplateExerciseUseCase(sl()));
+  sl.registerLazySingleton(() => AssignWorkoutTemplateUseCase(sl()));
+  sl.registerLazySingleton(() => GetWorkoutPlansUseCase(sl()));
+  sl.registerLazySingleton(() => GetWorkoutPlanDetailUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateWorkoutPlanUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteWorkoutPlanUseCase(sl()));
+  sl.registerLazySingleton(() => ManagePlanDayUseCase(sl()));
+  sl.registerLazySingleton(() => UpdatePlanExerciseUseCase(sl()));
+  sl.registerLazySingleton(() => ManagePlanExerciseUseCase(sl()));
+  sl.registerLazySingleton(() => GetTodayWorkoutUseCase(sl()));
+  sl.registerLazySingleton(() => CompleteWorkoutExerciseUseCase(sl()));
+  sl.registerLazySingleton(() => UncompleteWorkoutExerciseUseCase(sl()));
+  sl.registerLazySingleton(() => GetMyWorkoutPlanUseCase(sl()));
+  sl.registerLazySingleton(() => GetMyWorkoutPlanDetailsUseCase(sl()));
+  sl.registerLazySingleton(() => GetWorkoutHistoryUseCase(sl()));
+
   // Cubits — factory so each screen gets a fresh instance
   sl.registerFactory(
     () => AuthCubit(
@@ -384,4 +455,28 @@ void setupDependencies() {
   );
   sl.registerFactory(() => AssignPlanCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileInfoCubit(sl(), sl()));
+  // Workout cubits — factory so each screen gets a fresh instance
+  sl.registerFactory(() => WorkoutExercisesCubit(sl()));
+  sl.registerFactory(() => WorkoutTemplatesCubit(sl(), sl(), sl()));
+  sl.registerFactory(
+    () => WorkoutTemplateDetailCubit(
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+    ),
+  );
+  sl.registerFactory(() => WorkoutPlansCubit(sl()));
+  sl.registerFactory(
+    () => WorkoutPlanDetailCubit(sl(), sl(), sl(), sl(), sl(), sl()),
+  );
+  sl.registerFactory(() => WorkoutTodayCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => WorkoutMyPlanCubit(sl(), sl()));
+  sl.registerFactory(() => WorkoutHistoryCubit(sl()));
 }

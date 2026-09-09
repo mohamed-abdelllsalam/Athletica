@@ -38,6 +38,8 @@ migrate_working_dir/
 /DOC_3.md
 /DOC_4.md
 /DOC_5.md
+/WORKOUT_API_DOC_1.md
+/WORKOUT_API_DOC_2.md
 # Symbolication related
 app.*.symbols
 

@@ -1,8 +1,10 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/workout_plan_detail_view_body.dart';
-import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_plans_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_template_detail_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -20,8 +22,15 @@ class WorkoutPlanDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<SaveWorkoutPlanCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              sl<WorkoutTemplateDetailCubit>()..load(program.id),
+        ),
+        BlocProvider(create: (_) => sl<CoachClientsCubit>()..loadClients()),
+        BlocProvider(create: (_) => sl<WorkoutPlansCubit>()),
+      ],
       child: Scaffold(
         backgroundColor: AppColors.primaryAppColor,
         body: SafeArea(
