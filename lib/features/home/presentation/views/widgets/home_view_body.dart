@@ -1,5 +1,8 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/home/presentation/views/widgets/home_app_bar.dart';
+import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
+import 'package:athletica/features/check_ins/presentation/views/check_ins_preview_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:athletica/features/home/presentation/views/widgets/notes_section.dart';
 import 'package:athletica/features/home/presentation/views/widgets/nutritions_section.dart';
 import 'package:athletica/features/home/presentation/views/widgets/streak_section.dart';
@@ -31,6 +34,16 @@ class _HomeViewBodyState extends State<HomeViewBody> {
               const HomeAppBar(),
               SizedBox(height: 24.h),
               const StreakSection(),
+              if (kDebugMode) ...[
+                SizedBox(height: 16.h),
+                CheckInEntryCard(
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    CheckInsPreviewView.routeName,
+                    arguments: CheckInPreviewRole.client,
+                  ),
+                ),
+              ],
               SizedBox(height: 28.h),
               SummarySection(
                 selectedTab: _selectedTab,

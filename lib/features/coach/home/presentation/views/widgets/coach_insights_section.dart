@@ -1,5 +1,8 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
+import 'package:athletica/features/check_ins/presentation/views/check_ins_preview_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_bar_chart.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_line_chart.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +36,16 @@ class CoachInsightsSection extends StatelessWidget {
           ),
         ),
         SizedBox(height: 12.h),
+        if (kDebugMode) ...[
+          CheckInEntryCard(
+            onTap: () => Navigator.pushNamed(
+              context,
+              CheckInsPreviewView.routeName,
+              arguments: CheckInPreviewRole.coach,
+            ),
+          ),
+          SizedBox(height: 12.h),
+        ],
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(

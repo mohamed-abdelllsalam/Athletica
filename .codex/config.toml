@@ -1,0 +1,4 @@
+# Merge into an existing project config; do not replace unrelated settings.
+# Model and reasoning inherit your current Codex selection.
+[agents]
+enabled = true

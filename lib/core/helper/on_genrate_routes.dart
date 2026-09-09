@@ -1,5 +1,7 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
+import 'package:athletica/features/check_ins/presentation/views/check_ins_preview_view.dart';
+import 'package:flutter/foundation.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:athletica/features/auth/presentation/views/reset_otp_view.dart';
@@ -55,6 +57,16 @@ import 'package:flutter/material.dart';
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
   switch (settings.name) {
+    case CheckInsPreviewView.routeName:
+      if (!kDebugMode) {
+        return MaterialPageRoute(builder: (_) => const SplashView());
+      }
+      final role = settings.arguments;
+      return MaterialPageRoute(
+        builder: (_) => CheckInsPreviewView(
+          role: role is CheckInPreviewRole ? role : CheckInPreviewRole.coach,
+        ),
+      );
     case SplashView.routeName:
       return MaterialPageRoute(builder: (context) => const SplashView());
     case CoachHomeView.routeName:
@@ -110,10 +122,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       final clientId = args['clientId'] as String;
       final clientName = args['clientName'] as String;
       return MaterialPageRoute(
-        builder: (context) => CoachClientDetailView(
-          clientId: clientId,
-          clientName: clientName,
-        ),
+        builder: (context) =>
+            CoachClientDetailView(clientId: clientId, clientName: clientName),
       );
     case CoachClientInfoView.routeName:
       final detail = settings.arguments! as ClientDetail;
@@ -163,9 +173,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         builder: (context) => const CoachSubscriptionView(),
       );
     case AssignedView.routeName:
-      return MaterialPageRoute(
-        builder: (context) => const AssignedView(),
-      );
+      return MaterialPageRoute(builder: (context) => const AssignedView());
     case OnBoardingView.routeName:
       return MaterialPageRoute(builder: (context) => const OnBoardingView());
     case SignInView.routeName:
@@ -197,10 +205,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case NewPasswordView.routeName:
       final args = settings.arguments! as ({String email, String code});
       return MaterialPageRoute(
-        builder: (context) => NewPasswordView(
-          email: args.email,
-          code: args.code,
-        ),
+        builder: (context) =>
+            NewPasswordView(email: args.email, code: args.code),
       );
     case InfoView.routeName:
       return MaterialPageRoute(builder: (context) => const InfoView());
@@ -209,9 +215,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case ClientCoachView.routeName:
       return MaterialPageRoute(builder: (context) => const ClientCoachView());
     case MyPlanDetailsView.routeName:
-      return MaterialPageRoute(
-        builder: (context) => const MyPlanDetailsView(),
-      );
+      return MaterialPageRoute(builder: (context) => const MyPlanDetailsView());
     case SettingsView.routeName:
       return MaterialPageRoute(builder: (context) => const SettingsView());
     case ChatView.routeName:

@@ -1,126 +1,36 @@
-# AGENTS.md
+# Codex instructions for this Flutter project
 
-<!--
-Golden Test: "Would removing this rule cause the agent to make mistakes?"
-If not — cut it.
--->
+## Authoritative rules
 
----
+Read `CLAUDE.md` at the repository root at the beginning of every session and follow its latest content. It remains the engineering source of truth. This file translates its workflow to Codex; it does not weaken its rules. If a conflict remains, flag it and preserve the stricter requirement within the instruction hierarchy.
 
-## External File Loading — CRITICAL
+## Skills and completion
 
-The project's authoritative engineering rules live in `CLAUDE.md`.
+- Before a new feature, load and follow `.agents/skills/flutter-feature/SKILL.md` (Codex skill: `$flutter-feature`).
+- Before marking any task complete, load and run `.agents/skills/flutter-code-review/SKILL.md` (Codex skill: `$flutter-code-review`). The slash names in CLAUDE.md refer to these same workflows.
+- Read relevant existing code first. Keep changes minimal and run relevant checks. Do not claim a mandatory check passed if it was skipped or unavailable.
+- If a required skill or specialist cannot be found, report the missing item. Do not silently replace it; get explicit approval for a substitute when the required step cannot be performed.
 
-You MUST read `CLAUDE.md` at the start of every session and follow all of its rules on every task.
+## Specialist agents
 
-* `CLAUDE.md` is mandatory and applies to all workflows in this project.
-* If `CLAUDE.md` is modified during the project, treat its latest content as the source of truth.
-* This file (`AGENTS.md`) only adds or refines OpenCode-specific behavior.
-* Nothing in this file may weaken, override, or contradict `CLAUDE.md`.
-* Do not duplicate rules from `CLAUDE.md` here unless they are necessary to explain OpenCode-specific behavior.
+The `@name` labels in CLAUDE.md identify roles, not Codex slash commands. Their definitions are in `.codex/agents/{name}.toml`.
 
----
+- Proactively suggest `debugger` for bugs, crashes, errors, or unexpected behavior.
+- After the self-review passes, always suggest `code-reviewer` for an independent review before a PR.
+- Proactively suggest `test-writer` for new or changed code without corresponding tests or missing coverage. Delegate creation of `*_test.dart` files to `test-writer`, preserving the project settings hook's intent. If it is unavailable, disclose that and obtain approval before substituting direct authorship.
+- Proactively suggest `git-expert` at the branch, commit, or PR stage and for conflicts, rebases, or complex Git work. After task approval, use it for branch, commit, and PR output.
+- A suggestion is not an instruction to launch all agents. Delegate only the relevant bounded work when required by these rules or requested by the user. Pass the role definition and the repository rules to the specialist. Wait for its result before claiming its step passed.
+- Do not silently substitute a generic agent that has not received the required role instructions.
 
-## OpenCode-Specific Workflow
+## Clarifications from the supplied updates
 
-### Skills
+- Architectural call flow is presentation → domain contracts → data implementation. Source dependencies point presentation → domain ← data; domain never imports data or Flutter.
+- The shared-code threshold in CLAUDE.md is **two or more places**, including within one feature.
+- Follow the controller/listener lifecycle checklist in the review skill. Prefer widget ownership; exceptional Cubit/Bloc ownership requires disposal in `close()` and a disposal test.
+- Use the existing `mocktail` conventions and `bloc_test` for Cubit/Bloc transition tests; inspect the dependency file and existing tests first.
+- Do not run the archived build_runner reminder. It conflicts with CLAUDE.md's explicit ban on Freezed/build_runner.
+- Before destructive commands, explain the effect and preserve existing work. Obtain explicit authorization for discarding work, history rewriting, and force-pushing. Pushing requires user confirmation; an explicit push authorization already given for the same action satisfies that requirement.
 
-The workflow rules defined in `CLAUDE.md` remain mandatory.
+## Permission boundary
 
-In particular:
-
-* Before creating a new feature, invoke the `/flutter-feature` skill.
-* Before marking a task complete, run the `/flutter-code-review` skill.
-* After the task is approved, use the `@git-expert` agent for branch, commit, and PR output.
-
-If a required skill or command is unavailable in OpenCode:
-
-* Do NOT silently skip it.
-* Clearly inform the user that the required skill/command is unavailable.
-* Continue only with the user's explicit approval when the missing step is required to proceed safely.
-
-### Agents
-
-Follow the proactive agent-selection rules from `CLAUDE.md`.
-
-When the corresponding situation occurs, proactively suggest:
-
-* `@debugger` for bugs, crashes, errors, or unexpected behavior.
-* `@code-reviewer` after `/flutter-code-review` passes, before proceeding to PR.
-* `@test-writer` when code is added/changed without appropriate tests or coverage is missing.
-* `@git-expert` for branches, commits, PRs, merge conflicts, rebases, or complex Git operations.
-
-Do not replace a required agent with an unrelated workflow unless the user explicitly requests it.
-
----
-
-## Repository Instruction Precedence
-
-When working in this repository:
-
-1. Follow the applicable repository instructions.
-2. `CLAUDE.md` is the authoritative project rule set.
-3. This `AGENTS.md` only provides OpenCode-specific interpretation and workflow behavior.
-4. Never weaken a rule from `CLAUDE.md`.
-
-When instructions conflict, preserve the stricter requirement and flag the conflict instead of silently ignoring it.
-
----
-
-## Change Discipline
-
-OpenCode must follow the same engineering discipline defined in `CLAUDE.md`:
-
-* Inspect relevant existing code before making changes.
-* Prefer the smallest correct change.
-* Fix root causes rather than symptoms.
-* Do not perform unrelated refactors.
-* Do not introduce new architecture, dependencies, abstractions, or patterns without justification.
-* Preserve existing behavior, APIs, and UX unless the task explicitly requires a change.
-
----
-
-## Final Verification
-
-Before considering a task complete:
-
-* Verify that the implementation satisfies `CLAUDE.md`.
-* Run the required tests relevant to the change.
-* Run `/flutter-code-review` when required.
-* If the required review skill is unavailable, explicitly tell the user instead of silently skipping it.
-* If code was changed and tests are missing, follow the `@test-writer` rule from `CLAUDE.md`.
-* Do not claim a task is complete when a mandatory verification step has not been performed.
-
----
-
-## Git / PR Workflow
-
-Do not independently invent a branch, commit, or PR workflow when `@git-expert` is required.
-
-When the task reaches the Git stage:
-
-1. Suggest/use `@git-expert` according to `CLAUDE.md`.
-2. Let `@git-expert` handle branch, commit, and PR-related decisions.
-3. Preserve the project's existing Git conventions.
-4. Do not rewrite history, force-push, or perform destructive Git operations without explicit authorization.
-
----
-
-## Important
-
-`CLAUDE.md` remains the primary source of truth for:
-
-* Architecture
-* Flutter/Dart conventions
-* State management
-* Layer boundaries
-* Dependency injection
-* Error handling
-* Testing
-* Security
-* Feature structure
-* Build-method discipline
-* Required skills
-* Required agents
-
-Do not copy those rules into this file. Read and follow `CLAUDE.md` instead.
+These are workflow instructions, not executable tool restrictions. They do not grant permissions or override Codex sandbox, organization policy, or user authorization. The original Claude Write/Edit hooks are not installed by this package.

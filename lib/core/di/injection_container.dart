@@ -1,5 +1,12 @@
-﻿import 'package:athletica/core/network/api_client.dart';
+import 'package:athletica/core/network/api_client.dart';
 import 'package:athletica/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:athletica/features/check_ins/data/repositories/preview_check_ins_repository.dart';
+import 'package:athletica/features/check_ins/domain/repositories/check_ins_repository.dart';
+import 'package:athletica/features/check_ins/domain/usecases/get_check_ins_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/get_check_in_questions_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/save_check_in_questions_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/save_check_in_response_usecase.dart';
+import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
 import 'package:athletica/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:athletica/features/auth/domain/repositories/auth_repository.dart';
 import 'package:athletica/features/auth/domain/usecases/check_auth_status_usecase.dart';
@@ -140,7 +147,19 @@ import 'package:get_it/get_it.dart';
 
 final GetIt sl = GetIt.instance;
 
+/// Local UI preview only: no API, environment file, or authentication needed.
+void setupCheckInsPreviewDependencies() {
+  if (sl.isRegistered<CheckInsRepository>()) return;
+  sl.registerLazySingleton<CheckInsRepository>(PreviewCheckInsRepository.new);
+  sl.registerLazySingleton(() => GetCheckInsUseCase(sl()));
+  sl.registerLazySingleton(() => GetCheckInQuestionsUseCase(sl()));
+  sl.registerLazySingleton(() => SaveCheckInResponseUseCase(sl()));
+  sl.registerLazySingleton(() => SaveCheckInQuestionsUseCase(sl()));
+  sl.registerFactory(() => CheckInsCubit(sl(), sl(), sl(), sl()));
+}
+
 void setupDependencies() {
+  setupCheckInsPreviewDependencies();
   // Network
   ApiClient.instance.init();
   sl.registerLazySingleton(() => ApiClient.instance.dio);
@@ -328,24 +347,16 @@ void setupDependencies() {
   sl.registerFactory(() => CompleteProfileCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl(), sl(), sl(), sl()));
-  sl.registerLazySingleton(
-    () => ProfileCubit(sl(), sl(), sl(), sl()),
-  );
-  sl.registerFactory(
-    () => CoachProfileCubit(sl(), sl(), sl(), sl()),
-  );
+  sl.registerLazySingleton(() => ProfileCubit(sl(), sl(), sl(), sl()));
+  sl.registerFactory(() => CoachProfileCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => CoachClientsCubit(sl(), sl()));
   sl.registerFactory(() => ClientDetailCubit(sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachInviteCubit(sl(), sl()));
   sl.registerFactory(() => ClientCoachCubit(sl(), sl(), sl()));
   sl.registerFactory(() => AssignedCubit(sl(), sl(), sl()));
-  sl.registerFactory(
-    () => NutritionTodayCubit(sl(), sl(), sl()),
-  );
-  sl.registerFactory(
-    () => MyPlanDetailsCubit(sl(), sl()),
-  );
+  sl.registerFactory(() => NutritionTodayCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => MyPlanDetailsCubit(sl(), sl()));
   sl.registerFactory(() => CoachHomeStatsCubit(sl()));
   sl.registerFactory(() => FoodsCubit(sl(), sl()));
   sl.registerFactory(() => CoachPlanOverviewCubit(sl(), sl()));
@@ -358,7 +369,18 @@ void setupDependencies() {
   );
   sl.registerFactory(() => SaveNutritionPlanCubit(sl(), sl(), sl()));
   sl.registerFactory(
-    () => TemplateDetailCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
+    () => TemplateDetailCubit(
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+    ),
   );
   sl.registerFactory(() => AssignPlanCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileInfoCubit(sl(), sl()));
