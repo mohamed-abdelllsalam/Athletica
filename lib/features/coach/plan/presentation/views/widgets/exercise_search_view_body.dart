@@ -1,10 +1,18 @@
+import 'dart:async';
+
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/plan_exercise.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/exercise_thumbnail.dart';
+import 'package:athletica/features/workout/domain/entities/workout_exercise_entry.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_exercises_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_exercises_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+/// Exercise search backed by `GET /workout/exercises`.
+/// Visuals unchanged; returns selected [PlanExercise]s with real API ids.
 class ExerciseSearchViewBody extends StatefulWidget {
   const ExerciseSearchViewBody({super.key});
 
@@ -13,33 +21,48 @@ class ExerciseSearchViewBody extends StatefulWidget {
 }
 
 class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
+  Timer? _debounce;
   final Set<String> _selectedIds = {};
-  String _query = '';
+  List<WorkoutExerciseEntry> _loaded = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<PlanExercise> get _filtered {
-    if (_query.isEmpty) return ExercisesData.all;
-    final lower = _query.toLowerCase();
-    return ExercisesData.all
-        .where((e) => e.name.toLowerCase().contains(lower))
-        .toList();
+  bool _isArabic() =>
+      Localizations.localeOf(context).languageCode == 'ar';
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      context.read<WorkoutExercisesCubit>().load(
+            filters: WorkoutExerciseFilters(
+              search: value.isEmpty ? null : value,
+            ),
+          );
+    });
   }
 
-  List<PlanExercise> get _selected =>
-      ExercisesData.all.where((e) => _selectedIds.contains(e.id)).toList();
+  List<PlanExercise> get _selected => _loaded
+      .where((e) => _selectedIds.contains(e.id))
+      .map((e) => PlanExercise(id: e.id, name: e.localizedName(_isArabic())))
+      .toList();
 
   String get _summaryText =>
       _selected.map((e) => e.name).join(' / ');
 
   @override
   Widget build(BuildContext context) {
-    final items = _filtered;
     return Column(
       children: [
         SizedBox(height: 12.h),
@@ -61,7 +84,7 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
                   ),
                   child: TextField(
                     controller: _searchController,
-                    onChanged: (v) => setState(() => _query = v),
+                    onChanged: _onSearchChanged,
                     style: AppTextStyles.medium14(context)
                         .copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
@@ -82,7 +105,9 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
                 onTap: () => setState(() {
                   _selectedIds.clear();
                   _searchController.clear();
-                  _query = '';
+                  context.read<WorkoutExercisesCubit>().load(
+                        filters: const WorkoutExerciseFilters(),
+                      );
                 }),
               ),
             ],
@@ -90,51 +115,115 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
         ),
         SizedBox(height: 8.h),
         Expanded(
-          child: ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final exercise = items[index];
-              final selected = _selectedIds.contains(exercise.id);
-              return Container(
-                margin: EdgeInsets.only(bottom: 10.h),
-                padding:
-                    EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  borderRadius: BorderRadius.circular(12.r),
+          child: BlocConsumer<WorkoutExercisesCubit, WorkoutExercisesState>(
+            listener: (context, state) {
+              if (state is WorkoutExercisesLoaded) _loaded = state.items;
+            },
+            builder: (context, state) => switch (state) {
+              WorkoutExercisesInitial() ||
+              WorkoutExercisesLoading() =>
+                const Center(child: CircularProgressIndicator()),
+              WorkoutExercisesError(:final message) => Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.w),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.medium14(context).copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        TextButton(
+                          onPressed: () =>
+                              context.read<WorkoutExercisesCubit>().load(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    const ExerciseThumbnail(size: 72),
-                    SizedBox(width: 12.w),
-                    Expanded(
+              WorkoutExercisesLoaded(:final items) => items.isEmpty
+                  ? Center(
                       child: Text(
-                        exercise.name,
-                        style: AppTextStyles.medium14(context)
-                            .copyWith(color: AppColors.textPrimary),
+                        'No exercises found',
+                        style: AppTextStyles.medium14(context).copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
+                    )
+                  : ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 8.h),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final exercise = items[index];
+                        final selected =
+                            _selectedIds.contains(exercise.id);
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 10.h),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 10.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground,
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Row(
+                            children: [
+                              const ExerciseThumbnail(size: 72),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      exercise.localizedName(_isArabic()),
+                                      style: AppTextStyles.medium14(context)
+                                          .copyWith(
+                                              color: AppColors.textPrimary),
+                                    ),
+                                    if (exercise
+                                        .primaryMuscle.isNotEmpty) ...[
+                                      SizedBox(height: 2.h),
+                                      Text(
+                                        exercise.primaryMuscle,
+                                        style:
+                                            AppTextStyles.meduim11(context)
+                                                .copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => setState(() {
+                                  if (selected) {
+                                    _selectedIds.remove(exercise.id);
+                                  } else {
+                                    _selectedIds.add(exercise.id);
+                                  }
+                                }),
+                                child: Icon(
+                                  selected
+                                      ? Icons.bookmark
+                                      : Icons.bookmark_border,
+                                  color: selected
+                                      ? AppColors.primaryBlue
+                                      : AppColors.textSecondary,
+                                  size: 22.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        if (selected) {
-                          _selectedIds.remove(exercise.id);
-                        } else {
-                          _selectedIds.add(exercise.id);
-                        }
-                      }),
-                      child: Icon(
-                        selected ? Icons.bookmark : Icons.bookmark_border,
-                        color: selected
-                            ? AppColors.primaryBlue
-                            : AppColors.textSecondary,
-                        size: 22.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              );
             },
           ),
         ),

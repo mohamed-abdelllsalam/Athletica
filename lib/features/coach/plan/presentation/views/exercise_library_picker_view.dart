@@ -1,11 +1,21 @@
+import 'dart:async';
+
+import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/exercise_thumbnail.dart';
+import 'package:athletica/features/workout/domain/entities/workout_exercise_entry.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_exercises_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_exercises_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class ExerciseLibraryPickerView extends StatefulWidget {
+/// Exercise library backed by `GET /workout/exercises`.
+/// Visuals unchanged; data comes from the API (search + muscle filter).
+/// Returns newly picked [LibraryExercise]s mapped from API entries.
+class ExerciseLibraryPickerView extends StatelessWidget {
   const ExerciseLibraryPickerView({
     super.key,
     required this.alreadyAddedIds,
@@ -14,43 +24,88 @@ class ExerciseLibraryPickerView extends StatefulWidget {
   final Set<String> alreadyAddedIds;
 
   @override
-  State<ExerciseLibraryPickerView> createState() =>
-      _ExerciseLibraryPickerViewState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<WorkoutExercisesCubit>()..load(),
+      child: _PickerBody(alreadyAddedIds: alreadyAddedIds),
+    );
+  }
 }
 
-class _ExerciseLibraryPickerViewState
-    extends State<ExerciseLibraryPickerView> {
-  final TextEditingController _searchController = TextEditingController();
+class _PickerBody extends StatefulWidget {
+  const _PickerBody({required this.alreadyAddedIds});
+
+  final Set<String> alreadyAddedIds;
+
+  @override
+  State<_PickerBody> createState() => _PickerBodyState();
+}
+
+class _PickerBodyState extends State<_PickerBody> {
+  late final TextEditingController _searchController;
+  Timer? _debounce;
   String _selectedMuscle = 'All';
-  String _query = '';
-  late final Set<String> _selectedIds;
+  late Set<String> _selectedIds;
+  List<WorkoutExerciseEntry> _loaded = [];
+
+  static const List<String> _muscles = [
+    'All',
+    'Neck',
+    'Back',
+    'Chest',
+    'Shoulder',
+    'Arm',
+    'Core',
+    'Legs',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     _selectedIds = Set.from(widget.alreadyAddedIds);
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<LibraryExercise> get _filtered {
-    return ExerciseLibraryData.exercises.where((e) {
-      final matchesMuscle =
-          _selectedMuscle == 'All' || e.muscleGroup == _selectedMuscle;
-      final matchesQuery =
-          _query.isEmpty || e.name.toLowerCase().contains(_query.toLowerCase());
-      return matchesMuscle && matchesQuery;
-    }).toList();
+  bool _isArabic() =>
+      Localizations.localeOf(context).languageCode == 'ar';
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      final primary = _selectedMuscle == 'All' ? null : _selectedMuscle;
+      context.read<WorkoutExercisesCubit>().load(
+            filters: WorkoutExerciseFilters(
+              search: value.isEmpty ? null : value,
+              primaryMuscle: primary?.toLowerCase(),
+            ),
+          );
+    });
+  }
+
+  void _onMuscleSelect(String muscle) {
+    setState(() => _selectedMuscle = muscle);
+    final primary = muscle == 'All' ? null : muscle;
+    context.read<WorkoutExercisesCubit>().load(
+          filters: WorkoutExerciseFilters(
+            search: _searchController.text.isEmpty
+                ? null
+                : _searchController.text,
+            primaryMuscle: primary?.toLowerCase(),
+          ),
+        );
   }
 
   int get _newCount =>
       _selectedIds.difference(widget.alreadyAddedIds).length;
 
-  void _toggleExercise(LibraryExercise ex) {
+  void _toggle(WorkoutExerciseEntry ex) {
     setState(() {
       if (_selectedIds.contains(ex.id)) {
         if (!widget.alreadyAddedIds.contains(ex.id)) {
@@ -63,20 +118,27 @@ class _ExerciseLibraryPickerViewState
   }
 
   void _submit() {
-    final newExercises = ExerciseLibraryData.exercises
-        .where((e) =>
-            _selectedIds.contains(e.id) &&
-            !widget.alreadyAddedIds.contains(e.id))
+    final isAr = _isArabic();
+    final picked = _loaded
+        .where(
+          (e) =>
+              _selectedIds.contains(e.id) &&
+              !widget.alreadyAddedIds.contains(e.id),
+        )
+        .map(
+          (e) => LibraryExercise(
+            id: e.id,
+            name: e.localizedName(isAr),
+            muscleGroup: e.primaryMuscle,
+          ),
+        )
         .toList();
-    Navigator.pop(context, newExercises);
+    Navigator.pop(context, picked);
   }
 
   @override
   Widget build(BuildContext context) {
-    final exercises = _filtered;
-    final muscles = ExerciseLibraryData.muscleGroups
-        .where((m) => m != 'All')
-        .toList();
+    final muscles = _muscles.where((m) => m != 'All').toList();
 
     return Scaffold(
       backgroundColor: AppColors.primaryAppColor,
@@ -89,7 +151,7 @@ class _ExerciseLibraryPickerViewState
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: _SearchField(
                 controller: _searchController,
-                onChanged: (v) => setState(() => _query = v),
+                onChanged: _onSearchChanged,
               ),
             ),
             SizedBox(height: 12.h),
@@ -98,38 +160,79 @@ class _ExerciseLibraryPickerViewState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: exercises.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No exercises found',
-                              style: AppTextStyles.medium14(context).copyWith(
-                                color: AppColors.textSecondary,
+                    child: BlocConsumer<WorkoutExercisesCubit,
+                        WorkoutExercisesState>(
+                      listener: (context, state) {
+                        if (state is WorkoutExercisesLoaded) {
+                          _loaded = state.items;
+                        }
+                      },
+                      builder: (context, state) => switch (state) {
+                        WorkoutExercisesInitial() ||
+                        WorkoutExercisesLoading() =>
+                          const Center(child: CircularProgressIndicator()),
+                        WorkoutExercisesError(:final message) => Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.w),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    message,
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.medium14(context)
+                                        .copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  TextButton(
+                                    onPressed: () => context
+                                        .read<WorkoutExercisesCubit>()
+                                        .load(),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
                               ),
                             ),
-                          )
-                        : ListView.separated(
-                            physics: const BouncingScrollPhysics(),
-                            padding: EdgeInsets.fromLTRB(
-                                16.w, 0, 6.w, 100.h),
-                            itemCount: exercises.length,
-                            separatorBuilder: (_, _) =>
-                                SizedBox(height: 10.h),
-                            itemBuilder: (context, index) {
-                              final ex = exercises[index];
-                              final isSelected =
-                                  _selectedIds.contains(ex.id);
-                              return _ExerciseLibraryCard(
-                                exercise: ex,
-                                isSelected: isSelected,
-                                onTap: () => _toggleExercise(ex),
-                              );
-                            },
                           ),
+                        WorkoutExercisesLoaded(:final items) =>
+                          items.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'No exercises found',
+                                    style: AppTextStyles.medium14(context)
+                                        .copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: EdgeInsets.fromLTRB(
+                                      16.w, 0, 6.w, 100.h),
+                                  itemCount: items.length,
+                                  separatorBuilder: (_, _) =>
+                                      SizedBox(height: 10.h),
+                                  itemBuilder: (context, index) {
+                                    final ex = items[index];
+                                    final isSelected =
+                                        _selectedIds.contains(ex.id);
+                                    return _ExerciseLibraryCard(
+                                      name: ex.localizedName(_isArabic()),
+                                      muscle: ex.primaryMuscle,
+                                      isSelected: isSelected,
+                                      onTap: () => _toggle(ex),
+                                    );
+                                  },
+                                ),
+                      },
+                    ),
                   ),
                   _MuscleFilterRail(
                     muscles: muscles,
                     selectedMuscle: _selectedMuscle,
-                    onSelect: (m) => setState(() => _selectedMuscle = m),
+                    onSelect: _onMuscleSelect,
                   ),
                 ],
               ),
@@ -168,7 +271,7 @@ class _ExerciseLibraryPickerViewState
   }
 }
 
-// ── Sub-widgets ───────────────────────────────────────────────────────────────
+// ── Sub-widgets (visuals unchanged) ─────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   const _Header({required this.onBack});
@@ -243,12 +346,14 @@ class _SearchField extends StatelessWidget {
 
 class _ExerciseLibraryCard extends StatelessWidget {
   const _ExerciseLibraryCard({
-    required this.exercise,
+    required this.name,
+    required this.muscle,
     required this.isSelected,
     required this.onTap,
   });
 
-  final LibraryExercise exercise;
+  final String name;
+  final String muscle;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -267,13 +372,27 @@ class _ExerciseLibraryCard extends StatelessWidget {
             const ExerciseThumbnail(size: 64),
             SizedBox(width: 12.w),
             Expanded(
-              child: Text(
-                exercise.name,
-                style: AppTextStyles.medium14(context).copyWith(
-                  color: AppColors.textPrimary,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: AppTextStyles.medium14(context).copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (muscle.isNotEmpty) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      muscle,
+                      style: AppTextStyles.meduim11(context).copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             SizedBox(width: 8.w),
