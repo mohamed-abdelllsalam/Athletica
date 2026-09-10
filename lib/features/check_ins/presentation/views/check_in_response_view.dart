@@ -60,11 +60,9 @@ class _CheckInResponseViewState extends State<CheckInResponseView> {
     );
     if (!mounted) return;
     if (saved) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Saved in this preview only. Nothing was sent.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Saved.')));
     }
   }
 
@@ -245,7 +243,7 @@ class _CheckInResponseViewState extends State<CheckInResponseView> {
                         CheckInButton(
                           label: ready?.saving == true
                               ? 'Saving…'
-                              : 'Save Preview Response',
+                              : 'Save Response',
                           onPressed:
                               ready == null ||
                                   ready.saving ||

@@ -74,22 +74,6 @@ class CheckInAvatar extends StatelessWidget {
   );
 }
 
-class CheckInPreviewNotice extends StatelessWidget {
-  const CheckInPreviewNotice({super.key});
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-    child: Text(
-      'UI preview · Sample data · Nothing is sent',
-      style: CheckInUi.text(
-        10,
-        color: AppColors.textSecondary,
-        weight: FontWeight.w400,
-      ),
-    ),
-  );
-}
-
 class CheckInButton extends StatelessWidget {
   const CheckInButton({
     super.key,
@@ -192,7 +176,7 @@ class CheckInEntryCard extends StatelessWidget {
                   children: [
                     Text('Check-ins', style: CheckInUi.text(12)),
                     Text(
-                      'View your check-ins & responses · Preview',
+                      'View your check-ins & responses',
                       style: CheckInUi.text(9),
                     ),
                   ],
@@ -240,10 +224,7 @@ class CheckInPage extends StatelessWidget {
       top: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const CheckInPreviewNotice(),
-          Expanded(child: child),
-        ],
+        children: [Expanded(child: child)],
       ),
     ),
     bottomNavigationBar: bottomNavigationBar,

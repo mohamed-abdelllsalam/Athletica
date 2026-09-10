@@ -1,13 +1,15 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workout_card.dart';
 import 'package:athletica/features/workout/domain/entities/today_workout.dart';
+import 'package:athletica/features/workout/domain/entities/workout_plan.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_my_plan_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_my_plan_state.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_today_cubit.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_today_state.dart';
-import 'package:athletica/features/workout/presentation/views/workout_history_view.dart';
-import 'package:athletica/features/workout/presentation/views/workout_my_plan_view.dart';
 import 'package:athletica/features/workout_session/presentation/views/workout_session_view.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workout_data.dart'
     show WorkoutExercise;
@@ -33,9 +35,6 @@ class WorkoutsSection extends StatelessWidget {
 class _WorkoutsBody extends StatelessWidget {
   const _WorkoutsBody();
 
-  bool _isArabic(BuildContext context) =>
-      Localizations.localeOf(context).languageCode == 'ar';
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -50,31 +49,16 @@ class _WorkoutsBody extends StatelessWidget {
             ).copyWith(color: AppColors.primaryBlue, height: 1.3),
           ),
           SizedBox(height: 24.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _HeaderLink(
-                label: 'My Plan',
-                onTap: () => Navigator.pushNamed(
-                    context, WorkoutMyPlanView.routeName),
-              ),
-              SizedBox(width: 16.w),
-              _HeaderLink(
-                label: 'History',
-                onTap: () => Navigator.pushNamed(
-                    context, WorkoutHistoryView.routeName),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
           BlocConsumer<WorkoutTodayCubit, WorkoutTodayState>(
             listenWhen: (prev, next) {
               if (next is! WorkoutTodayLoaded) return false;
-              final wasDone = prev is WorkoutTodayLoaded &&
+              final wasDone =
+                  prev is WorkoutTodayLoaded &&
                   (prev.workout?.dayCompleted ?? false);
               final justCompleted =
                   !wasDone && (next.workout?.dayCompleted ?? false);
-              final freshError = next.errorMessage != null &&
+              final freshError =
+                  next.errorMessage != null &&
                   (prev is! WorkoutTodayLoaded ||
                       prev.errorMessage != next.errorMessage);
               return justCompleted || freshError;
@@ -84,28 +68,28 @@ class _WorkoutsBody extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    loaded.errorMessage ??
-                        'Workout day completed — nice work!',
+                    loaded.errorMessage ?? 'Workout day completed — nice work!',
                   ),
                 ),
               );
             },
             builder: (context, state) => switch (state) {
               WorkoutTodayInitial() ||
-              WorkoutTodayLoading() =>
-                const _WorkoutsShimmer(),
+              WorkoutTodayLoading() => const _WorkoutsShimmer(),
               WorkoutTodayError(:final message) => _ErrorView(
-                  message: message,
-                  onRetry: () => context.read<WorkoutTodayCubit>().load(),
-                ),
+                message: message,
+                onRetry: () => context.read<WorkoutTodayCubit>().load(),
+              ),
               WorkoutTodayLoaded(:final workout, :final togglingLogId) =>
-                _LoadedView(
-                  workout: workout,
-                  togglingLogId: togglingLogId,
-                  isArabic: _isArabic(context),
-                  onRefresh: () => context.read<WorkoutTodayCubit>().load(),
-                  onToggle: (logId, target) =>
-                      context.read<WorkoutTodayCubit>().toggle(logId, target),
+                BlocProvider(
+                  create: (_) => sl<WorkoutMyPlanCubit>()..loadActive(),
+                  child: _PlanDayPicker(
+                    workout: workout,
+                    togglingLogId: togglingLogId,
+                    onRefresh: () => context.read<WorkoutTodayCubit>().load(),
+                    onToggle: (logId, target) =>
+                        context.read<WorkoutTodayCubit>().toggle(logId, target),
+                  ),
                 ),
             },
           ),
@@ -115,18 +99,328 @@ class _WorkoutsBody extends StatelessWidget {
   }
 }
 
-class _LoadedView extends StatelessWidget {
-  const _LoadedView({
+/// Day list in place of the single "Day N — title" header: the client picks
+/// a day chip and sees that day's exercises (bilingual). The current day
+/// keeps its completable cards; other days are read-only. Without plan
+/// data it falls back to the legacy single-day view.
+class _PlanDayPicker extends StatefulWidget {
+  const _PlanDayPicker({
     required this.workout,
     required this.togglingLogId,
-    required this.isArabic,
     required this.onRefresh,
     required this.onToggle,
   });
 
   final TodayWorkoutEntry? workout;
   final String? togglingLogId;
-  final bool isArabic;
+  final VoidCallback onRefresh;
+  final void Function(String logId, bool targetCompleted) onToggle;
+
+  @override
+  State<_PlanDayPicker> createState() => _PlanDayPickerState();
+}
+
+class _PlanDayPickerState extends State<_PlanDayPicker> {
+  int? _selectedDayNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<WorkoutMyPlanCubit, WorkoutMyPlanState>(
+      listener: (context, state) {
+        if (state is WorkoutMyPlanLoaded && state.plan != null) {
+          context.read<WorkoutMyPlanCubit>().loadDetails(state.plan!.id);
+        }
+      },
+      builder: (context, state) {
+        final days = state is WorkoutMyPlanDetailLoaded
+            ? ([...state.plan.days]
+                ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber)))
+            : const <PlanDayEntry>[];
+        if (days.isEmpty) {
+          // No plan data — legacy single-day view.
+          return _LoadedView(
+            workout: widget.workout,
+            togglingLogId: widget.togglingLogId,
+            onRefresh: widget.onRefresh,
+            onToggle: widget.onToggle,
+          );
+        }
+        final todayNumber = widget.workout?.dayNumber;
+        final selected =
+            _selectedDayNumber ??
+            (todayNumber != null && days.any((d) => d.dayNumber == todayNumber)
+                ? todayNumber
+                : days.first.dayNumber);
+        final selectedDay = days.firstWhere(
+          (d) => d.dayNumber == selected,
+          orElse: () => days.first,
+        );
+        final showingToday =
+            widget.workout != null && selectedDay.dayNumber == todayNumber;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Type Of Training: ',
+              style: AppTextStyles.medium16(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 10.h),
+            SizedBox(
+              height: 40.h,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: days.length,
+                separatorBuilder: (_, _) => SizedBox(width: 8.w),
+                itemBuilder: (context, index) {
+                  final day = days[index];
+                  final isSelected = day.dayNumber == selectedDay.dayNumber;
+                  final isToday = day.dayNumber == todayNumber;
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _selectedDayNumber = day.dayNumber),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 8.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.buttonColor
+                            : AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: day.isRest && !isSelected
+                            ? Border.all(
+                                color: AppColors.textTertiary.withValues(
+                                  alpha: 0.4,
+                                ),
+                              )
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Day ${day.dayNumber}',
+                            style: AppTextStyles.semiBold14(context).copyWith(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                          if (isToday) ...[
+                            SizedBox(width: 4.w),
+                            Container(
+                              width: 6.r,
+                              height: 6.r,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.streakGreen,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              selectedDay.title,
+              style: AppTextStyles.semiBold15(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 16.h),
+            if (showingToday)
+              _TodayDayBody(
+                workout: widget.workout,
+                togglingLogId: widget.togglingLogId,
+                onRefresh: widget.onRefresh,
+                onToggle: widget.onToggle,
+              )
+            else
+              _ReadOnlyDayBody(day: selectedDay, onRefresh: widget.onRefresh),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Today's content without the day header (the chips replace it).
+class _TodayDayBody extends StatelessWidget {
+  const _TodayDayBody({
+    required this.workout,
+    required this.togglingLogId,
+    required this.onRefresh,
+    required this.onToggle,
+  });
+
+  final TodayWorkoutEntry? workout;
+  final String? togglingLogId;
+  final VoidCallback onRefresh;
+  final void Function(String logId, bool targetCompleted) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = workout;
+    if (w == null) {
+      return _EmptyView(onRefresh: onRefresh);
+    }
+    if (w.isRest) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20.h),
+          child: Text(
+            'Rest day — recover and come back stronger.',
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    if (w.exercises.isEmpty) {
+      return _EmptyView(onRefresh: onRefresh);
+    }
+    final sorted = [...w.exercises]
+      ..sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (w.dayCompleted)
+          Padding(
+            padding: EdgeInsets.only(bottom: 12.h),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: AppColors.streakGreen,
+                  size: 20.sp,
+                ),
+                SizedBox(width: 6.w),
+                Text(
+                  'Completed',
+                  style: AppTextStyles.meduim12(
+                    context,
+                  ).copyWith(color: AppColors.streakGreen),
+                ),
+              ],
+            ),
+          ),
+        ...sorted.asMap().entries.map(
+          (entry) => _CompletableCard(
+            exercise: entry.value,
+            index: entry.key,
+            busy: togglingLogId == entry.value.logId,
+            onToggle: onToggle,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Any non-today plan day: bilingual exercises, read-only.
+class _ReadOnlyDayBody extends StatelessWidget {
+  const _ReadOnlyDayBody({required this.day, required this.onRefresh});
+
+  final PlanDayEntry day;
+  final VoidCallback onRefresh;
+
+  String _exerciseName(PlanExerciseEntry ex) => buildBilingualLabel(
+    primary: ex.exercise?.nameEn ?? ex.exerciseId,
+    arabic: ex.exercise?.nameAr,
+    english: ex.exercise?.nameEn,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (day.isRest) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20.h),
+          child: Text(
+            'Rest day — recover for the next session.',
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    final exercises = [...day.exercises]
+      ..sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
+    if (exercises.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20.h),
+          child: Text(
+            'No exercises.',
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+    return Container(
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Column(
+        children: exercises
+            .map(
+              (ex) => Padding(
+                padding: EdgeInsets.only(bottom: 6.h),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${ex.orderNumber}. ${_exerciseName(ex)}',
+                        style: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
+                      ),
+                    ),
+                    Text(
+                      '${ex.sets ?? '—'}×${ex.reps ?? '—'}',
+                      style: AppTextStyles.meduim12(
+                        context,
+                      ).copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _LoadedView extends StatelessWidget {
+  const _LoadedView({
+    required this.workout,
+    required this.togglingLogId,
+    required this.onRefresh,
+    required this.onToggle,
+  });
+
+  final TodayWorkoutEntry? workout;
+  final String? togglingLogId;
   final VoidCallback onRefresh;
   final void Function(String logId, bool targetCompleted) onToggle;
 
@@ -147,8 +441,9 @@ class _LoadedView extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 20.h),
               child: Text(
                 'Rest day — recover and come back stronger.',
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -181,14 +476,13 @@ class _LoadedView extends StatelessWidget {
         ),
         SizedBox(height: 16.h),
         ...sorted.asMap().entries.map(
-              (entry) => _CompletableCard(
-                exercise: entry.value,
-                index: entry.key,
-                isArabic: isArabic,
-                busy: togglingLogId == entry.value.logId,
-                onToggle: onToggle,
-              ),
-            ),
+          (entry) => _CompletableCard(
+            exercise: entry.value,
+            index: entry.key,
+            busy: togglingLogId == entry.value.logId,
+            onToggle: onToggle,
+          ),
+        ),
       ],
     );
   }
@@ -201,20 +495,23 @@ class _CompletableCard extends StatelessWidget {
   const _CompletableCard({
     required this.exercise,
     required this.index,
-    required this.isArabic,
     required this.busy,
     required this.onToggle,
   });
 
   final TodayExerciseEntry exercise;
   final int index;
-  final bool isArabic;
   final bool busy;
   final void Function(String logId, bool targetCompleted) onToggle;
 
   @override
   Widget build(BuildContext context) {
-    final name = exercise.displayName(isArabic);
+    final catalog = exercise.exercise;
+    final name = buildBilingualLabel(
+      primary: catalog?.nameEn ?? exercise.exerciseId,
+      arabic: catalog?.nameAr,
+      english: catalog?.nameEn,
+    );
     final sets = exercise.sets ?? 0;
     final reps = exercise.reps?.toString() ?? '—';
     final notes = exercise.notes.trim();
@@ -267,36 +564,6 @@ class _CompletableCard extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _HeaderLink extends StatelessWidget {
-  const _HeaderLink({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: AppTextStyles.semiBold14(context)
-                .copyWith(color: AppColors.primaryBlue),
-          ),
-          SizedBox(width: 4.w),
-          Icon(
-            Icons.chevron_right,
-            color: AppColors.primaryBlue,
-            size: 18.sp,
-          ),
-        ],
-      ),
     );
   }
 }
@@ -356,8 +623,9 @@ class _EmptyView extends StatelessWidget {
           children: [
             Text(
               'No workout assigned for today.',
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 12.h),
@@ -385,8 +653,9 @@ class _ErrorView extends StatelessWidget {
           children: [
             Text(
               message,
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 12.h),

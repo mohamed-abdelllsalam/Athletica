@@ -1,98 +1,116 @@
-import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
-import 'package:athletica/features/coach/workout_templates/domain/usecases/create_workout_template_day_usecase.dart';
-import 'package:athletica/features/coach/workout_templates/domain/usecases/create_workout_template_item_usecase.dart';
-import 'package:athletica/features/coach/workout_templates/domain/usecases/create_workout_template_usecase.dart';
 import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_state.dart';
+import 'package:athletica/features/workout/domain/usecases/add_template_exercise_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/create_template_day_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/create_workout_template_v1_usecase.dart';
+import 'package:athletica/features/workout/domain/usecases/update_template_day_usecase.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Persists a plan built in the create-mode editor:
+/// 1. POST /workout/templates            (title + description)
+/// 2. POST /workout/templates/:id/days   (one call per day, in order)
+/// 3. PATCH .../days/:dayId              (mark rest days)
+/// 4. POST .../days/:dayId/exercises     (per exercise, in order; skipped for rest)
 class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
   SaveWorkoutPlanCubit(
     this._createTemplate,
     this._createDay,
-    this._createItem,
+    this._addExercise,
+    this._updateDay,
   ) : super(SaveWorkoutPlanIdle());
 
-  final CreateWorkoutTemplateUseCase _createTemplate;
-  final CreateWorkoutTemplateDayUseCase _createDay;
-  final CreateWorkoutTemplateItemUseCase _createItem;
+  final CreateWorkoutTemplateV1UseCase _createTemplate;
+  final CreateTemplateDayUseCase _createDay;
+  final AddTemplateExerciseUseCase _addExercise;
+  final UpdateTemplateDayUseCase _updateDay;
 
   Future<void> savePlan(WorkoutProgram program) async {
     if (state is SaveWorkoutPlanLoading) return;
     emit(SaveWorkoutPlanLoading());
 
-    final trainerId = await TokenStorageService.instance.getTrainerId();
-    if (trainerId == null) {
-      if (isClosed) return;
-      emit(SaveWorkoutPlanError('Trainer ID not found. Please log in again.'));
-      return;
-    }
-
     // 1. Create the template
     final templateResult = await _createTemplate(
-      trainerId: trainerId,
-      title: program.name,
-      level: _categoryToLevel(program.category),
+      title: program.name.trim(),
+      description: program.description.trim(),
     );
 
-    final String templateId;
     switch (templateResult) {
-      case ApiSuccess(:final data):
-        templateId = data.id;
       case ApiError(:final failure):
         if (isClosed) return;
         emit(SaveWorkoutPlanError(failure.message));
         return;
-    }
-
-    // 2. Create each day, then its exercises
-    for (int i = 0; i < program.days.length; i++) {
-      final day = program.days[i];
-
-      final dayResult = await _createDay(
-        workoutTemplateId: templateId,
-        dayIndex: i,
-        label: day.name,
-      );
-
-      final String dayId;
-      switch (dayResult) {
-        case ApiSuccess(:final data):
-          dayId = data.id;
-        case ApiError(:final failure):
+      case ApiSuccess(:final data):
+        var template = data;
+        // 2. Create each day in order
+        for (final day in program.days) {
+          final previousIds = template.days.map((d) => d.id).toSet();
+          final dayResult = await _createDay(
+            template.id,
+            title: day.name.trim().isEmpty
+                ? 'Day ${day.dayNumber}'
+                : day.name.trim(),
+          );
           if (isClosed) return;
-          emit(SaveWorkoutPlanError(failure.message));
-          return;
-      }
-
-      // 3. Create exercises for this day — skip local mock IDs (non-UUID)
-      for (int j = 0; j < day.exercises.length; j++) {
-        final exercise = day.exercises[j];
-        if (!_isValidUuid(exercise.id)) continue;
-        final itemResult = await _createItem(
-          CreateWorkoutTemplateItemParams(
-            workoutTemplateDayId: dayId,
-            exerciseId: exercise.id,
-            order: j + 1,
-            sets: 3,
-            reps: 10,
-            restSeconds: 60,
-          ),
-        );
-        switch (itemResult) {
-          case ApiError(:final failure):
-            if (isClosed) return;
-            emit(SaveWorkoutPlanError(failure.message));
+          switch (dayResult) {
+            case ApiError(:final failure):
+              emit(SaveWorkoutPlanError(failure.message));
+              return;
+            case ApiSuccess(:final data):
+              template = data;
+          }
+          final added = template.days
+              .where((d) => !previousIds.contains(d.id))
+              .toList();
+          if (added.length != 1) {
+            emit(
+              SaveWorkoutPlanError(
+                'Could not identify the saved day. Please reload your plans before trying again.',
+              ),
+            );
             return;
-          case ApiSuccess():
-            break;
+          }
+          final dayId = added.single.id;
+          // 3. Mark rest days — created days default to training days.
+          if (day.isRest) {
+            final restResult = await _updateDay(
+              template.id,
+              dayId,
+              isRest: true,
+            );
+            if (isClosed) return;
+            switch (restResult) {
+              case ApiError(:final failure):
+                emit(SaveWorkoutPlanError(failure.message));
+                return;
+              case ApiSuccess(:final data):
+                template = data;
+            }
+            continue;
+          }
+          // 4. Add exercises to this day — only library UUIDs persist.
+          for (var i = 0; i < day.exercises.length; i++) {
+            final exercise = day.exercises[i];
+            if (!_isValidUuid(exercise.id)) continue;
+            final exerciseResult = await _addExercise(
+              template.id,
+              dayId,
+              exerciseId: exercise.id,
+              exerciseOrder: i + 1,
+            );
+            if (isClosed) return;
+            switch (exerciseResult) {
+              case ApiError(:final failure):
+                emit(SaveWorkoutPlanError(failure.message));
+                return;
+              case ApiSuccess(:final data):
+                template = data;
+            }
+          }
         }
-      }
+        if (isClosed) return;
+        emit(SaveWorkoutPlanSuccess());
     }
-
-    if (isClosed) return;
-    emit(SaveWorkoutPlanSuccess());
   }
 
   static final _uuidRegex = RegExp(
@@ -101,10 +119,4 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
   );
 
   bool _isValidUuid(String id) => _uuidRegex.hasMatch(id);
-
-  String _categoryToLevel(String category) => switch (category) {
-        'Strength' || 'Boxing' => 'ADVANCED',
-        'Fat loss' => 'INTERMEDIATE',
-        _ => 'BEGINNER',
-      };
 }

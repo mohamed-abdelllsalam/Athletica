@@ -1,6 +1,7 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/features/workout/domain/entities/workout_plan.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_plans_cubit.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_plans_state.dart';
@@ -35,33 +36,34 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<WorkoutPlanDetailCubit, WorkoutPlanDetailState>(
       builder: (context, state) => switch (state) {
-        WorkoutPlanDetailInitial() ||
-        WorkoutPlanDetailLoading() =>
+        WorkoutPlanDetailInitial() || WorkoutPlanDetailLoading() =>
           const Center(child: CircularProgressIndicator()),
         WorkoutPlanDetailError(:final message) => Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.medium14(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Back'),
-                  ),
-                ],
-              ),
+          child: Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
+                ),
+                SizedBox(height: 12.h),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Back'),
+                ),
+              ],
             ),
           ),
-        WorkoutPlanDetailLoaded(:final plan, :final mutating) =>
-          _Content(plan: plan, mutating: mutating),
+        ),
+        WorkoutPlanDetailLoaded(:final plan, :final mutating) => _Content(
+          plan: plan,
+          mutating: mutating,
+        ),
       },
     );
   }
@@ -99,33 +101,31 @@ class _Content extends StatelessWidget {
               SizedBox(
                 width: 18.r,
                 height: 18.r,
-                child:
-                    const CircularProgressIndicator(strokeWidth: 2),
+                child: const CircularProgressIndicator(strokeWidth: 2),
               ),
           ],
         ),
         SizedBox(height: 16.h),
         Text(
           plan.title,
-          style: AppTextStyles.bold24(context).copyWith(
-            color: AppColors.textPrimary,
-            fontSize: 20.sp,
-          ),
+          style: AppTextStyles.bold24(
+            context,
+          ).copyWith(color: AppColors.textPrimary, fontSize: 20.sp),
         ),
         SizedBox(height: 4.h),
         Text(
           'Started ${plan.startDate} • ${plan.dayCount} days • cycle ${plan.cycleDays}',
-          style: AppTextStyles.meduim12(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.meduim12(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
         ),
         if (plan.description.isNotEmpty) ...[
           SizedBox(height: 8.h),
           Text(
             plan.description,
-            style: AppTextStyles.medium14(context).copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textSecondary),
           ),
         ],
         SizedBox(height: 20.h),
@@ -135,9 +135,9 @@ class _Content extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 20.h),
               child: Text(
                 'No days in this plan yet.',
-                style: AppTextStyles.medium14(context).copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
               ),
             ),
           )
@@ -184,17 +184,17 @@ class _DayCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Day ${day.dayNumber} — ${day.title}',
-                  style: AppTextStyles.semiBold14(context).copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyles.semiBold14(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
                 ),
               ),
               if (day.isRest)
                 Text(
                   'Rest',
-                  style: AppTextStyles.meduim12(context).copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppTextStyles.meduim12(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                 ),
             ],
           ),
@@ -202,17 +202,14 @@ class _DayCard extends StatelessWidget {
           if (!day.isRest && exercises.isEmpty)
             Text(
               'No exercises yet.',
-              style: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             )
           else
             ...exercises.map(
-              (ex) => _ExerciseRow(
-                exercise: ex,
-                dayId: day.id,
-                isArabic: isArabic,
-              ),
+              (ex) =>
+                  _ExerciseRow(exercise: ex, dayId: day.id, isArabic: isArabic),
             ),
         ],
       ),
@@ -278,17 +275,17 @@ class _ExerciseRowState extends State<_ExerciseRow> {
       return;
     }
     final ok = await context.read<WorkoutPlanDetailCubit>().setSetsReps(
-          widget.dayId,
-          widget.exercise.id,
-          sets: sets,
-          reps: reps,
-        );
+      widget.dayId,
+      widget.exercise.id,
+      sets: sets,
+      reps: reps,
+    );
     if (!mounted) return;
     if (!ok) {
       final err = context.read<WorkoutPlanDetailCubit>().lastError;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Update failed')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(err ?? 'Update failed')));
     } else {
       FocusScope.of(context).unfocus();
     }
@@ -296,9 +293,12 @@ class _ExerciseRowState extends State<_ExerciseRow> {
 
   @override
   Widget build(BuildContext context) {
-    final name =
-        widget.exercise.exercise?.localizedName(widget.isArabic) ??
-            widget.exercise.exerciseId;
+    final ex = widget.exercise.exercise;
+    final name = buildBilingualLabel(
+      primary: ex?.nameEn ?? widget.exercise.exerciseId,
+      arabic: ex?.nameAr,
+      english: ex?.nameEn,
+    );
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
@@ -309,16 +309,16 @@ class _ExerciseRowState extends State<_ExerciseRow> {
               children: [
                 Text(
                   '${widget.exercise.orderNumber}. $name',
-                  style: AppTextStyles.medium14(context).copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
                 ),
                 if (widget.exercise.notes.isNotEmpty)
                   Text(
                     widget.exercise.notes,
-                    style: AppTextStyles.meduim12(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: AppTextStyles.meduim12(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
                   ),
               ],
             ),
@@ -334,9 +334,9 @@ class _ExerciseRowState extends State<_ExerciseRow> {
                 border: InputBorder.none,
                 isDense: true,
               ),
-              style: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
             ),
           ),
           SizedBox(
@@ -349,15 +349,14 @@ class _ExerciseRowState extends State<_ExerciseRow> {
                 border: InputBorder.none,
                 isDense: true,
               ),
-              style: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
             ),
           ),
           GestureDetector(
             onTap: _save,
-            child: Icon(Icons.check,
-                color: AppColors.streakGreen, size: 20.sp),
+            child: Icon(Icons.check, color: AppColors.streakGreen, size: 20.sp),
           ),
         ],
       ),

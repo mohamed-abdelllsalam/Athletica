@@ -45,8 +45,14 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
 
   String? get lastError => _lastError;
 
+  /// True once any mutation succeeds — the list screen uses it to refresh.
+  bool _hasChanges = false;
+
+  bool get hasChanges => _hasChanges;
+
   Future<void> load(String templateId) async {
     if (state is WorkoutTemplateDetailLoading) return;
+    _hasChanges = false;
     emit(const WorkoutTemplateDetailLoading());
     final result = await _getDetail(templateId);
     switch (result) {
@@ -72,6 +78,7 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return true;
+        _hasChanges = true;
         emit(WorkoutTemplateDetailLoaded(data));
         return true;
       case ApiError(:final failure):
@@ -86,7 +93,11 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
     final current = state;
     if (current is! WorkoutTemplateDetailLoaded) return Future.value(false);
     return _mutate(
-      () => _updateTemplate(current.template.id, title: title, description: description),
+      () => _updateTemplate(
+        current.template.id,
+        title: title,
+        description: description,
+      ),
     );
   }
 

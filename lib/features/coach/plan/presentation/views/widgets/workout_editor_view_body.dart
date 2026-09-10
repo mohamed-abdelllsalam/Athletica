@@ -53,6 +53,7 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
       name: 'Day $_day',
       durationMinutes: 60,
       exercises: [
+        // PlanExercise.name already carries the bilingual label.
         ..._warmUp.map((e) => ProgramExercise(id: e.id, name: e.name)),
         ..._workout.map((e) => ProgramExercise(id: e.id, name: e.name)),
         ..._coolDown.map((e) => ProgramExercise(id: e.id, name: e.name)),
@@ -60,9 +61,7 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
     );
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => WorkoutDayExercisesView(day: day),
-      ),
+      MaterialPageRoute(builder: (_) => WorkoutDayExercisesView(day: day)),
     );
   }
 
@@ -79,8 +78,11 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
             children: [
               GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: Icon(Icons.arrow_back_ios_new,
-                    color: AppColors.textPrimary, size: 20.sp),
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  color: AppColors.textPrimary,
+                  size: 20.sp,
+                ),
               ),
               const Spacer(),
               GestureDetector(
@@ -128,8 +130,9 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
           SizedBox(height: 20.h),
           Text(
             'Summary',
-            style: AppTextStyles.semiBold14(context)
-                .copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.semiBold14(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
           SizedBox(height: 8.h),
           Container(
@@ -139,12 +142,14 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
             ),
             child: TextField(
               controller: _summaryController,
-              style: AppTextStyles.medium13(context)
-                  .copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.medium13(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Summary of your exercise',
-                hintStyle: AppTextStyles.medium13(context)
-                    .copyWith(color: AppColors.textPrimary.withValues(alpha: 0.5)),
+                hintStyle: AppTextStyles.medium13(
+                  context,
+                ).copyWith(color: AppColors.textPrimary.withValues(alpha: 0.5)),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.all(14.r),
               ),
@@ -164,8 +169,9 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
               ),
               child: Text(
                 'Save',
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               ),
             ),
           ),
@@ -183,8 +189,9 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
               ),
               child: Text(
                 'Done',
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: Colors.white),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: Colors.white),
               ),
             ),
           ),
@@ -218,8 +225,9 @@ class _DayCounter extends StatelessWidget {
         children: [
           Text(
             'Day',
-            style: AppTextStyles.semiBold14(context)
-                .copyWith(color: Colors.white),
+            style: AppTextStyles.semiBold14(
+              context,
+            ).copyWith(color: Colors.white),
           ),
           const Spacer(),
           GestureDetector(
@@ -229,8 +237,9 @@ class _DayCounter extends StatelessWidget {
           SizedBox(width: 16.w),
           Text(
             '$day',
-            style: AppTextStyles.semiBold14(context)
-                .copyWith(color: Colors.white),
+            style: AppTextStyles.semiBold14(
+              context,
+            ).copyWith(color: Colors.white),
           ),
           SizedBox(width: 16.w),
           GestureDetector(
@@ -252,8 +261,9 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: AppTextStyles.semiBold14(context)
-          .copyWith(color: AppColors.textPrimary),
+      style: AppTextStyles.semiBold14(
+        context,
+      ).copyWith(color: AppColors.textPrimary),
     );
   }
 }
@@ -292,8 +302,9 @@ class _AddExerciseButton extends StatelessWidget {
               addedCount > 0
                   ? '+ Add An Exercise ($addedCount)'
                   : '+ Add An Exercise',
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: Colors.white),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: Colors.white),
             ),
           ],
         ),

@@ -62,13 +62,9 @@ class _CheckInQuestionsViewState extends State<CheckInQuestionsView> {
       List.of(_questions),
     );
     if (!mounted || !success) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Template saved in this preview only. No questions were sent.',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Template saved.')));
     Navigator.pop(context);
   }
 
@@ -82,9 +78,7 @@ class _CheckInQuestionsViewState extends State<CheckInQuestionsView> {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text('Preview recipients', style: CheckInUi.text(12)),
-              ),
+              Expanded(child: Text('Recipients', style: CheckInUi.text(12))),
               TextButton(
                 onPressed: () => setState(() {
                   if (_selected.length == widget.clients.length) {
@@ -213,9 +207,7 @@ class _CheckInQuestionsViewState extends State<CheckInQuestionsView> {
                       style: CheckInUi.text(12, color: Colors.orangeAccent),
                     ),
                   CheckInButton(
-                    label: ready?.saving == true
-                        ? 'Saving…'
-                        : 'Save Preview Template',
+                    label: ready?.saving == true ? 'Saving…' : 'Save Template',
                     color: CheckInUi.violet,
                     onPressed: ready == null || ready.saving ? null : _save,
                   ),

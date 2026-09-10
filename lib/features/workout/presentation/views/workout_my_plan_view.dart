@@ -1,6 +1,7 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/features/workout/domain/entities/workout_plan.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_my_plan_cubit.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_my_plan_state.dart';
@@ -30,9 +31,6 @@ class WorkoutMyPlanView extends StatelessWidget {
 class _Body extends StatelessWidget {
   const _Body();
 
-  bool _isArabic(BuildContext context) =>
-      Localizations.localeOf(context).languageCode == 'ar';
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -52,8 +50,9 @@ class _Body extends StatelessWidget {
               SizedBox(width: 8.w),
               Text(
                 'My Workout Plan',
-                style: AppTextStyles.bold20(context)
-                    .copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.bold20(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -61,42 +60,42 @@ class _Body extends StatelessWidget {
         Expanded(
           child: BlocBuilder<WorkoutMyPlanCubit, WorkoutMyPlanState>(
             builder: (context, state) => switch (state) {
-              WorkoutMyPlanInitial() ||
-              WorkoutMyPlanLoading() =>
-                const Center(child: CircularProgressIndicator()),
+              WorkoutMyPlanInitial() || WorkoutMyPlanLoading() => const Center(
+                child: CircularProgressIndicator(),
+              ),
               WorkoutMyPlanError(:final message) => Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.w),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          message,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.medium14(context).copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        SizedBox(height: 12.h),
-                        TextButton(
-                          onPressed: () => context
-                              .read<WorkoutMyPlanCubit>()
-                              .loadActive(),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
+                child: Padding(
+                  padding: EdgeInsets.all(24.w),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
+                      ),
+                      SizedBox(height: 12.h),
+                      TextButton(
+                        onPressed: () =>
+                            context.read<WorkoutMyPlanCubit>().loadActive(),
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   ),
                 ),
-              WorkoutMyPlanLoaded(:final plan) => plan == null
-                  ? _EmptyView(
-                      onRefresh: () => context
-                          .read<WorkoutMyPlanCubit>()
-                          .loadActive(),
-                    )
-                  : _PlanContent(plan: plan, isArabic: _isArabic(context)),
-              WorkoutMyPlanDetailLoaded(:final plan) =>
-                _PlanContent(plan: plan, isArabic: _isArabic(context)),
+              ),
+              WorkoutMyPlanLoaded(:final plan) =>
+                plan == null
+                    ? _EmptyView(
+                        onRefresh: () =>
+                            context.read<WorkoutMyPlanCubit>().loadActive(),
+                      )
+                    : _PlanContent(plan: plan),
+              WorkoutMyPlanDetailLoaded(:final plan) => _PlanContent(
+                plan: plan,
+              ),
             },
           ),
         ),
@@ -105,14 +104,38 @@ class _Body extends StatelessWidget {
   }
 }
 
-class _PlanContent extends StatelessWidget {
-  const _PlanContent({required this.plan, required this.isArabic});
+class _PlanContent extends StatefulWidget {
+  const _PlanContent({required this.plan});
 
   final WorkoutPlanEntry plan;
-  final bool isArabic;
+
+  @override
+  State<_PlanContent> createState() => _PlanContentState();
+}
+
+class _PlanContentState extends State<_PlanContent> {
+  /// Only one day expanded at a time — the plan reads as a day list
+  /// the client picks from instead of one long expanded scroll.
+  String? _expandedDayId;
+
+  static const List<Color> _dayColors = [
+    Color(0xFF3D2E8A),
+    Color(0xFF2E5EA8),
+    Color(0xFF2E8A4A),
+    Color(0xFFB5541C),
+    Color(0xFF6A2E8A),
+    Color(0xFF1B6E6A),
+  ];
+
+  String _exerciseName(PlanExerciseEntry ex) => buildBilingualLabel(
+    primary: ex.exercise?.nameEn ?? ex.exerciseId,
+    arabic: ex.exercise?.nameAr,
+    english: ex.exercise?.nameEn,
+  );
 
   @override
   Widget build(BuildContext context) {
+    final plan = widget.plan;
     final days = [...plan.days]
       ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
     return RefreshIndicator(
@@ -123,90 +146,184 @@ class _PlanContent extends StatelessWidget {
         children: [
           Text(
             plan.title,
-            style: AppTextStyles.semiBold15(context)
-                .copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.semiBold15(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
           if (plan.description.isNotEmpty) ...[
             SizedBox(height: 4.h),
             Text(
               plan.description,
-              style: AppTextStyles.meduim12(context).copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTextStyles.meduim12(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             ),
           ],
           SizedBox(height: 4.h),
           Text(
             'Started ${plan.startDate} • ${plan.dayCount} days',
-            style: AppTextStyles.meduim12(context).copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTextStyles.meduim12(
+              context,
+            ).copyWith(color: AppColors.textSecondary),
           ),
           SizedBox(height: 16.h),
-          ...days.map(
-            (day) => Container(
+          ...days.asMap().entries.map((entry) {
+            final index = entry.key;
+            final day = entry.value;
+            final expanded = _expandedDayId == day.id;
+            final color = _dayColors[index % _dayColors.length];
+            final exercises = [...day.exercises]
+              ..sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
+            return Container(
               margin: EdgeInsets.only(bottom: 12.h),
-              padding: EdgeInsets.all(14.r),
               decoration: BoxDecoration(
-                color: AppColors.cardBackground,
+                color: day.isRest
+                    ? AppColors.cardBackground.withValues(alpha: 0.6)
+                    : AppColors.cardBackground,
                 borderRadius: BorderRadius.circular(12.r),
+                border: day.isRest
+                    ? Border.all(
+                        color: AppColors.textTertiary.withValues(alpha: 0.4),
+                      )
+                    : null,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Day ${day.dayNumber} — ${day.title}',
-                    style: AppTextStyles.semiBold14(context).copyWith(
-                      color: AppColors.textPrimary,
+                  GestureDetector(
+                    onTap: () => setState(
+                      () => _expandedDayId = expanded ? null : day.id,
+                    ),
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 10.h,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42.r,
+                            height: 42.r,
+                            decoration: BoxDecoration(
+                              color: day.isRest
+                                  ? AppColors.textTertiary
+                                  : color,
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            child: Center(
+                              child: day.isRest
+                                  ? Icon(
+                                      Icons.bedtime,
+                                      color: Colors.white,
+                                      size: 20.sp,
+                                    )
+                                  : Text(
+                                      'D${day.dayNumber}',
+                                      style: AppTextStyles.semiBold14(
+                                        context,
+                                      ).copyWith(color: Colors.white),
+                                    ),
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  day.title,
+                                  style: AppTextStyles.medium14(
+                                    context,
+                                  ).copyWith(color: AppColors.textPrimary),
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  day.isRest
+                                      ? 'Rest day'
+                                      : '${day.exerciseCount} Exercises',
+                                  style: AppTextStyles.meduim12(
+                                    context,
+                                  ).copyWith(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            expanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: AppColors.textSecondary,
+                            size: 22.sp,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  SizedBox(height: 8.h),
-                  if (day.isRest)
-                    Text(
-                      'Rest day',
-                      style: AppTextStyles.medium14(context).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    )
-                  else if (day.exercises.isEmpty)
-                    Text(
-                      'No exercises.',
-                      style: AppTextStyles.medium14(context).copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    )
-                  else
-                    ...([...day.exercises]
-                      ..sort((a, b) =>
-                          a.orderNumber.compareTo(b.orderNumber))).map(
-                      (ex) => Padding(
-                        padding: EdgeInsets.only(bottom: 6.h),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${ex.orderNumber}. ${ex.exercise?.localizedName(isArabic) ?? ex.exerciseId}',
-                                style: AppTextStyles.medium14(context)
-                                    .copyWith(
-                                  color: AppColors.textPrimary,
+                  if (expanded) ...[
+                    Divider(
+                      height: 1,
+                      indent: 12.w,
+                      endIndent: 12.w,
+                      color: AppColors.textTertiary.withValues(alpha: 0.3),
+                    ),
+                    if (day.isRest)
+                      Padding(
+                        padding: EdgeInsets.all(14.r),
+                        child: Text(
+                          'Rest day — recover for the next session.',
+                          style: AppTextStyles.medium14(
+                            context,
+                          ).copyWith(color: AppColors.textSecondary),
+                        ),
+                      )
+                    else if (exercises.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.all(14.r),
+                        child: Text(
+                          'No exercises.',
+                          style: AppTextStyles.medium14(
+                            context,
+                          ).copyWith(color: AppColors.textSecondary),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 10.h),
+                        child: Column(
+                          children: exercises
+                              .map(
+                                (ex) => Padding(
+                                  padding: EdgeInsets.only(bottom: 6.h),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${ex.orderNumber}. ${_exerciseName(ex)}',
+                                          style: AppTextStyles.medium14(context)
+                                              .copyWith(
+                                                color: AppColors.textPrimary,
+                                              ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${ex.sets ?? '—'}×${ex.reps ?? '—'}',
+                                        style: AppTextStyles.meduim12(context)
+                                            .copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                            Text(
-                              '${ex.sets ?? '—'}×${ex.reps ?? '—'}',
-                              style: AppTextStyles.meduim12(context)
-                                  .copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                              )
+                              .toList(),
                         ),
                       ),
-                    ),
+                  ],
                 ],
               ),
-            ),
-          ),
+            );
+          }),
           SizedBox(height: 24.h),
         ],
       ),
@@ -227,13 +344,17 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.fitness_center,
-                color: AppColors.textSecondary, size: 40.sp),
+            Icon(
+              Icons.fitness_center,
+              color: AppColors.textSecondary,
+              size: 40.sp,
+            ),
             SizedBox(height: 12.h),
             Text(
               'No workout plan assigned yet.',
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 12.h),

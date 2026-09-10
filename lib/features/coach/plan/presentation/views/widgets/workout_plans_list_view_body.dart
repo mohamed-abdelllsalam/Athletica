@@ -2,6 +2,8 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_plan_detail_view.dart';
+import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_cubit.dart';
+import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_state.dart';
 import 'package:athletica/features/workout/domain/entities/workout_template.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_templates_cubit.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_templates_state.dart';
@@ -54,12 +56,10 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
     super.dispose();
   }
 
-  bool _isArabic() =>
-      Localizations.localeOf(context).languageCode == 'ar';
-
   List<WorkoutTemplateEntry> _filtered(List<WorkoutTemplateEntry> items) {
     return items.where((t) {
-      final matchesQuery = _query.isEmpty ||
+      final matchesQuery =
+          _query.isEmpty ||
           t.title.toLowerCase().contains(_query.toLowerCase()) ||
           t.description.toLowerCase().contains(_query.toLowerCase());
       // The workout API has no category field — every template maps to
@@ -72,33 +72,36 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
   }
 
   WorkoutProgram _toProgram(WorkoutTemplateEntry t) => WorkoutProgram(
-        id: t.id,
-        name: t.title,
-        category: 'Custom',
-        splitType: '${t.dayCount} Days Split',
-        updatedAgo: _timeAgo(t.createdAt),
-        clientCount: 0,
-        iconAsset: 'assets/images/plan/upper_body_icon.svg',
-        description: t.description,
-        days: t.days
-            .map(
-              (d) => ProgramDay(
-                dayNumber: d.dayNumber,
-                name: d.title,
-                durationMinutes: 60,
-                exercises: d.exercises
-                    .map(
-                      (e) => ProgramExercise(
-                        id: e.exerciseId,
-                        name: e.exercise?.localizedName(_isArabic()) ??
-                            e.exerciseId,
-                      ),
-                    )
-                    .toList(),
-              ),
-            )
-            .toList(),
-      );
+    id: t.id,
+    name: t.title,
+    category: 'Custom',
+    splitType: '${t.dayCount} Days Split',
+    updatedAgo: _timeAgo(t.createdAt),
+    clientCount: 0,
+    iconAsset: 'assets/images/plan/upper_body_icon.svg',
+    description: t.description,
+    days: t.days
+        .map(
+          (d) => ProgramDay(
+            dayNumber: d.dayNumber,
+            name: d.title,
+            durationMinutes: 60,
+            isRest: d.isRest,
+            exercises: d.exercises.map((e) {
+              final ex = e.exercise;
+              return ProgramExercise(
+                id: e.exerciseId,
+                name: (ex?.nameEn.isNotEmpty ?? false)
+                    ? ex!.nameEn
+                    : e.exerciseId,
+                nameEn: ex?.nameEn,
+                nameAr: ex?.nameAr,
+              );
+            }).toList(),
+          ),
+        )
+        .toList(),
+  );
 
   String _timeAgo(DateTime? date) {
     if (date == null) return '—';
@@ -109,109 +112,130 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
   }
 
   Future<void> _createNewPlan() async {
-    final result = await showDialog<(String, String)>(
-      context: context,
-      builder: (_) => const _CreateTemplateDialog(),
+    final plan = WorkoutProgram(
+      id: 'wp_${DateTime.now().millisecondsSinceEpoch}',
+      name: '',
+      category: 'Custom',
+      splitType: '',
+      updatedAgo: 'Just created',
+      clientCount: 0,
+      description: '',
+      iconAsset: 'assets/images/plan/upper_body_icon.svg',
+      days: const [],
     );
-    if (result == null || !mounted) return;
-    final ok = await context.read<WorkoutTemplatesCubit>().create(
-          title: result.$1,
-          description: result.$2,
-        );
-    if (!mounted) return;
-    if (!ok) {
-      final s = context.read<WorkoutTemplatesCubit>().state;
-      if (s is WorkoutTemplatesLoaded && s.mutationError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(s.mutationError!)),
-        );
-      }
+    final result = await Navigator.push<WorkoutProgram>(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            WorkoutPlanDetailView(program: plan, isCreateMode: true),
+      ),
+    );
+    if (result != null && mounted) {
+      context.read<SaveWorkoutPlanCubit>().savePlan(result);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 20.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  color: AppColors.textPrimary,
-                  size: 20.sp,
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'My Workout plans',
-                style: AppTextStyles.semiBold15(context).copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<SaveWorkoutPlanCubit, SaveWorkoutPlanState>(
+          listener: (context, state) {
+            switch (state) {
+              case SaveWorkoutPlanLoading():
+                break;
+              case SaveWorkoutPlanSuccess():
+                context.read<WorkoutTemplatesCubit>().refresh();
+              case SaveWorkoutPlanError(:final message):
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(message), backgroundColor: Colors.red),
+                );
+              case SaveWorkoutPlanIdle():
+                break;
+            }
+          },
         ),
-        SizedBox(height: 4.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Text(
-            'Your program Templates Library',
-            style: AppTextStyles.meduim12(context).copyWith(
-              color: AppColors.textSecondary,
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 20.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: AppColors.textPrimary,
+                    size: 20.sp,
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  'My Workout plans',
+                  style: AppTextStyles.semiBold15(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
+                ),
+              ],
             ),
           ),
-        ),
-        SizedBox(height: 16.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Row(
-            children: [
-              Expanded(
-                child: _SearchBar(
-                  controller: _searchController,
-                  hint: 'Search Templates..',
-                  onChanged: (v) => setState(() => _query = v),
-                ),
-              ),
-              SizedBox(width: 10.w),
-              _CreateButton(onTap: _createNewPlan),
-            ],
-          ),
-        ),
-        SizedBox(height: 14.h),
-        SizedBox(
-          height: 36.h,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
+          SizedBox(height: 4.h),
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w),
-            itemCount: _categories.length,
-            separatorBuilder: (_, _) => SizedBox(width: 8.w),
-            itemBuilder: (context, index) {
-              final cat = _categories[index];
-              final isSelected = cat == _selectedCategory;
-              return _CategoryChip(
-                label: cat,
-                isSelected: isSelected,
-                onTap: () => setState(() => _selectedCategory = cat),
-              );
-            },
+            child: Text(
+              'Your program Templates Library',
+              style: AppTextStyles.meduim12(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
+            ),
           ),
-        ),
-        SizedBox(height: 14.h),
-        Expanded(
-          child: BlocBuilder<WorkoutTemplatesCubit, WorkoutTemplatesState>(
-            builder: (context, state) => switch (state) {
-              WorkoutTemplatesInitial() ||
-              WorkoutTemplatesLoading() =>
-                const Center(child: CircularProgressIndicator()),
-              WorkoutTemplatesError(:final message) => Center(
+          SizedBox(height: 16.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SearchBar(
+                    controller: _searchController,
+                    hint: 'Search Templates..',
+                    onChanged: (v) => setState(() => _query = v),
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                _CreateButton(onTap: _createNewPlan),
+              ],
+            ),
+          ),
+          SizedBox(height: 14.h),
+          SizedBox(
+            height: 36.h,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              itemCount: _categories.length,
+              separatorBuilder: (_, _) => SizedBox(width: 8.w),
+              itemBuilder: (context, index) {
+                final cat = _categories[index];
+                final isSelected = cat == _selectedCategory;
+                return _CategoryChip(
+                  label: cat,
+                  isSelected: isSelected,
+                  onTap: () => setState(() => _selectedCategory = cat),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 14.h),
+          Expanded(
+            child: BlocBuilder<WorkoutTemplatesCubit, WorkoutTemplatesState>(
+              builder: (context, state) => switch (state) {
+                WorkoutTemplatesInitial() || WorkoutTemplatesLoading() =>
+                  const Center(child: CircularProgressIndicator()),
+                WorkoutTemplatesError(:final message) => Center(
                   child: Padding(
                     padding: EdgeInsets.all(20.w),
                     child: Column(
@@ -220,9 +244,9 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                         Text(
                           message,
                           textAlign: TextAlign.center,
-                          style: AppTextStyles.medium14(context).copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: AppTextStyles.medium14(
+                            context,
+                          ).copyWith(color: AppColors.textSecondary),
                         ),
                         SizedBox(height: 12.h),
                         TextButton(
@@ -234,16 +258,15 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                     ),
                   ),
                 ),
-              WorkoutTemplatesLoaded(:final items) => () {
-                  final programs =
-                      _filtered(items).map(_toProgram).toList();
+                WorkoutTemplatesLoaded(:final items) => () {
+                  final programs = _filtered(items).map(_toProgram).toList();
                   if (programs.isEmpty) {
                     return Center(
                       child: Text(
                         'No programs found',
-                        style: AppTextStyles.medium14(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                     );
                   }
@@ -253,107 +276,51 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                     child: ListView.separated(
                       physics: const BouncingScrollPhysics(),
                       padding: EdgeInsets.symmetric(
-                          horizontal: 20.w, vertical: 4.h),
+                        horizontal: 20.w,
+                        vertical: 4.h,
+                      ),
                       itemCount: programs.length,
                       separatorBuilder: (_, _) => SizedBox(height: 12.h),
                       itemBuilder: (context, index) {
                         final program = programs[index];
-                        final color =
-                            _iconColors[index % _iconColors.length];
+                        final color = _iconColors[index % _iconColors.length];
                         return _ProgramCard(
                           program: program,
                           iconColor: color,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  WorkoutPlanDetailView(program: program),
-                            ),
-                          ),
+                          onTap: () async {
+                            final navigator = Navigator.of(context);
+                            final templatesCubit = context
+                                .read<WorkoutTemplatesCubit>();
+                            final changed = await navigator.push<bool>(
+                              MaterialPageRoute(
+                                builder: (_) => BlocProvider.value(
+                                  value: templatesCubit,
+                                  child: WorkoutPlanDetailView(
+                                    program: program,
+                                  ),
+                                ),
+                              ),
+                            );
+                            if ((changed ?? false) && context.mounted) {
+                              context.read<WorkoutTemplatesCubit>().refresh();
+                            }
+                          },
                         );
                       },
                     ),
                   );
                 }(),
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Owns its controllers so they are disposed with the dialog route itself —
-/// never dispose a dialog's controller right after `await showDialog`,
-/// the exit animation still paints its TextFields.
-class _CreateTemplateDialog extends StatefulWidget {
-  const _CreateTemplateDialog();
-
-  @override
-  State<_CreateTemplateDialog> createState() => _CreateTemplateDialogState();
-}
-
-class _CreateTemplateDialogState extends State<_CreateTemplateDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _descController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController();
-    _descController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.cardBackground,
-      title: Text(
-        'Create Workout Template',
-        style: AppTextStyles.semiBold14(context)
-            .copyWith(color: AppColors.textPrimary),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(hintText: 'Title'),
-          ),
-          SizedBox(height: 8.h),
-          TextField(
-            controller: _descController,
-            decoration: const InputDecoration(hintText: 'Description'),
+              },
+            ),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            final title = _titleController.text.trim();
-            final desc = _descController.text.trim();
-            if (title.isEmpty || desc.isEmpty) return;
-            Navigator.pop(context, (title, desc));
-          },
-          child: const Text('Create'),
-        ),
-      ],
     );
   }
 }
 
-class _SearchBar extends StatelessWidget {  const _SearchBar({
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({
     required this.controller,
     required this.hint,
     required this.onChanged,
@@ -374,12 +341,14 @@ class _SearchBar extends StatelessWidget {  const _SearchBar({
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: AppTextStyles.medium14(context)
-            .copyWith(color: AppColors.textPrimary),
+        style: AppTextStyles.medium14(
+          context,
+        ).copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: AppTextStyles.medium14(context)
-              .copyWith(color: AppColors.textSecondary),
+          hintStyle: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
           prefixIcon: Icon(
             Icons.search,
             color: AppColors.textSecondary,
@@ -415,9 +384,9 @@ class _CreateButton extends StatelessWidget {
             SizedBox(width: 4.w),
             Text(
               'Create New Plan',
-              style: AppTextStyles.meduim12(context).copyWith(
-                color: Colors.white,
-              ),
+              style: AppTextStyles.meduim12(
+                context,
+              ).copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -491,10 +460,7 @@ class _ProgramCard extends StatelessWidget {
                 color: iconColor,
                 borderRadius: BorderRadius.circular(14.r),
               ),
-              child: SvgPicture.asset(
-                program.iconAsset,
-                fit: BoxFit.contain,
-              ),
+              child: SvgPicture.asset(program.iconAsset, fit: BoxFit.contain),
             ),
             SizedBox(width: 14.w),
             Expanded(
@@ -506,9 +472,9 @@ class _ProgramCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           program.name.isEmpty ? 'Unnamed Plan' : program.name,
-                          style: AppTextStyles.semiBold14(context).copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                          style: AppTextStyles.semiBold14(
+                            context,
+                          ).copyWith(color: AppColors.textPrimary),
                         ),
                       ),
                       SizedBox(width: 8.w),
@@ -526,22 +492,22 @@ class _ProgramCard extends StatelessWidget {
                       SizedBox(width: 4.w),
                       Text(
                         program.splitType,
-                        style: AppTextStyles.meduim12(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                       Text(
                         '  •  ',
-                        style: AppTextStyles.meduim12(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                       Expanded(
                         child: Text(
                           program.updatedAgo,
-                          style: AppTextStyles.meduim12(context).copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: AppTextStyles.meduim12(
+                            context,
+                          ).copyWith(color: AppColors.textSecondary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -551,16 +517,16 @@ class _ProgramCard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        Icons.person_outline,
+                        Icons.fitness_center,
                         color: AppColors.textSecondary,
                         size: 12.sp,
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        'Used by ${program.clientCount} clients',
-                        style: AppTextStyles.meduim12(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        '${program.totalExercises} Exercises',
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -580,14 +546,14 @@ class _CategoryBadge extends StatelessWidget {
   final String category;
 
   Color get _color => switch (category) {
-        'Strength' => const Color(0xFF7B4FE8),
-        'Fat loss' => const Color(0xFF7B4FE8),
-        'Boxing' => const Color(0xFFD4752A),
-        'Mobility' => const Color(0xFF2E6DB4),
-        'Custom' => const Color(0xFFB22A4A),
-        'Vegan' => const Color(0xFF2E8A4A),
-        _ => AppColors.primaryBlue,
-      };
+    'Strength' => const Color(0xFF7B4FE8),
+    'Fat loss' => const Color(0xFF7B4FE8),
+    'Boxing' => const Color(0xFFD4752A),
+    'Mobility' => const Color(0xFF2E6DB4),
+    'Custom' => const Color(0xFFB22A4A),
+    'Vegan' => const Color(0xFF2E8A4A),
+    _ => AppColors.primaryBlue,
+  };
 
   @override
   Widget build(BuildContext context) {

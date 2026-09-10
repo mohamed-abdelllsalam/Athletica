@@ -430,8 +430,8 @@ void setupDependencies() {
   sl.registerFactory(() => MyPlanDetailsCubit(sl(), sl()));
   sl.registerFactory(() => CoachHomeStatsCubit(sl()));
   sl.registerFactory(() => FoodsCubit(sl(), sl()));
-  sl.registerFactory(() => CoachPlanOverviewCubit(sl(), sl()));
-  sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => CoachPlanOverviewCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => WorkoutTemplatesListCubit(sl()));
   // Keep-alive so reopening the plans list shows cached data and only
   // revalidates in the background.

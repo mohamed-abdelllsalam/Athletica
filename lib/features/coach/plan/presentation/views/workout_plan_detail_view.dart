@@ -22,23 +22,27 @@ class WorkoutPlanDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) =>
-              sl<WorkoutTemplateDetailCubit>()..load(program.id),
-        ),
-        BlocProvider(create: (_) => sl<CoachClientsCubit>()..loadClients()),
-        BlocProvider(create: (_) => sl<WorkoutPlansCubit>()),
-      ],
-      child: Scaffold(
-        backgroundColor: AppColors.primaryAppColor,
-        body: SafeArea(
-          child: WorkoutPlanDetailViewBody(
-            program: program,
-            isCreateMode: isCreateMode,
-          ),
-        ),
+    return Scaffold(
+      backgroundColor: AppColors.primaryAppColor,
+      body: SafeArea(
+        child: isCreateMode
+            ? WorkoutPlanDetailViewBody(program: program, isCreateMode: true)
+            : MultiBlocProvider(
+                providers: [
+                  BlocProvider(
+                    create: (_) =>
+                        sl<WorkoutTemplateDetailCubit>()..load(program.id),
+                  ),
+                  BlocProvider(
+                    create: (_) => sl<CoachClientsCubit>()..loadClients(),
+                  ),
+                  BlocProvider(create: (_) => sl<WorkoutPlansCubit>()),
+                ],
+                child: WorkoutPlanDetailViewBody(
+                  program: program,
+                  isCreateMode: false,
+                ),
+              ),
       ),
     );
   }

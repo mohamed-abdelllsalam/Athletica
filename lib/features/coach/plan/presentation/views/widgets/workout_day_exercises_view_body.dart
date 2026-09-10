@@ -7,9 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class WorkoutDayExercisesViewBody extends StatefulWidget {
-  const WorkoutDayExercisesViewBody({super.key, required this.day});
+  const WorkoutDayExercisesViewBody({
+    super.key,
+    required this.day,
+    this.isCreateMode = false,
+  });
 
   final ProgramDay day;
+  final bool isCreateMode;
 
   @override
   State<WorkoutDayExercisesViewBody> createState() =>
@@ -23,13 +28,87 @@ class _WorkoutDayExercisesViewBodyState
   late List<ProgramExercise> _exercises;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  late TextEditingController _nameController;
+  bool _nameHasError = false;
   String _query = '';
+
+  // Baseline snapshot used to detect unsaved edits.
+  late String _initialName;
+  late String _initialExercisesSignature;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _exercises = List.from(widget.day.exercises);
+    _nameController = TextEditingController(text: widget.day.name);
+    _initialName = widget.day.name.trim();
+    _initialExercisesSignature = _exercisesSignature;
+    _nameController.addListener(() {
+      if (_nameHasError && _nameController.text.trim().isNotEmpty) {
+        setState(() => _nameHasError = false);
+      }
+    });
+  }
+
+  String get _exercisesSignature => _exercises.map((e) => e.id).join('|');
+
+  bool get _isDirty =>
+      _nameController.text.trim() != _initialName ||
+      _exercisesSignature != _initialExercisesSignature;
+
+  /// Leaving flow for unsaved edits: Save and exit, or Discard.
+  Future<void> _exitWithResolution() async {
+    FocusScope.of(context).unfocus();
+    if (!_isDirty) {
+      Navigator.pop(context);
+      return;
+    }
+    final action = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: Text(
+          'Unsaved changes',
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Do you want to save your changes before leaving?',
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'saveExit'),
+            child: Text(
+              'Save and exit',
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.primaryBlue),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'discard'),
+            child: Text(
+              'Discard',
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'saveExit':
+        _saveAndExit();
+      case 'discard':
+        Navigator.pop(context);
+    }
   }
 
   @override
@@ -37,13 +116,68 @@ class _WorkoutDayExercisesViewBodyState
     _tabController.dispose();
     _searchController.dispose();
     _noteController.dispose();
+    _nameController.dispose();
     super.dispose();
+  }
+
+  void _saveAndExit() {
+    if (widget.isCreateMode && _nameController.text.trim().isEmpty) {
+      setState(() => _nameHasError = true);
+      return;
+    }
+    Navigator.pop(context, (
+      exercises: List<ProgramExercise>.from(_exercises),
+      name: widget.isCreateMode ? _nameController.text.trim() : widget.day.name,
+      deleted: false,
+    ));
+  }
+
+  Future<void> _confirmDeleteDay() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          'Delete day?',
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Remove "${_nameController.text.trim()}" and its exercises?',
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    Navigator.pop(context, (
+      exercises: <ProgramExercise>[],
+      name: '',
+      deleted: true,
+    ));
   }
 
   List<ProgramExercise> get _filtered {
     if (_query.isEmpty) return _exercises;
+    final q = _query.toLowerCase();
+    // Bilingual label covers both languages in one check.
     return _exercises
-        .where((e) => e.name.toLowerCase().contains(_query.toLowerCase()))
+        .where((e) => e.displayName.toLowerCase().contains(q))
         .toList();
   }
 
@@ -62,29 +196,33 @@ class _WorkoutDayExercisesViewBodyState
         ),
         title: Text(
           'Clear All Exercises',
-          style: AppTextStyles.semiBold14(context)
-              .copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.semiBold14(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
         ),
         content: Text(
           'Remove all exercises from this day?',
-          style: AppTextStyles.medium14(context)
-              .copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               'Clear',
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: Colors.redAccent),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: Colors.redAccent),
             ),
           ),
         ],
@@ -123,7 +261,14 @@ class _WorkoutDayExercisesViewBodyState
     if (result != null && result.isNotEmpty) {
       setState(() {
         for (final lib in result) {
-          _exercises.add(ProgramExercise(id: lib.id, name: lib.name));
+          _exercises.add(
+            ProgramExercise(
+              id: lib.id,
+              name: lib.name,
+              nameEn: lib.nameEn,
+              nameAr: lib.nameAr,
+            ),
+          );
         }
       });
     }
@@ -131,106 +276,162 @@ class _WorkoutDayExercisesViewBodyState
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(height: 20.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Icon(
-                Icons.arrow_back_ios_new,
-                color: AppColors.textPrimary,
-                size: 20.sp,
-              ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _exitWithResolution();
+      },
+      child: Column(
+        children: [
+          SizedBox(height: 20.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: _exitWithResolution,
+                  child: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: AppColors.textPrimary,
+                    size: 20.sp,
+                  ),
+                ),
+                const Spacer(),
+                if (widget.isCreateMode)
+                  GestureDetector(
+                    onTap: _confirmDeleteDay,
+                    child: Container(
+                      width: 32.r,
+                      height: 32.r,
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Icon(
+                        Icons.delete_outline,
+                        color: const Color(0xFFFF5252),
+                        size: 16.sp,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          'Day ${widget.day.dayNumber}',
-          style: AppTextStyles.medium14(context).copyWith(
-            color: AppColors.textSecondary,
+          SizedBox(height: 12.h),
+          Text(
+            'Day ${widget.day.dayNumber}',
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textSecondary),
           ),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          widget.day.name,
-          style: AppTextStyles.bold24(context).copyWith(
-            color: AppColors.textPrimary,
-            fontSize: 22.sp,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Container(
-          margin: EdgeInsets.symmetric(horizontal: 20.w),
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(30.r),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.calendar_today_outlined,
-                  color: AppColors.textSecondary, size: 14.sp),
-              SizedBox(width: 6.w),
-              Text(
-                '${_exercises.length} Exercises',
-                style: AppTextStyles.meduim12(context).copyWith(
-                  color: AppColors.textSecondary,
+          SizedBox(height: 2.h),
+          if (widget.isCreateMode)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: TextField(
+                controller: _nameController,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bold24(
+                  context,
+                ).copyWith(color: AppColors.textPrimary, fontSize: 22.sp),
+                decoration: InputDecoration(
+                  hintText: 'Day name',
+                  hintStyle: AppTextStyles.bold24(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary, fontSize: 22.sp),
+                  errorText: _nameHasError ? 'Required' : null,
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
-              SizedBox(width: 12.w),
-              Icon(Icons.timer_outlined,
-                  color: AppColors.textSecondary, size: 14.sp),
-              SizedBox(width: 4.w),
-              Text(
-                '• ${widget.day.durationMinutes} min',
-                style: AppTextStyles.meduim12(context).copyWith(
+            )
+          else
+            Text(
+              widget.day.name,
+              style: AppTextStyles.bold24(
+                context,
+              ).copyWith(color: AppColors.textPrimary, fontSize: 22.sp),
+            ),
+          SizedBox(height: 12.h),
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(30.r),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
                   color: AppColors.textSecondary,
+                  size: 14.sp,
                 ),
-              ),
-            ],
+                SizedBox(width: 6.w),
+                Text(
+                  '${_exercises.length} Exercises',
+                  style: AppTextStyles.meduim12(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
+                ),
+                SizedBox(width: 12.w),
+                Icon(
+                  Icons.timer_outlined,
+                  color: AppColors.textSecondary,
+                  size: 14.sp,
+                ),
+                SizedBox(width: 4.w),
+                Text(
+                  '• ${widget.day.durationMinutes} min',
+                  style: AppTextStyles.meduim12(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
           ),
-        ),
-        SizedBox(height: 14.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: TabBar(
-            controller: _tabController,
-            indicatorColor: AppColors.buttonColor,
-            indicatorWeight: 2,
-            labelStyle: AppTextStyles.semiBold14(context),
-            unselectedLabelStyle: AppTextStyles.medium14(context),
-            labelColor: AppColors.buttonColor,
-            unselectedLabelColor: AppColors.textSecondary,
-            tabs: const [Tab(text: 'Exercises'), Tab(text: 'Note')],
+          SizedBox(height: 14.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.buttonColor,
+              indicatorWeight: 2,
+              labelStyle: AppTextStyles.semiBold14(context),
+              unselectedLabelStyle: AppTextStyles.medium14(context),
+              labelColor: AppColors.buttonColor,
+              unselectedLabelColor: AppColors.textSecondary,
+              tabs: const [
+                Tab(text: 'Exercises'),
+                Tab(text: 'Note'),
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _ExercisesTab(
-                searchController: _searchController,
-                exercises: _filtered,
-                allExercises: _exercises,
-                query: _query,
-                onQueryChanged: (v) => setState(() => _query = v),
-                onEdit: _showEditDialog,
-                onDelete: _removeExercise,
-                onSave: () => Navigator.pop(context, _exercises),
-                onOpenPicker: _openExercisePicker,
-                onClearAll: _clearAllExercises,
-              ),
-              _NoteTab(controller: _noteController),
-            ],
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _ExercisesTab(
+                  searchController: _searchController,
+                  exercises: _filtered,
+                  allExercises: _exercises,
+                  query: _query,
+                  onQueryChanged: (v) => setState(() => _query = v),
+                  onEdit: _showEditDialog,
+                  onDelete: _removeExercise,
+                  onSave: _saveAndExit,
+                  onOpenPicker: _openExercisePicker,
+                  onClearAll: _clearAllExercises,
+                ),
+                _NoteTab(controller: _noteController),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -280,14 +481,19 @@ class _ExercisesTab extends StatelessWidget {
                   child: TextField(
                     controller: searchController,
                     onChanged: onQueryChanged,
-                    style: AppTextStyles.medium14(context)
-                        .copyWith(color: AppColors.textPrimary),
+                    style: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Search',
-                      hintStyle: AppTextStyles.medium14(context)
-                          .copyWith(color: AppColors.textSecondary),
-                      prefixIcon: Icon(Icons.search,
-                          color: AppColors.textSecondary, size: 20.sp),
+                      hintStyle: AppTextStyles.medium14(
+                        context,
+                      ).copyWith(color: AppColors.textSecondary),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                        size: 20.sp,
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 12.h),
                     ),
@@ -334,8 +540,9 @@ class _ExercisesTab extends StatelessWidget {
                     padding: EdgeInsets.only(top: 40.h),
                     child: Text(
                       'No exercises found',
-                      style: AppTextStyles.medium14(context)
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.medium14(
+                        context,
+                      ).copyWith(color: AppColors.textSecondary),
                     ),
                   ),
                 );
@@ -368,9 +575,9 @@ class _ExercisesTab extends StatelessWidget {
               ),
               child: Text(
                 'Save Changes',
-                style: AppTextStyles.semiBold14(context).copyWith(
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.semiBold14(
+                  context,
+                ).copyWith(color: Colors.white),
               ),
             ),
           ),
@@ -404,14 +611,17 @@ class _AddExerciseTile extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline,
-                color: AppColors.buttonColor, size: 20.sp),
+            Icon(
+              Icons.add_circle_outline,
+              color: AppColors.buttonColor,
+              size: 20.sp,
+            ),
             SizedBox(width: 8.w),
             Text(
               'Add Exercise',
-              style: AppTextStyles.semiBold14(context).copyWith(
-                color: AppColors.buttonColor,
-              ),
+              style: AppTextStyles.semiBold14(
+                context,
+              ).copyWith(color: AppColors.buttonColor),
             ),
           ],
         ),
@@ -447,18 +657,21 @@ class _ExerciseCard extends StatelessWidget {
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              exercise.name,
-              style: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textPrimary,
-              ),
+              exercise.displayName,
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           GestureDetector(
             onTap: onEdit,
-            child: Icon(Icons.edit_outlined,
-                color: AppColors.textSecondary, size: 20.sp),
+            child: Icon(
+              Icons.edit_outlined,
+              color: AppColors.textSecondary,
+              size: 20.sp,
+            ),
           ),
           SizedBox(width: 12.w),
           GestureDetector(
@@ -487,9 +700,9 @@ class _NoteTab extends StatelessWidget {
         children: [
           Text(
             'Write Note',
-            style: AppTextStyles.semiBold14(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
+            style: AppTextStyles.semiBold14(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
           SizedBox(height: 10.h),
           Expanded(
@@ -503,14 +716,14 @@ class _NoteTab extends StatelessWidget {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                style: AppTextStyles.medium14(context).copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Type Your Note !',
-                  hintStyle: AppTextStyles.medium14(context).copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                  hintStyle: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(14.r),
                 ),
@@ -531,9 +744,9 @@ class _NoteTab extends StatelessWidget {
               ),
               child: Text(
                 'Submit',
-                style: AppTextStyles.medium14(context).copyWith(
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: Colors.white),
               ),
             ),
           ),
@@ -593,10 +806,10 @@ class _EditExerciseSheetState extends State<_EditExerciseSheet> {
             ),
             SizedBox(height: 12.h),
             Text(
-              widget.exercise.name,
-              style: AppTextStyles.semiBold14(context).copyWith(
-                color: AppColors.textPrimary,
-              ),
+              widget.exercise.displayName,
+              style: AppTextStyles.semiBold14(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
             ),
             SizedBox(height: 16.h),
             Row(
@@ -635,9 +848,9 @@ class _EditExerciseSheetState extends State<_EditExerciseSheet> {
             SizedBox(height: 14.h),
             Text(
               'Note',
-              style: AppTextStyles.semiBold14(context).copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.semiBold14(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
             ),
             SizedBox(height: 8.h),
             Container(
@@ -648,15 +861,19 @@ class _EditExerciseSheetState extends State<_EditExerciseSheet> {
               ),
               child: TextField(
                 controller: _noteController,
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Optional note…',
-                  hintStyle: AppTextStyles.medium14(context)
-                      .copyWith(color: AppColors.textSecondary),
+                  hintStyle: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                   border: InputBorder.none,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 16.h,
+                  ),
                 ),
               ),
             ),
@@ -674,9 +891,9 @@ class _EditExerciseSheetState extends State<_EditExerciseSheet> {
                 ),
                 child: Text(
                   'Save',
-                  style: AppTextStyles.semiBold14(context).copyWith(
-                    color: Colors.white,
-                  ),
+                  style: AppTextStyles.semiBold14(
+                    context,
+                  ).copyWith(color: Colors.white),
                 ),
               ),
             ),
@@ -713,9 +930,9 @@ class _FieldWithLabel extends StatelessWidget {
             SizedBox(width: 4.w),
             Text(
               label,
-              style: AppTextStyles.meduim12(context).copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTextStyles.meduim12(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -729,15 +946,19 @@ class _FieldWithLabel extends StatelessWidget {
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
-            style: AppTextStyles.medium14(context)
-                .copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.medium14(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textTertiary),
+              hintStyle: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textTertiary),
               border: InputBorder.none,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 10.w,
+                vertical: 10.h,
+              ),
             ),
           ),
         ),

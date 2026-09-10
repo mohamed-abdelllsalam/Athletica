@@ -24,6 +24,11 @@ class CoachPlanViewBody extends StatelessWidget {
               nutritionPlans.toString(),
             _ => '--',
           };
+          final workoutCount = switch (state) {
+            CoachPlanOverviewLoaded(:final workoutPrograms) =>
+              workoutPrograms.toString(),
+            _ => '--',
+          };
           final activeClientsCount = switch (state) {
             CoachPlanOverviewLoaded(:final activeClients) =>
               activeClients.toString(),
@@ -39,37 +44,43 @@ class CoachPlanViewBody extends StatelessWidget {
                 SizedBox(height: 28.h),
                 Text(
                   'My plans',
-                  style: AppTextStyles.bold24(context).copyWith(
-                    color: AppColors.textPrimary,
-                    fontSize: 28.sp,
-                  ),
+                  style: AppTextStyles.bold24(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary, fontSize: 28.sp),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   'Choose What to manage',
-                  style: AppTextStyles.medium14(context).copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                 ),
                 SizedBox(height: 24.h),
                 _PlanTypeCard(
                   title: 'Workout',
                   subtitle: 'Workouts & programs',
                   stat1Label: 'Programs',
-                  stat1Value: '12',
+                  stat1Value: workoutCount,
                   stat2Label: 'Active clients',
-                  stat2Value: '21',
+                  stat2Value: activeClientsCount,
                   iconAsset: 'assets/images/plan/workout_icon.svg',
                   gradient: const LinearGradient(
                     colors: [Color(0xFF7B4FE8), Color(0xFF2E3A8C)],
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                   ),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const WorkoutPlansListView()),
-                  ),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const WorkoutPlansListView(),
+                      ),
+                    );
+                    // Revalidate the totals after any add/edit on return.
+                    if (context.mounted) {
+                      context.read<CoachPlanOverviewCubit>().load();
+                    }
+                  },
                 ),
                 SizedBox(height: 20.h),
                 _PlanTypeCard(
@@ -89,7 +100,8 @@ class CoachPlanViewBody extends StatelessWidget {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const NutritionPlansListView()),
+                        builder: (_) => const NutritionPlansListView(),
+                      ),
                     );
                     // Revalidate the totals after any add/edit on return.
                     if (context.mounted) {
@@ -102,8 +114,9 @@ class CoachPlanViewBody extends StatelessWidget {
                   Text(
                     state.message,
                     textAlign: TextAlign.center,
-                    style: AppTextStyles.meduim12(context)
-                        .copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.meduim12(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
                   ),
                 ],
                 SizedBox(height: 32.h),
@@ -165,10 +178,7 @@ class _PlanTypeCard extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(14.r),
                   ),
-                  child: SvgPicture.asset(
-                    iconAsset,
-                    fit: BoxFit.contain,
-                  ),
+                  child: SvgPicture.asset(iconAsset, fit: BoxFit.contain),
                 ),
                 const Spacer(),
                 Container(
@@ -189,17 +199,16 @@ class _PlanTypeCard extends StatelessWidget {
             SizedBox(height: 24.h),
             Text(
               title,
-              style: AppTextStyles.bold24(context).copyWith(
-                color: Colors.white,
-                fontSize: 22.sp,
-              ),
+              style: AppTextStyles.bold24(
+                context,
+              ).copyWith(color: Colors.white, fontSize: 22.sp),
             ),
             SizedBox(height: 4.h),
             Text(
               subtitle,
-              style: AppTextStyles.medium14(context).copyWith(
-                color: Colors.white.withValues(alpha: 0.85),
-              ),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: Colors.white.withValues(alpha: 0.85)),
             ),
             SizedBox(height: 14.h),
             Row(
@@ -241,9 +250,9 @@ class _StatItem extends StatelessWidget {
               ),
         Text(
           label,
-          style: AppTextStyles.meduim12(context).copyWith(
-            color: Colors.white.withValues(alpha: 0.75),
-          ),
+          style: AppTextStyles.meduim12(
+            context,
+          ).copyWith(color: Colors.white.withValues(alpha: 0.75)),
         ),
       ],
     );

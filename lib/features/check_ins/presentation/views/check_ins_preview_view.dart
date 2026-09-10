@@ -30,15 +30,6 @@ class _ClientPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CheckInPage(
     title: 'Your Check-in',
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute<void>(builder: (_) => const CheckInsPreviewView()),
-        ),
-        child: const Text('Coach preview'),
-      ),
-    ],
     child: BlocBuilder<CheckInsCubit, CheckInsState>(
       builder: (context, state) => switch (state) {
         CheckInsLoading() => const Center(child: CircularProgressIndicator()),
@@ -123,16 +114,6 @@ class _CoachListState extends State<CheckInCoachList> {
   Widget build(BuildContext context) => CheckInPage(
     title: 'Check-Ins',
     actions: [
-      TextButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute<void>(
-            builder: (_) =>
-                const CheckInsPreviewView(role: CheckInPreviewRole.client),
-          ),
-        ),
-        child: const Text('Client preview'),
-      ),
       BlocBuilder<CheckInsCubit, CheckInsState>(
         builder: (context, state) => IconButton(
           tooltip: 'Edit questions',
