@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/exercise_library_picker_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/exercise_thumbnail.dart';
@@ -34,6 +35,7 @@ class _WorkoutDayExercisesViewBodyState
 
   // Baseline snapshot used to detect unsaved edits.
   late String _initialName;
+  late String _initialNote;
   late String _initialExercisesSignature;
 
   @override
@@ -42,7 +44,9 @@ class _WorkoutDayExercisesViewBodyState
     _tabController = TabController(length: 2, vsync: this);
     _exercises = List.from(widget.day.exercises);
     _nameController = TextEditingController(text: widget.day.name);
+    _noteController.text = widget.day.note;
     _initialName = widget.day.name.trim();
+    _initialNote = widget.day.note.trim();
     _initialExercisesSignature = _exercisesSignature;
     _nameController.addListener(() {
       if (_nameHasError && _nameController.text.trim().isNotEmpty) {
@@ -55,6 +59,7 @@ class _WorkoutDayExercisesViewBodyState
 
   bool get _isDirty =>
       _nameController.text.trim() != _initialName ||
+      _noteController.text.trim() != _initialNote ||
       _exercisesSignature != _initialExercisesSignature;
 
   /// Leaving flow for unsaved edits: Save and exit, or Discard.
@@ -128,6 +133,7 @@ class _WorkoutDayExercisesViewBodyState
     Navigator.pop(context, (
       exercises: List<ProgramExercise>.from(_exercises),
       name: widget.isCreateMode ? _nameController.text.trim() : widget.day.name,
+      note: _noteController.text.trim(),
       deleted: false,
     ));
   }
@@ -168,6 +174,7 @@ class _WorkoutDayExercisesViewBodyState
     Navigator.pop(context, (
       exercises: <ProgramExercise>[],
       name: '',
+      note: '',
       deleted: true,
     ));
   }
@@ -237,18 +244,6 @@ class _WorkoutDayExercisesViewBodyState
     }
   }
 
-  void _showEditDialog(ProgramExercise exercise) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.cardBackground,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (_) => _EditExerciseSheet(exercise: exercise),
-    );
-  }
-
   Future<void> _openExercisePicker() async {
     final result = await Navigator.push<List<LibraryExercise>>(
       context,
@@ -267,6 +262,9 @@ class _WorkoutDayExercisesViewBodyState
               name: lib.name,
               nameEn: lib.nameEn,
               nameAr: lib.nameAr,
+              thumbnailUrl: lib.thumbnailUrl,
+              videoUrlMale: lib.videoUrlMale,
+              videoUrlFemale: lib.videoUrlFemale,
             ),
           );
         }
@@ -420,13 +418,12 @@ class _WorkoutDayExercisesViewBodyState
                   allExercises: _exercises,
                   query: _query,
                   onQueryChanged: (v) => setState(() => _query = v),
-                  onEdit: _showEditDialog,
                   onDelete: _removeExercise,
                   onSave: _saveAndExit,
                   onOpenPicker: _openExercisePicker,
                   onClearAll: _clearAllExercises,
                 ),
-                _NoteTab(controller: _noteController),
+                _NoteTab(controller: _noteController, onSubmit: _saveAndExit),
               ],
             ),
           ),
@@ -445,7 +442,6 @@ class _ExercisesTab extends StatelessWidget {
     required this.allExercises,
     required this.query,
     required this.onQueryChanged,
-    required this.onEdit,
     required this.onDelete,
     required this.onSave,
     required this.onOpenPicker,
@@ -457,7 +453,6 @@ class _ExercisesTab extends StatelessWidget {
   final List<ProgramExercise> allExercises;
   final String query;
   final ValueChanged<String> onQueryChanged;
-  final ValueChanged<ProgramExercise> onEdit;
   final ValueChanged<ProgramExercise> onDelete;
   final VoidCallback onSave;
   final VoidCallback onOpenPicker;
@@ -554,7 +549,6 @@ class _ExercisesTab extends StatelessWidget {
               final exercise = exercises[index];
               return _ExerciseCard(
                 exercise: exercise,
-                onEdit: () => onEdit(exercise),
                 onDelete: () => onDelete(exercise),
               );
             },
@@ -635,12 +629,10 @@ class _AddExerciseTile extends StatelessWidget {
 class _ExerciseCard extends StatelessWidget {
   const _ExerciseCard({
     required this.exercise,
-    required this.onEdit,
     required this.onDelete,
   });
 
   final ProgramExercise exercise;
-  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
@@ -653,7 +645,21 @@ class _ExerciseCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const ExerciseThumbnail(size: 64),
+          GestureDetector(
+            onTap: () => showExerciseVideoDialog(
+              context,
+              title: exercise.displayName,
+              videoUrl: resolveExerciseVideoUrl(
+                maleUrl: exercise.videoUrlMale,
+                femaleUrl: exercise.videoUrlFemale,
+              ),
+              thumbnailUrl: exercise.thumbnailUrl,
+            ),
+            child: ExerciseThumbnail(
+              size: 64,
+              thumbnailUrl: exercise.thumbnailUrl,
+            ),
+          ),
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
@@ -665,15 +671,6 @@ class _ExerciseCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          GestureDetector(
-            onTap: onEdit,
-            child: Icon(
-              Icons.edit_outlined,
-              color: AppColors.textSecondary,
-              size: 20.sp,
-            ),
-          ),
-          SizedBox(width: 12.w),
           GestureDetector(
             onTap: onDelete,
             child: Icon(Icons.delete_outline, color: Colors.red, size: 20.sp),
@@ -687,9 +684,10 @@ class _ExerciseCard extends StatelessWidget {
 // ── Note tab ──────────────────────────────────────────────────────────────────
 
 class _NoteTab extends StatelessWidget {
-  const _NoteTab({required this.controller});
+  const _NoteTab({required this.controller, required this.onSubmit});
 
   final TextEditingController controller;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -735,7 +733,7 @@ class _NoteTab extends StatelessWidget {
             width: double.infinity,
             height: 50.h,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: onSubmit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.buttonColor,
                 shape: RoundedRectangleBorder(
@@ -756,213 +754,3 @@ class _NoteTab extends StatelessWidget {
   }
 }
 
-// ── Edit exercise sheet ───────────────────────────────────────────────────────
-
-class _EditExerciseSheet extends StatefulWidget {
-  const _EditExerciseSheet({required this.exercise});
-
-  final ProgramExercise exercise;
-
-  @override
-  State<_EditExerciseSheet> createState() => _EditExerciseSheetState();
-}
-
-class _EditExerciseSheetState extends State<_EditExerciseSheet> {
-  final TextEditingController _repsController = TextEditingController();
-  final TextEditingController _setsController = TextEditingController();
-  final TextEditingController _restController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
-
-  @override
-  void dispose() {
-    _repsController.dispose();
-    _setsController.dispose();
-    _restController.dispose();
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 28.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceDark,
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              widget.exercise.displayName,
-              style: AppTextStyles.semiBold14(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-            SizedBox(height: 16.h),
-            Row(
-              children: [
-                Expanded(
-                  child: _FieldWithLabel(
-                    label: 'Reps',
-                    icon: Icons.list_alt_outlined,
-                    controller: _repsController,
-                    keyboardType: TextInputType.text,
-                    hint: '8-10',
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _FieldWithLabel(
-                    label: 'Sets',
-                    icon: Icons.repeat,
-                    controller: _setsController,
-                    keyboardType: TextInputType.number,
-                    hint: '3',
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _FieldWithLabel(
-                    label: 'Rest (s)',
-                    icon: Icons.timer_outlined,
-                    controller: _restController,
-                    keyboardType: TextInputType.number,
-                    hint: '60',
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 14.h),
-            Text(
-              'Note',
-              style: AppTextStyles.semiBold14(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-            SizedBox(height: 8.h),
-            Container(
-              height: 56.h,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: TextField(
-                controller: _noteController,
-                style: AppTextStyles.medium14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Optional note…',
-                  hintStyle: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.textSecondary),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 16.h,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.buttonColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: Text(
-                  'Save',
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FieldWithLabel extends StatelessWidget {
-  const _FieldWithLabel({
-    required this.label,
-    required this.icon,
-    required this.controller,
-    required this.hint,
-    this.keyboardType,
-  });
-
-  final String label;
-  final IconData icon;
-  final TextEditingController controller;
-  final String hint;
-  final TextInputType? keyboardType;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: AppColors.textSecondary, size: 14.sp),
-            SizedBox(width: 4.w),
-            Text(
-              label,
-              style: AppTextStyles.meduim12(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-        SizedBox(height: 6.h),
-        Container(
-          height: 40.h,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: AppTextStyles.medium14(
-              context,
-            ).copyWith(color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textTertiary),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 10.w,
-                vertical: 10.h,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}

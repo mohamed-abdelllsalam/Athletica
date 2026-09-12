@@ -1,3 +1,4 @@
+import 'package:athletica/core/network/api_pagination.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/workout/domain/entities/workout_exercise_entry.dart';
 import 'package:athletica/features/workout/domain/usecases/get_workout_exercises_usecase.dart';
@@ -12,6 +13,7 @@ class WorkoutExercisesCubit extends Cubit<WorkoutExercisesState> {
 
   final GetWorkoutExercisesUseCase _getExercises;
   WorkoutExerciseFilters _filters = const WorkoutExerciseFilters();
+  List<WorkoutExerciseEntry>? _fullCache;
 
   WorkoutExerciseFilters get filters => _filters;
 
@@ -33,6 +35,70 @@ class WorkoutExercisesCubit extends Cubit<WorkoutExercisesState> {
 
   Future<void> search(String query) =>
       load(filters: _filters.copyWith(search: query.isEmpty ? null : query, page: 1));
+
+  /// Full-library search across names, aliases and muscles — a superset of
+  /// the server `search` (which only covers names/aliases). Pages through
+  /// the whole catalog once per cubit lifetime, then filters in memory.
+  /// Optional [bodyPart] narrows further (exact match, case-insensitive).
+  /// Emits a single self-contained page, so `loadMore` safely no-ops after.
+  Future<void> searchLibrary(String query, {String? bodyPart}) async {
+    if (state is WorkoutExercisesLoading) return;
+    emit(const WorkoutExercisesLoading());
+
+    final all = await _ensureFullLibrary();
+    if (isClosed) return;
+    if (all == null) {
+      emit(const WorkoutExercisesError(
+        'Could not load the exercise library. Please try again.',
+      ));
+      return;
+    }
+    final items = all.where((e) {
+      if (bodyPart != null &&
+          e.bodyPart.toLowerCase() != bodyPart.toLowerCase()) {
+        return false;
+      }
+      return e.matchesQuery(query);
+    }).toList();
+    if (isClosed) return;
+    emit(
+      WorkoutExercisesLoaded(
+        items,
+        ApiPagination(
+          page: 1,
+          pageSize: items.length,
+          total: items.length,
+          totalPages: 1,
+        ),
+      ),
+    );
+  }
+
+  Future<List<WorkoutExerciseEntry>?> _ensureFullLibrary() async {
+    if (_fullCache != null) return _fullCache;
+    const pageSize = 100;
+    final all = <WorkoutExerciseEntry>[];
+    var page = 1;
+    while (page <= 20) {
+      final result = await _getExercises(
+        WorkoutExerciseFilters(page: page, pageSize: pageSize),
+      );
+      switch (result) {
+        case ApiSuccess(:final data):
+          all.addAll(data.items);
+          if (!data.pagination.hasMore) {
+            _fullCache = all;
+            return all;
+          }
+          page++;
+        case ApiError():
+          return null;
+      }
+      if (isClosed) return null;
+    }
+    _fullCache = all;
+    return all;
+  }
 
   Future<void> loadMore() async {
     final current = state;

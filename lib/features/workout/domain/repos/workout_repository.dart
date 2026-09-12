@@ -31,6 +31,7 @@ abstract class WorkoutRepository {
   Future<ApiResult<WorkoutTemplateEntry>> createTemplateDay(
     String templateId, {
     required String title,
+    String? note,
   });
   Future<ApiResult<WorkoutTemplateEntry>> updateTemplateDay(
     String templateId,
@@ -38,6 +39,7 @@ abstract class WorkoutRepository {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   });
   Future<ApiResult<WorkoutTemplateEntry>> deleteTemplateDay(
     String templateId,
@@ -97,6 +99,7 @@ abstract class WorkoutRepository {
   Future<ApiResult<WorkoutPlanEntry>> createPlanDay(
     String planId, {
     required String title,
+    String? note,
   });
   Future<ApiResult<WorkoutPlanEntry>> updatePlanDay(
     String planId,
@@ -104,6 +107,7 @@ abstract class WorkoutRepository {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   });
   Future<ApiResult<WorkoutPlanEntry>> deletePlanDay(
     String planId,
@@ -122,6 +126,7 @@ abstract class WorkoutRepository {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   });
   Future<ApiResult<WorkoutPlanEntry>> updatePlanExercise(
@@ -131,6 +136,7 @@ abstract class WorkoutRepository {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   });
   Future<ApiResult<WorkoutPlanEntry>> deletePlanExercise(

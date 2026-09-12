@@ -89,6 +89,7 @@ import 'package:athletica/features/coach/plan/domain/usecases/update_plan_food_u
 import 'package:athletica/features/coach/plan/domain/usecases/update_plan_meal_usecase.dart';
 import 'package:athletica/features/coach/plan/presentation/cubits/foods_cubit.dart';
 import 'package:athletica/features/coach/plan/presentation/cubits/coach_plan_overview_cubit.dart';
+import 'package:athletica/features/coach/plan/presentation/cubits/customize_workout_assignment_cubit.dart';
 import 'package:athletica/features/coach/workout_templates/data/datasources/workout_templates_remote_data_source.dart';
 import 'package:athletica/features/coach/workout_templates/data/repositories/workout_templates_repository_impl.dart';
 import 'package:athletica/features/coach/workout_templates/domain/repositories/workout_templates_repository.dart';
@@ -97,7 +98,6 @@ import 'package:athletica/features/coach/workout_templates/domain/usecases/creat
 import 'package:athletica/features/coach/workout_templates/domain/usecases/create_workout_template_usecase.dart';
 import 'package:athletica/features/coach/workout_templates/domain/usecases/get_workout_templates_usecase.dart';
 import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_cubit.dart';
-import 'package:athletica/features/coach/workout_templates/presentation/cubits/workout_templates_list_cubit.dart';
 import 'package:athletica/features/complete_profile/presentation/cubits/complete_profile_cubit.dart';
 import 'package:athletica/features/client_coach/data/datasources/client_coach_remote_data_source.dart';
 import 'package:athletica/features/client_coach/data/repositories/client_coach_repository_impl.dart';
@@ -432,7 +432,6 @@ void setupDependencies() {
   sl.registerFactory(() => FoodsCubit(sl(), sl()));
   sl.registerFactory(() => CoachPlanOverviewCubit(sl(), sl(), sl()));
   sl.registerFactory(() => SaveWorkoutPlanCubit(sl(), sl(), sl(), sl()));
-  sl.registerFactory(() => WorkoutTemplatesListCubit(sl()));
   // Keep-alive so reopening the plans list shows cached data and only
   // revalidates in the background.
   sl.registerLazySingleton<NutritionTemplatesListCubit>(
@@ -469,10 +468,10 @@ void setupDependencies() {
       sl(),
       sl(),
       sl(),
-      sl(),
     ),
   );
   sl.registerFactory(() => WorkoutPlansCubit(sl()));
+  sl.registerFactory(() => CustomizeWorkoutAssignmentCubit(sl(), sl()));
   sl.registerFactory(
     () => WorkoutPlanDetailCubit(sl(), sl(), sl(), sl(), sl(), sl()),
   );

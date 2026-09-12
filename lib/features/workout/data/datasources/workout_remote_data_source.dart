@@ -54,6 +54,7 @@ abstract class WorkoutRemoteDataSource {
   Future<WorkoutTemplateModel> createTemplateDay(
     String templateId, {
     required String title,
+    String? note,
   });
   Future<WorkoutTemplateModel> updateTemplateDay(
     String templateId,
@@ -61,6 +62,7 @@ abstract class WorkoutRemoteDataSource {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   });
   Future<WorkoutTemplateModel> deleteTemplateDay(
     String templateId,
@@ -116,18 +118,23 @@ abstract class WorkoutRemoteDataSource {
   Future<void> deletePlan(String planId);
 
   // ── Plan days ──
-  Future<WorkoutPlanModel> createPlanDay(String planId, {required String title});
+  Future<WorkoutPlanModel> createPlanDay(
+    String planId, {
+    required String title,
+    String? note,
+  });
   Future<WorkoutPlanModel> updatePlanDay(
     String planId,
     String dayId, {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   });
   Future<WorkoutPlanModel> deletePlanDay(String planId, String dayId);
   Future<WorkoutPlanModel> reorderPlanDays(String planId, List<String> dayIds);
 
-  // ── Plan exercises (WITH sets/reps) ──
+  // ── Plan exercises (WITH sets/reps/rest_time) ──
   Future<WorkoutPlanModel> addPlanExercise(
     String planId,
     String dayId, {
@@ -135,6 +142,7 @@ abstract class WorkoutRemoteDataSource {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   });
   Future<WorkoutPlanModel> updatePlanExercise(
@@ -144,6 +152,7 @@ abstract class WorkoutRemoteDataSource {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   });
   Future<WorkoutPlanModel> deletePlanExercise(
@@ -166,20 +175,19 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
 
   final Dio _dio;
 
+  // DOC_6 §4.1 filter contract — removed params (primaryMuscle,
+  // exerciseType, movementPattern, workoutLocation, priority, goal, tag,
+  // classification, isDefault) are never sent.
   Map<String, dynamic> _query(WorkoutExerciseFilters f) => {
         if (f.search != null && f.search!.isNotEmpty) 'search': f.search,
-        if (f.primaryMuscle != null) 'primaryMuscle': f.primaryMuscle,
+        if (f.bodyPart != null) 'bodyPart': f.bodyPart,
+        if (f.target != null) 'target': f.target,
         if (f.secondaryMuscle != null) 'secondaryMuscle': f.secondaryMuscle,
         if (f.equipment != null) 'equipment': f.equipment,
         if (f.difficulty != null) 'difficulty': f.difficulty,
-        if (f.exerciseType != null) 'exerciseType': f.exerciseType,
-        if (f.movementPattern != null) 'movementPattern': f.movementPattern,
-        if (f.workoutLocation != null) 'workoutLocation': f.workoutLocation,
-        if (f.priority != null) 'priority': f.priority,
-        if (f.goal != null) 'goal': f.goal,
-        if (f.tag != null) 'tag': f.tag,
-        if (f.classification != null) 'classification': f.classification,
-        if (f.isDefault != null) 'isDefault': f.isDefault,
+        if (f.muscleGroup != null) 'muscleGroup': f.muscleGroup,
+        if (f.compound != null) 'compound': '${f.compound}',
+        if (f.unilateral != null) 'unilateral': '${f.unilateral}',
         'page': f.page,
         'pageSize': f.pageSize.clamp(1, 100),
       };
@@ -285,10 +293,11 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
   Future<WorkoutTemplateModel> createTemplateDay(
     String templateId, {
     required String title,
+    String? note,
   }) async {
     final response = await _dio.post(
       ApiEndpoints.workoutTemplateDaysV1(templateId),
-      data: {'title': title},
+      data: {'title': title, 'note': ?note},
     );
     return WorkoutTemplateModel.fromResponse(
       response.data as Map<String, dynamic>? ?? {},
@@ -302,10 +311,16 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) async {
     final response = await _dio.put(
       ApiEndpoints.workoutTemplateDay(templateId, dayId),
-      data: {'title': ?title, 'day_number': ?dayNumber, 'is_rest': ?isRest},
+      data: {
+        'title': ?title,
+        'day_number': ?dayNumber,
+        'is_rest': ?isRest,
+        'note': ?note,
+      },
     );
     return WorkoutTemplateModel.fromResponse(
       response.data as Map<String, dynamic>? ?? {},
@@ -473,10 +488,11 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
   Future<WorkoutPlanModel> createPlanDay(
     String planId, {
     required String title,
+    String? note,
   }) async {
     final response = await _dio.post(
       ApiEndpoints.workoutPlanDays(planId),
-      data: {'title': title},
+      data: {'title': title, 'note': ?note},
     );
     return WorkoutPlanModel.fromResponse(
       response.data as Map<String, dynamic>? ?? {},
@@ -490,10 +506,16 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) async {
     final response = await _dio.put(
       ApiEndpoints.workoutPlanDay(planId, dayId),
-      data: {'title': ?title, 'day_number': ?dayNumber, 'is_rest': ?isRest},
+      data: {
+        'title': ?title,
+        'day_number': ?dayNumber,
+        'is_rest': ?isRest,
+        'note': ?note,
+      },
     );
     return WorkoutPlanModel.fromResponse(
       response.data as Map<String, dynamic>? ?? {},
@@ -534,6 +556,7 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   }) async {
     final response = await _dio.post(
@@ -543,6 +566,7 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
         'order_number': ?orderNumber,
         'sets': ?sets,
         'reps': ?reps,
+        'rest_time': ?restTime,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
       },
     );
@@ -559,6 +583,7 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   }) async {
     final response = await _dio.put(
@@ -567,6 +592,7 @@ class WorkoutRemoteDataSourceImpl implements WorkoutRemoteDataSource {
         'order_number': ?orderNumber,
         'sets': ?sets,
         'reps': ?reps,
+        'rest_time': ?restTime,
         'notes': ?notes,
       },
     );

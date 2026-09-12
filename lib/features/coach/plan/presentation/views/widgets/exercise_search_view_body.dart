@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
+import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/features/coach/plan/domain/entities/plan_exercise.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/exercise_thumbnail.dart';
 import 'package:athletica/features/workout/domain/entities/workout_exercise_entry.dart';
@@ -43,9 +44,7 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
   void _onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      context.read<WorkoutExercisesCubit>().load(
-        filters: WorkoutExerciseFilters(search: value.isEmpty ? null : value),
-      );
+      context.read<WorkoutExercisesCubit>().searchLibrary(value);
     });
   }
 
@@ -59,6 +58,9 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
             arabic: e.nameAr,
             english: e.nameEn,
           ),
+          thumbnailUrl: e.thumbnailUrlMale,
+          videoUrlMale: e.videoUrlMale,
+          videoUrlFemale: e.videoUrlFemale,
         ),
       )
       .toList();
@@ -186,7 +188,25 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
                             ),
                             child: Row(
                               children: [
-                                const ExerciseThumbnail(size: 72),
+                                GestureDetector(
+                                  onTap: () => showExerciseVideoDialog(
+                                    context,
+                                    title: buildBilingualLabel(
+                                      primary: exercise.nameEn,
+                                      arabic: exercise.nameAr,
+                                      english: exercise.nameEn,
+                                    ),
+                                    videoUrl: resolveExerciseVideoUrl(
+                                      maleUrl: exercise.videoUrlMale,
+                                      femaleUrl: exercise.videoUrlFemale,
+                                    ),
+                                    thumbnailUrl: exercise.thumbnailUrlMale,
+                                  ),
+                                  child: ExerciseThumbnail(
+                                    size: 72,
+                                    thumbnailUrl: exercise.thumbnailUrlMale,
+                                  ),
+                                ),
                                 SizedBox(width: 12.w),
                                 Expanded(
                                   child: Column(

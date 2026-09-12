@@ -9,6 +9,7 @@ class CreateTemplateDayUseCase {
   Future<ApiResult<WorkoutTemplateEntry>> call(
     String templateId, {
     required String title,
+    String? note,
   }) =>
-      _repository.createTemplateDay(templateId, title: title);
+      _repository.createTemplateDay(templateId, title: title, note: note);
 }

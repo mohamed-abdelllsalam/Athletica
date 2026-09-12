@@ -29,6 +29,7 @@ class TemplateDayEntry {
     required this.title,
     required this.dayNumber,
     required this.isRest,
+    this.note = '',
     required this.exerciseCount,
     required this.exercises,
   });
@@ -37,6 +38,9 @@ class TemplateDayEntry {
   final String title;
   final int dayNumber;
   final bool isRest;
+
+  /// Coach tip (DOC_6 §1.4); "" when unset.
+  final String note;
   final int exerciseCount;
   final List<TemplateExerciseEntry> exercises;
 }
@@ -49,6 +53,7 @@ class WorkoutTemplateEntry {
     required this.coachId,
     this.deletedAt,
     required this.dayCount,
+    required this.exerciseCount,
     required this.days,
     this.createdAt,
   });
@@ -59,6 +64,10 @@ class WorkoutTemplateEntry {
   final String coachId;
   final DateTime? deletedAt;
   final int dayCount;
+
+  /// Template-level `exercise_count` from the backend. The list API sends
+  /// counts without embedded days, so cards must use this — not the day sum.
+  final int exerciseCount;
   final List<TemplateDayEntry> days;
   final DateTime? createdAt;
 }

@@ -3,11 +3,12 @@ import 'package:athletica/features/coach/plan/domain/entities/workout_program.da
 import 'package:athletica/features/coach/plan/presentation/views/widgets/workout_day_exercises_view_body.dart';
 import 'package:flutter/material.dart';
 
-/// Result of editing a day: updated exercises + name, or [deleted] when
-/// the day was removed. Popped as `null` when the edit was cancelled.
+/// Result of editing a day: updated exercises + name + note, or [deleted]
+/// when the day was removed. Popped as `null` when the edit was cancelled.
 typedef WorkoutDayEditResult = ({
   List<ProgramExercise> exercises,
   String name,
+  String note,
   bool deleted,
 });
 

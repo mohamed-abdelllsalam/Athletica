@@ -10,6 +10,7 @@ class PlanExerciseModel extends PlanExerciseEntry {
     required super.orderNumber,
     super.sets,
     super.reps,
+    super.restTime,
     super.notes,
     super.exercise,
   });
@@ -21,6 +22,7 @@ class PlanExerciseModel extends PlanExerciseEntry {
       orderNumber: _optInt(json['order_number']) ?? 0,
       sets: _optInt(json['sets']),
       reps: _optInt(json['reps']),
+      restTime: (json['rest_time'] as num?)?.toInt(),
       notes: json['notes'] as String? ?? '',
       exercise: WorkoutExerciseModel.optionalFromJson(json['exercise']),
     );
@@ -32,6 +34,7 @@ class PlanExerciseModel extends PlanExerciseEntry {
         orderNumber: orderNumber,
         sets: sets,
         reps: reps,
+        restTime: restTime,
         notes: notes,
         exercise: exercise,
       );
@@ -43,6 +46,7 @@ class PlanDayModel extends PlanDayEntry {
     required super.title,
     required super.dayNumber,
     required super.isRest,
+    super.note,
     required super.exerciseCount,
     required super.exercises,
   });
@@ -58,6 +62,7 @@ class PlanDayModel extends PlanDayEntry {
       title: json['title'] as String? ?? '',
       dayNumber: _optInt(json['day_number']) ?? 0,
       isRest: json['is_rest'] as bool? ?? false,
+      note: json['note'] as String? ?? '',
       exerciseCount: _optInt(json['exercise_count']) ?? exercises.length,
       exercises: exercises,
     );
@@ -68,6 +73,7 @@ class PlanDayModel extends PlanDayEntry {
         title: title,
         dayNumber: dayNumber,
         isRest: isRest,
+        note: note,
         exerciseCount: exerciseCount,
         exercises: exercises,
       );

@@ -1,7 +1,6 @@
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/workout/domain/entities/workout_template.dart';
 import 'package:athletica/features/workout/domain/usecases/add_template_exercise_usecase.dart';
-import 'package:athletica/features/workout/domain/usecases/assign_workout_template_usecase.dart';
 import 'package:athletica/features/workout/domain/usecases/create_template_day_usecase.dart';
 import 'package:athletica/features/workout/domain/usecases/delete_template_day_usecase.dart';
 import 'package:athletica/features/workout/domain/usecases/delete_template_exercise_usecase.dart';
@@ -13,7 +12,8 @@ import 'package:athletica/features/workout/domain/usecases/update_workout_templa
 import 'package:athletica/features/workout/presentation/cubits/workout_template_detail_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Detail editor for one template: days + exercises + assign.
+/// Detail editor for one template: days + exercises.
+/// Assignment lives in [CustomizeWorkoutAssignmentCubit].
 /// Every mutation returns the full template — the single source of truth
 /// is replaced, never patched optimistically.
 class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
@@ -27,7 +27,6 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
     this._addExercise,
     this._updateExercise,
     this._deleteExercise,
-    this._assign,
   ) : super(const WorkoutTemplateDetailInitial());
 
   final GetWorkoutTemplateDetailUseCase _getDetail;
@@ -39,7 +38,6 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
   final AddTemplateExerciseUseCase _addExercise;
   final UpdateTemplateExerciseUseCase _updateExercise;
   final DeleteTemplateExerciseUseCase _deleteExercise;
-  final AssignWorkoutTemplateUseCase _assign;
 
   String? _lastError;
 
@@ -101,10 +99,12 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
     );
   }
 
-  Future<bool> addDay(String title) {
+  Future<bool> addDay(String title, {String? note}) {
     final current = state;
     if (current is! WorkoutTemplateDetailLoaded) return Future.value(false);
-    return _mutate(() => _createDay(current.template.id, title: title));
+    return _mutate(
+      () => _createDay(current.template.id, title: title, note: note),
+    );
   }
 
   Future<bool> editDay(
@@ -112,6 +112,7 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) {
     final current = state;
     if (current is! WorkoutTemplateDetailLoaded) return Future.value(false);
@@ -122,6 +123,7 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
         title: title,
         dayNumber: dayNumber,
         isRest: isRest,
+        note: note,
       ),
     );
   }
@@ -182,37 +184,5 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
     return _mutate(
       () => _deleteExercise(current.template.id, dayId, exerciseId),
     );
-  }
-
-  /// Assigns to a client. Never sends start_date (server-generated).
-  /// Returns the created plan id, or null on failure.
-  Future<String?> assign({
-    required String coachClientId,
-    String? title,
-    String? description,
-  }) async {
-    final current = state;
-    if (current is! WorkoutTemplateDetailLoaded || current.mutating) {
-      return null;
-    }
-    _lastError = null;
-    emit(WorkoutTemplateDetailLoaded(current.template, mutating: true));
-    final result = await _assign(
-      current.template.id,
-      coachClientId: coachClientId,
-      title: title,
-      description: description,
-    );
-    switch (result) {
-      case ApiSuccess(:final data):
-        if (isClosed) return null;
-        emit(WorkoutTemplateDetailLoaded(current.template));
-        return data.id;
-      case ApiError(:final failure):
-        if (isClosed) return null;
-        _lastError = failure.message;
-        emit(WorkoutTemplateDetailLoaded(current.template));
-        return null;
-    }
   }
 }

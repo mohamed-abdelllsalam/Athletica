@@ -11,7 +11,9 @@ class WorkoutProgram {
     required this.description,
     required this.iconAsset,
     required this.days,
-  });
+    int? totalExercises,
+  }) : totalExercises =
+           totalExercises ?? days.fold(0, (sum, d) => sum + d.exerciseCount);
 
   final String id;
   final String name;
@@ -23,10 +25,10 @@ class WorkoutProgram {
   final String iconAsset;
   final List<ProgramDay> days;
 
-  /// Real total across all days (from the template response) — the list
-  /// API exposes no per-template client count, so cards show this instead
-  /// of a hardcoded zero.
-  int get totalExercises => days.fold(0, (sum, d) => sum + d.exerciseCount);
+  /// Template-level backend `exercise_count` when mapped from an API
+  /// response (the list API sends counts without embedded days),
+  /// otherwise the real total across all days.
+  final int totalExercises;
 }
 
 class ProgramDay {
@@ -36,7 +38,9 @@ class ProgramDay {
     required this.durationMinutes,
     required this.exercises,
     this.isRest = false,
-  });
+    this.note = '',
+    int? exerciseCount,
+  }) : exerciseCount = exerciseCount ?? exercises.length;
 
   final int dayNumber;
   String name;
@@ -44,19 +48,30 @@ class ProgramDay {
   final List<ProgramExercise> exercises;
   final bool isRest;
 
-  int get exerciseCount => exercises.length;
+  /// Coach tip (DOC_6 §1.4); "" when unset.
+  String note;
+
+  /// Backend `exercise_count` when mapped from an API response (the list API
+  /// may omit embedded exercises), otherwise the local list length.
+  final int exerciseCount;
 
   ProgramDay copyWith({
     String? name,
     List<ProgramExercise>? exercises,
     bool? isRest,
     int? dayNumber,
+    String? note,
+    int? exerciseCount,
   }) => ProgramDay(
     dayNumber: dayNumber ?? this.dayNumber,
     name: name ?? this.name,
     durationMinutes: durationMinutes,
     exercises: exercises ?? List.from(this.exercises),
     isRest: isRest ?? this.isRest,
+    note: note ?? this.note,
+    // Local edits recompute unless a fresh backend count is supplied.
+    exerciseCount:
+        exerciseCount ?? (exercises != null ? exercises.length : this.exerciseCount),
   );
 }
 
@@ -66,6 +81,9 @@ class ProgramExercise {
     required this.name,
     this.nameEn,
     this.nameAr,
+    this.thumbnailUrl = '',
+    this.videoUrlMale = '',
+    this.videoUrlFemale = '',
   });
   final String id;
 
@@ -73,6 +91,13 @@ class ProgramExercise {
   final String name;
   final String? nameEn;
   final String? nameAr;
+
+  /// Backend thumbnail for display (gender-matched at mapping time).
+  final String thumbnailUrl;
+
+  /// Backend demo videos for playback.
+  final String videoUrlMale;
+  final String videoUrlFemale;
 
   /// Both API-provided languages joined, e.g. "ديدليفت بالبار / Barbell Deadlift".
   String get displayName =>
@@ -86,13 +111,20 @@ class LibraryExercise {
     required this.muscleGroup,
     this.nameEn,
     this.nameAr,
+    this.thumbnailUrl = '',
+    this.videoUrlMale = '',
+    this.videoUrlFemale = '',
   });
-
   final String id;
   final String name;
   final String muscleGroup;
   final String? nameEn;
   final String? nameAr;
+
+  /// Backend demo media for playback/thumbnails in day views.
+  final String thumbnailUrl;
+  final String videoUrlMale;
+  final String videoUrlFemale;
 
   /// Both API-provided languages joined, e.g. "ديدليفت بالبار / Barbell Deadlift".
   String get displayName =>

@@ -235,6 +235,7 @@ class _ExerciseRow extends StatefulWidget {
 class _ExerciseRowState extends State<_ExerciseRow> {
   late final TextEditingController _setsController;
   late final TextEditingController _repsController;
+  late final TextEditingController _restController;
 
   @override
   void initState() {
@@ -244,6 +245,9 @@ class _ExerciseRowState extends State<_ExerciseRow> {
     );
     _repsController = TextEditingController(
       text: widget.exercise.reps?.toString() ?? '',
+    );
+    _restController = TextEditingController(
+      text: widget.exercise.restTime?.toString() ?? '',
     );
   }
 
@@ -256,21 +260,28 @@ class _ExerciseRowState extends State<_ExerciseRow> {
     if (oldWidget.exercise.reps != widget.exercise.reps) {
       _repsController.text = widget.exercise.reps?.toString() ?? '';
     }
+    if (oldWidget.exercise.restTime != widget.exercise.restTime) {
+      _restController.text = widget.exercise.restTime?.toString() ?? '';
+    }
   }
 
   @override
   void dispose() {
     _setsController.dispose();
     _repsController.dispose();
+    _restController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final sets = int.tryParse(_setsController.text.trim());
     final reps = int.tryParse(_repsController.text.trim());
-    if ((sets != null && sets <= 0) || (reps != null && reps <= 0)) {
+    final rest = int.tryParse(_restController.text.trim());
+    if ((sets != null && sets <= 0) ||
+        (reps != null && reps <= 0) ||
+        (rest != null && rest <= 0)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sets and reps must be positive.')),
+        const SnackBar(content: Text('Sets, reps and rest must be positive.')),
       );
       return;
     }
@@ -279,6 +290,7 @@ class _ExerciseRowState extends State<_ExerciseRow> {
       widget.exercise.id,
       sets: sets,
       reps: reps,
+      restTime: rest,
     );
     if (!mounted) return;
     if (!ok) {
@@ -346,6 +358,21 @@ class _ExerciseRowState extends State<_ExerciseRow> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 hintText: 'Reps',
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
+            ),
+          ),
+          SizedBox(
+            width: 52.w,
+            child: TextField(
+              controller: _restController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                hintText: 'Rest(s)',
                 border: InputBorder.none,
                 isDense: true,
               ),

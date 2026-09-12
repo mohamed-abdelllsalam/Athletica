@@ -9,6 +9,7 @@ class PlanExerciseEntry {
     required this.orderNumber,
     this.sets,
     this.reps,
+    this.restTime,
     this.notes = '',
     this.exercise,
   });
@@ -18,16 +19,25 @@ class PlanExerciseEntry {
   final int orderNumber;
   final int? sets;
   final int? reps;
+
+  /// Rest between sets in seconds (DOC_6 §1.5); null = unset.
+  final int? restTime;
   final String notes;
   final WorkoutExerciseEntry? exercise;
 
-  PlanExerciseEntry copyWith({int? sets, int? reps, String? notes}) =>
+  PlanExerciseEntry copyWith({
+    int? sets,
+    int? reps,
+    int? restTime,
+    String? notes,
+  }) =>
       PlanExerciseEntry(
         id: id,
         exerciseId: exerciseId,
         orderNumber: orderNumber,
         sets: sets ?? this.sets,
         reps: reps ?? this.reps,
+        restTime: restTime ?? this.restTime,
         notes: notes ?? this.notes,
         exercise: exercise,
       );
@@ -39,6 +49,7 @@ class PlanDayEntry {
     required this.title,
     required this.dayNumber,
     required this.isRest,
+    this.note = '',
     required this.exerciseCount,
     required this.exercises,
   });
@@ -47,6 +58,9 @@ class PlanDayEntry {
   final String title;
   final int dayNumber;
   final bool isRest;
+
+  /// Coach tip (DOC_6 §1.4); "" when unset.
+  final String note;
   final int exerciseCount;
   final List<PlanExerciseEntry> exercises;
 }

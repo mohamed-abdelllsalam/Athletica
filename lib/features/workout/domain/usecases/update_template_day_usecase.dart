@@ -12,6 +12,7 @@ class UpdateTemplateDayUseCase {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) =>
       _repository.updateTemplateDay(
         templateId,
@@ -19,5 +20,6 @@ class UpdateTemplateDayUseCase {
         title: title,
         dayNumber: dayNumber,
         isRest: isRest,
+        note: note,
       );
 }

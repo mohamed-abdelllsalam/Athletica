@@ -124,12 +124,13 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
     }
   }
 
-  /// Coach fills the prescription after assignment.
+  /// Coach fills the prescription after assignment (sets/reps/rest_time).
   Future<bool> setSetsReps(
     String dayId,
     String exerciseId, {
     int? sets,
     int? reps,
+    int? restTime,
   }) {
     final current = state;
     if (current is! WorkoutPlanDetailLoaded) return Future.value(false);
@@ -140,6 +141,7 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
         exerciseId,
         sets: sets,
         reps: reps,
+        restTime: restTime,
       ),
     );
   }
@@ -150,6 +152,7 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   }) {
     final current = state;
@@ -162,6 +165,7 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
         orderNumber: orderNumber,
         sets: sets,
         reps: reps,
+        restTime: restTime,
         notes: notes,
       ),
     );
@@ -175,10 +179,10 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
     );
   }
 
-  Future<bool> addDay(String title) {
+  Future<bool> addDay(String title, {String? note}) {
     final current = state;
     if (current is! WorkoutPlanDetailLoaded) return Future.value(false);
-    return _mutate(() => _days.create(current.plan.id, title));
+    return _mutate(() => _days.create(current.plan.id, title, note: note));
   }
 
   Future<bool> editDay(
@@ -186,6 +190,7 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) {
     final current = state;
     if (current is! WorkoutPlanDetailLoaded) return Future.value(false);
@@ -196,6 +201,7 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
         title: title,
         dayNumber: dayNumber,
         isRest: isRest,
+        note: note,
       ),
     );
   }

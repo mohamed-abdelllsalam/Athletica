@@ -26,15 +26,36 @@ class WorkoutExerciseModel extends WorkoutExerciseEntry {
     required super.tags,
     required super.isDefault,
     required super.priority,
+    super.aliases,
+    super.bodyPart,
+    super.muscleGroup,
+    super.videoUrlMale,
+    super.videoUrlFemale,
+    super.thumbnailUrlMale,
+    super.thumbnailUrlFemale,
   });
 
   factory WorkoutExerciseModel.fromJson(Map<String, dynamic> json) {
+    // New library shape uses `name` / `target` / `bodyPart` / camelCase
+    // `secondaryMuscles`; old snake_case keys stay first for compatibility.
+    final videos = json['videos'] is Map<String, dynamic>
+        ? json['videos'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final thumbnails = json['thumbnails'] is Map<String, dynamic>
+        ? json['thumbnails'] as Map<String, dynamic>
+        : const <String, dynamic>{};
     return WorkoutExerciseModel(
       id: json['id'] as String? ?? '',
-      nameEn: json['name_en'] as String? ?? '',
+      nameEn: json['name_en'] as String? ?? json['name'] as String? ?? '',
       nameAr: json['name_ar'] as String? ?? '',
-      primaryMuscle: json['primary_muscle'] as String? ?? '',
-      secondaryMuscles: _stringList(json['secondary_muscles']),
+      primaryMuscle:
+          json['primary_muscle'] as String? ??
+          json['target'] as String? ??
+          json['bodyPart'] as String? ??
+          '',
+      secondaryMuscles: _stringList(
+        json['secondary_muscles'] ?? json['secondaryMuscles'],
+      ),
       equipment: json['equipment'] as String? ?? '',
       difficulty: json['difficulty'] as String? ?? '',
       exerciseType: json['exercise_type'] as String? ?? '',
@@ -48,6 +69,13 @@ class WorkoutExerciseModel extends WorkoutExerciseEntry {
       tags: _stringList(json['tags']),
       isDefault: json['is_default'] as bool? ?? false,
       priority: json['priority'] as String? ?? '',
+      aliases: _stringList(json['aliases']),
+      bodyPart: json['bodyPart'] as String? ?? '',
+      muscleGroup: json['muscleGroup'] as String? ?? '',
+      videoUrlMale: videos['male'] as String? ?? '',
+      videoUrlFemale: videos['female'] as String? ?? '',
+      thumbnailUrlMale: thumbnails['male'] as String? ?? '',
+      thumbnailUrlFemale: thumbnails['female'] as String? ?? '',
     );
   }
 
@@ -70,6 +98,13 @@ class WorkoutExerciseModel extends WorkoutExerciseEntry {
         tags: tags,
         isDefault: isDefault,
         priority: priority,
+        aliases: aliases,
+        bodyPart: bodyPart,
+        muscleGroup: muscleGroup,
+        videoUrlMale: videoUrlMale,
+        videoUrlFemale: videoUrlFemale,
+        thumbnailUrlMale: thumbnailUrlMale,
+        thumbnailUrlFemale: thumbnailUrlFemale,
       );
 
   static WorkoutExerciseEntry? optionalFromJson(dynamic json) {

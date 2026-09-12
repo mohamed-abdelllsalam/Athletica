@@ -43,6 +43,7 @@ class TemplateDayModel extends TemplateDayEntry {
     required super.title,
     required super.dayNumber,
     required super.isRest,
+    super.note,
     required super.exerciseCount,
     required super.exercises,
   });
@@ -58,6 +59,7 @@ class TemplateDayModel extends TemplateDayEntry {
       title: json['title'] as String? ?? '',
       dayNumber: _optInt(json['day_number']) ?? 0,
       isRest: json['is_rest'] as bool? ?? false,
+      note: json['note'] as String? ?? '',
       exerciseCount:
           _optInt(json['exercise_count']) ?? exercises.length,
       exercises: exercises,
@@ -69,6 +71,7 @@ class TemplateDayModel extends TemplateDayEntry {
         title: title,
         dayNumber: dayNumber,
         isRest: isRest,
+        note: note,
         exerciseCount: exerciseCount,
         exercises: exercises,
       );
@@ -82,6 +85,7 @@ class WorkoutTemplateModel extends WorkoutTemplateEntry {
     required super.coachId,
     super.deletedAt,
     required super.dayCount,
+    required super.exerciseCount,
     required super.days,
     super.createdAt,
   });
@@ -102,6 +106,9 @@ class WorkoutTemplateModel extends WorkoutTemplateEntry {
           ? null
           : DateTime.tryParse(json['deleted_at'] as String? ?? ''),
       dayCount: _optInt(json['day_count']) ?? days.length,
+      exerciseCount:
+          _optInt(json['exercise_count']) ??
+          days.fold(0, (sum, d) => sum + d.exerciseCount),
       days: days,
       createdAt: json['created_at'] == null
           ? null
@@ -125,6 +132,7 @@ class WorkoutTemplateModel extends WorkoutTemplateEntry {
         coachId: coachId,
         deletedAt: deletedAt,
         dayCount: dayCount,
+        exerciseCount: exerciseCount,
         days: days,
       );
 }

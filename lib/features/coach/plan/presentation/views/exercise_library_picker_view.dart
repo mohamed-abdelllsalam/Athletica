@@ -4,6 +4,7 @@ import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
+import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/exercise_thumbnail.dart';
 import 'package:athletica/features/workout/domain/entities/workout_exercise_entry.dart';
@@ -48,7 +49,6 @@ class _PickerBodyState extends State<_PickerBody> {
 
   static const List<String> _muscles = [
     'All',
-    'Neck',
     'Back',
     'Chest',
     'Shoulder',
@@ -56,6 +56,17 @@ class _PickerBodyState extends State<_PickerBody> {
     'Core',
     'Legs',
   ];
+
+  /// Rail label → backend `bodyPart` exact-match value (DOC_6 §4.1).
+  /// Unknown labels resolve to null (= unfiltered), never to a bad value.
+  static const Map<String, String> _muscleToBodyPart = {
+    'Back': 'back',
+    'Chest': 'chest',
+    'Shoulder': 'shoulders',
+    'Arm': 'upper arms',
+    'Core': 'waist',
+    'Legs': 'upper legs',
+  };
 
   @override
   void initState() {
@@ -74,25 +85,21 @@ class _PickerBodyState extends State<_PickerBody> {
   void _onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      final primary = _selectedMuscle == 'All' ? null : _selectedMuscle;
-      context.read<WorkoutExercisesCubit>().load(
-        filters: WorkoutExerciseFilters(
-          search: value.isEmpty ? null : value,
-          primaryMuscle: primary?.toLowerCase(),
-        ),
-      );
+      final muscle = _selectedMuscle == 'All' ? null : _selectedMuscle;
+      context.read<WorkoutExercisesCubit>().searchLibrary(
+            value,
+            bodyPart: muscle == null ? null : _muscleToBodyPart[muscle],
+          );
     });
   }
 
   void _onMuscleSelect(String muscle) {
     setState(() => _selectedMuscle = muscle);
-    final primary = muscle == 'All' ? null : muscle;
-    context.read<WorkoutExercisesCubit>().load(
-      filters: WorkoutExerciseFilters(
-        search: _searchController.text.isEmpty ? null : _searchController.text,
-        primaryMuscle: primary?.toLowerCase(),
-      ),
-    );
+    final selected = muscle == 'All' ? null : muscle;
+    context.read<WorkoutExercisesCubit>().searchLibrary(
+          _searchController.text,
+          bodyPart: selected == null ? null : _muscleToBodyPart[selected],
+        );
   }
 
   int get _newCount => _selectedIds.difference(widget.alreadyAddedIds).length;
@@ -123,6 +130,9 @@ class _PickerBodyState extends State<_PickerBody> {
             nameEn: e.nameEn,
             nameAr: e.nameAr,
             muscleGroup: e.primaryMuscle,
+            thumbnailUrl: e.thumbnailUrlMale,
+            videoUrlMale: e.videoUrlMale,
+            videoUrlFemale: e.videoUrlFemale,
           ),
         )
         .toList();
@@ -224,16 +234,28 @@ class _PickerBodyState extends State<_PickerBody> {
                                             .contains(ex.id);
                                         final isSelected = _selectedIds
                                             .contains(ex.id);
+                                        final name = buildBilingualLabel(
+                                          primary: ex.nameEn,
+                                          arabic: ex.nameAr,
+                                          english: ex.nameEn,
+                                        );
                                         return _ExerciseLibraryCard(
-                                          name: buildBilingualLabel(
-                                            primary: ex.nameEn,
-                                            arabic: ex.nameAr,
-                                            english: ex.nameEn,
-                                          ),
+                                          name: name,
                                           muscle: ex.primaryMuscle,
+                                          thumbnailUrl: ex.thumbnailUrlMale,
                                           isSelected: isSelected,
                                           alreadyAdded: alreadyAdded,
                                           onTap: () => _toggle(ex),
+                                          onPlay: () =>
+                                              showExerciseVideoDialog(
+                                            context,
+                                            title: name,
+                                            videoUrl: resolveExerciseVideoUrl(
+                                              maleUrl: ex.videoUrlMale,
+                                              femaleUrl: ex.videoUrlFemale,
+                                            ),
+                                            thumbnailUrl: ex.thumbnailUrlMale,
+                                          ),
                                         );
                                       },
                                     ),
@@ -359,18 +381,24 @@ class _ExerciseLibraryCard extends StatelessWidget {
   const _ExerciseLibraryCard({
     required this.name,
     required this.muscle,
+    this.thumbnailUrl = '',
     required this.isSelected,
     this.alreadyAdded = false,
     required this.onTap,
+    this.onPlay,
   });
 
   final String name;
   final String muscle;
+  final String thumbnailUrl;
   final bool isSelected;
 
   /// Already in this day: dimmed with an "Added" mark, tap does nothing.
   final bool alreadyAdded;
   final VoidCallback onTap;
+
+  /// Plays the exercise demo video; null leaves the thumbnail static.
+  final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +419,10 @@ class _ExerciseLibraryCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const ExerciseThumbnail(size: 64),
+              GestureDetector(
+                onTap: onPlay,
+                child: ExerciseThumbnail(size: 64, thumbnailUrl: thumbnailUrl),
+              ),
               SizedBox(width: 12.w),
               Expanded(
                 child: Column(

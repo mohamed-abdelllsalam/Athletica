@@ -19,6 +19,13 @@ class WorkoutExerciseEntry {
     required this.tags,
     required this.isDefault,
     required this.priority,
+    this.aliases = const [],
+    this.bodyPart = '',
+    this.muscleGroup = '',
+    this.videoUrlMale = '',
+    this.videoUrlFemale = '',
+    this.thumbnailUrlMale = '',
+    this.thumbnailUrlFemale = '',
   });
 
   final String id;
@@ -40,46 +47,73 @@ class WorkoutExerciseEntry {
   final bool isDefault;
   final String priority;
 
+  /// Searchable alternate names (DOC_6).
+  final List<String> aliases;
+
+  /// Broad area, e.g. "back" (DOC_6).
+  final String bodyPart;
+
+  /// Grouping label, e.g. "latissimus dorsi" (DOC_6).
+  final String muscleGroup;
+
+  /// Demo media from the exercise library (`videos`/`thumbnails` maps with
+  /// `male`/`female` keys). Empty when the backend omits them.
+  final String videoUrlMale;
+  final String videoUrlFemale;
+  final String thumbnailUrlMale;
+  final String thumbnailUrlFemale;
+
   /// Display name without hardcoded locale branching in widgets — the
   /// caller picks the locale once (e.g. via Localizations).
   String localizedName(bool isArabic) =>
       isArabic && nameAr.isNotEmpty ? nameAr : nameEn;
+
+  /// Full-text match across everything searchable: names, aliases, target
+  /// (primaryMuscle), body part, muscle group, secondary muscles and
+  /// equipment. Case-insensitive; blank query matches everything.
+  bool matchesQuery(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    if (nameEn.toLowerCase().contains(q)) return true;
+    if (nameAr.toLowerCase().contains(q)) return true;
+    if (aliases.any((a) => a.toLowerCase().contains(q))) return true;
+    if (primaryMuscle.toLowerCase().contains(q)) return true;
+    if (bodyPart.toLowerCase().contains(q)) return true;
+    if (muscleGroup.toLowerCase().contains(q)) return true;
+    if (secondaryMuscles.any((m) => m.toLowerCase().contains(q))) {
+      return true;
+    }
+    if (equipment.toLowerCase().contains(q)) return true;
+    return false;
+  }
 }
 
-/// Optional filters for `GET /workout/exercises`. All nullable; the
-/// datasource only sends non-null values.
+/// Optional filters for `GET /workout/exercises` (DOC_6 §4.1). All nullable;
+/// the datasource only sends non-null values.
 class WorkoutExerciseFilters {
   const WorkoutExerciseFilters({
     this.search,
-    this.primaryMuscle,
+    this.bodyPart,
+    this.target,
     this.secondaryMuscle,
     this.equipment,
     this.difficulty,
-    this.exerciseType,
-    this.movementPattern,
-    this.workoutLocation,
-    this.priority,
-    this.goal,
-    this.tag,
-    this.classification,
-    this.isDefault,
+    this.muscleGroup,
+    this.compound,
+    this.unilateral,
     this.page = 1,
     this.pageSize = 20,
   });
 
   final String? search;
-  final String? primaryMuscle;
+  final String? bodyPart;
+  final String? target;
   final String? secondaryMuscle;
   final String? equipment;
   final String? difficulty;
-  final String? exerciseType;
-  final String? movementPattern;
-  final String? workoutLocation;
-  final String? priority;
-  final String? goal;
-  final String? tag;
-  final String? classification;
-  final bool? isDefault;
+  final String? muscleGroup;
+  final bool? compound;
+  final bool? unilateral;
   final int page;
   final int pageSize;
 
@@ -90,18 +124,14 @@ class WorkoutExerciseFilters {
   }) =>
       WorkoutExerciseFilters(
         search: search ?? this.search,
-        primaryMuscle: primaryMuscle,
+        bodyPart: bodyPart,
+        target: target,
         secondaryMuscle: secondaryMuscle,
         equipment: equipment,
         difficulty: difficulty,
-        exerciseType: exerciseType,
-        movementPattern: movementPattern,
-        workoutLocation: workoutLocation,
-        priority: priority,
-        goal: goal,
-        tag: tag,
-        classification: classification,
-        isDefault: isDefault,
+        muscleGroup: muscleGroup,
+        compound: compound,
+        unilateral: unilateral,
         page: page ?? this.page,
         pageSize: pageSize ?? this.pageSize,
       );

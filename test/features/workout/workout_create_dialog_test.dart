@@ -56,6 +56,7 @@ class _FakeCreateTemplate extends CreateWorkoutTemplateV1UseCase {
             description: 'd',
             coachId: 'c',
             dayCount: 0,
+            exerciseCount: 0,
             days: [],
           ),
         ),

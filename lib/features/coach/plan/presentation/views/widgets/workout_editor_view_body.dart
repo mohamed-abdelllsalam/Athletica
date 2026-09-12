@@ -48,15 +48,22 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
   }
 
   void _viewDay() {
+    ProgramExercise toProgramExercise(PlanExercise e) => ProgramExercise(
+          id: e.id,
+          name: e.name,
+          thumbnailUrl: e.thumbnailUrl,
+          videoUrlMale: e.videoUrlMale,
+          videoUrlFemale: e.videoUrlFemale,
+        );
     final day = ProgramDay(
       dayNumber: _day,
       name: 'Day $_day',
       durationMinutes: 60,
       exercises: [
         // PlanExercise.name already carries the bilingual label.
-        ..._warmUp.map((e) => ProgramExercise(id: e.id, name: e.name)),
-        ..._workout.map((e) => ProgramExercise(id: e.id, name: e.name)),
-        ..._coolDown.map((e) => ProgramExercise(id: e.id, name: e.name)),
+        ..._warmUp.map(toProgramExercise),
+        ..._workout.map(toProgramExercise),
+        ..._coolDown.map(toProgramExercise),
       ],
     );
     Navigator.push(

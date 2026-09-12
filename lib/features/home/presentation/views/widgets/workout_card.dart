@@ -12,6 +12,8 @@ class WorkoutCard extends StatelessWidget {
     required this.restRange,
     required this.bottomText,
     this.onRepsTap,
+    this.onPlayTap,
+    this.thumbnailUrl = '',
   });
 
   final String name;
@@ -20,6 +22,10 @@ class WorkoutCard extends StatelessWidget {
   final String restRange;
   final String bottomText;
   final VoidCallback? onRepsTap;
+  final VoidCallback? onPlayTap;
+
+  /// Backend thumbnail; empty keeps the play-icon placeholder.
+  final String thumbnailUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -37,19 +43,49 @@ class WorkoutCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 90.w,
-                height: 60.h,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.play_circle_fill,
-                    color: AppColors.primaryBlue.withValues(alpha: 0.8),
-                    size: 32.sp,
+              GestureDetector(
+                onTap: onPlayTap,
+                child: Container(
+                  width: 90.w,
+                  height: 60.h,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
+                  clipBehavior: Clip.antiAlias,
+                  child: thumbnailUrl.isEmpty
+                      ? Center(
+                          child: Icon(
+                            Icons.play_circle_fill,
+                            color: AppColors.primaryBlue.withValues(alpha: 0.8),
+                            size: 32.sp,
+                          ),
+                        )
+                      : Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              thumbnailUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Center(
+                                child: Icon(
+                                  Icons.play_circle_fill,
+                                  color: AppColors.primaryBlue.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  size: 32.sp,
+                                ),
+                              ),
+                            ),
+                            Center(
+                              child: Icon(
+                                Icons.play_circle_fill,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                size: 28.sp,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
               SizedBox(width: 12.w),

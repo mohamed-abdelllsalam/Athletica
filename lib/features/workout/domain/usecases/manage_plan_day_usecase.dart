@@ -6,8 +6,12 @@ class ManagePlanDayUseCase {
   const ManagePlanDayUseCase(this._repository);
   final WorkoutRepository _repository;
 
-  Future<ApiResult<WorkoutPlanEntry>> create(String planId, String title) =>
-      _repository.createPlanDay(planId, title: title);
+  Future<ApiResult<WorkoutPlanEntry>> create(
+    String planId,
+    String title, {
+    String? note,
+  }) =>
+      _repository.createPlanDay(planId, title: title, note: note);
 
   Future<ApiResult<WorkoutPlanEntry>> update(
     String planId,
@@ -15,6 +19,7 @@ class ManagePlanDayUseCase {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) =>
       _repository.updatePlanDay(
         planId,
@@ -22,6 +27,7 @@ class ManagePlanDayUseCase {
         title: title,
         dayNumber: dayNumber,
         isRest: isRest,
+        note: note,
       );
 
   Future<ApiResult<WorkoutPlanEntry>> delete(String planId, String dayId) =>

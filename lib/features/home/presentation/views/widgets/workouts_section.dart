@@ -3,7 +3,10 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/core/widgets/app_shimmer.dart';
+import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workout_card.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
+import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/workout/domain/entities/today_workout.dart';
 import 'package:athletica/features/workout/domain/entities/workout_plan.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_my_plan_cubit.dart';
@@ -16,6 +19,45 @@ import 'package:athletica/features/home/presentation/views/widgets/workout_data.
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+/// Profile gender for gender-matched demo media ([HomeView] provides
+/// [ProfileCubit] above this subtree); null falls back to male.
+String? _profileGender(BuildContext context) =>
+    switch (context.read<ProfileCubit>().state) {
+      ProfileLoaded(:final profile) => profile.gender,
+      ProfileUpdating(:final profile) => profile.gender,
+      ProfileImageUploading(:final profile) => profile.gender,
+      ProfileImageUploaded(:final profile) => profile.gender,
+      ProfileImageDeleted(:final profile) => profile.gender,
+      ProfileError(:final profile) => profile?.gender,
+      _ => null,
+    };
+
+/// Opens the gender-matched demo video for a client exercise.
+void _playDemo(BuildContext context, TodayExerciseEntry entry) {
+  final catalog = entry.exercise;
+  final gender = _profileGender(context);
+  final maleUrl = catalog?.videoUrlMale ?? '';
+  final femaleUrl = catalog?.videoUrlFemale ?? '';
+  showExerciseVideoDialog(
+    context,
+    title: buildBilingualLabel(
+      primary: catalog?.nameEn ?? entry.exerciseId,
+      arabic: catalog?.nameAr,
+      english: catalog?.nameEn,
+    ),
+    thumbnailUrl: pickGenderedUrl(
+      maleUrl: catalog?.thumbnailUrlMale ?? '',
+      femaleUrl: catalog?.thumbnailUrlFemale ?? '',
+      gender: gender,
+    ),
+    videoUrl: resolveExerciseVideoUrl(
+      maleUrl: maleUrl,
+      femaleUrl: femaleUrl,
+      gender: gender,
+    ),
+  );
+}
 
 /// Client daily workout — `GET /workout/today` + per-exercise
 /// complete/uncomplete via `log_id`. Reuses [WorkoutCard] visuals;
@@ -157,6 +199,7 @@ class _PlanDayPickerState extends State<_PlanDayPicker> {
         );
         final showingToday =
             widget.workout != null && selectedDay.dayNumber == todayNumber;
+        final todayNote = showingToday ? (widget.workout?.note ?? '') : '';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -238,6 +281,15 @@ class _PlanDayPickerState extends State<_PlanDayPicker> {
               ).copyWith(color: AppColors.textPrimary),
               overflow: TextOverflow.ellipsis,
             ),
+            if (todayNote.isNotEmpty) ...[
+              SizedBox(height: 4.h),
+              Text(
+                todayNote,
+                style: AppTextStyles.meduim12(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
+              ),
+            ],
             SizedBox(height: 16.h),
             if (showingToday)
               _TodayDayBody(
@@ -434,7 +486,12 @@ class _LoadedView extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _DayHeader(title: w.title, dayNumber: w.dayNumber, isRest: true),
+          _DayHeader(
+            title: w.title,
+            dayNumber: w.dayNumber,
+            isRest: true,
+            note: w.note,
+          ),
           SizedBox(height: 16.h),
           Center(
             child: Padding(
@@ -473,6 +530,7 @@ class _LoadedView extends StatelessWidget {
           dayNumber: w.dayNumber,
           isRest: false,
           dayCompleted: w.dayCompleted,
+          note: w.note,
         ),
         SizedBox(height: 16.h),
         ...sorted.asMap().entries.map(
@@ -546,6 +604,12 @@ class _CompletableCard extends StatelessWidget {
               repsRange: reps,
               restRange: muscle.isEmpty ? '—' : muscle,
               bottomText: bottom,
+              onPlayTap: () => _playDemo(context, exercise),
+              thumbnailUrl: pickGenderedUrl(
+                maleUrl: catalog?.thumbnailUrlMale ?? '',
+                femaleUrl: catalog?.thumbnailUrlFemale ?? '',
+                gender: _profileGender(context),
+              ),
               onRepsTap: () => Navigator.pushNamed(
                 context,
                 WorkoutSessionView.routeName,
@@ -574,6 +638,7 @@ class _DayHeader extends StatelessWidget {
     required this.dayNumber,
     required this.isRest,
     this.dayCompleted = false,
+    this.note = '',
   });
 
   final String title;
@@ -581,28 +646,45 @@ class _DayHeader extends StatelessWidget {
   final bool isRest;
   final bool dayCompleted;
 
+  /// Coach tip (DOC_6 §1.4); hidden when empty.
+  final String note;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Type Of Training: ',
-          style: AppTextStyles.medium16(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
+        Row(
+          children: [
+            Text(
+              'Type Of Training: ',
+              style: AppTextStyles.medium16(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
+            ),
+            SizedBox(width: 4.w),
+            Expanded(
+              child: Text(
+                isRest ? 'Rest Day' : 'Day $dayNumber — $title',
+                style: AppTextStyles.semiBold15(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (dayCompleted && !isRest)
+              Icon(Icons.check_circle, color: AppColors.streakGreen, size: 20.sp),
+          ],
         ),
-        SizedBox(width: 4.w),
-        Expanded(
-          child: Text(
-            isRest ? 'Rest Day' : 'Day $dayNumber — $title',
-            style: AppTextStyles.semiBold15(
+        if (note.isNotEmpty) ...[
+          SizedBox(height: 4.h),
+          Text(
+            note,
+            style: AppTextStyles.meduim12(
               context,
-            ).copyWith(color: AppColors.textPrimary),
-            overflow: TextOverflow.ellipsis,
+            ).copyWith(color: AppColors.textSecondary),
           ),
-        ),
-        if (dayCompleted && !isRest)
-          Icon(Icons.check_circle, color: AppColors.streakGreen, size: 20.sp),
+        ],
       ],
     );
   }

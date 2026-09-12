@@ -14,6 +14,7 @@ class TodayExerciseModel extends TodayExerciseEntry {
     required super.orderNumber,
     super.sets,
     super.reps,
+    super.restTime,
     super.notes,
     super.exercise,
   });
@@ -30,6 +31,7 @@ class TodayExerciseModel extends TodayExerciseEntry {
       orderNumber: _optInt(json['order_number']) ?? 0,
       sets: _optInt(json['sets']),
       reps: _optInt(json['reps']),
+      restTime: (json['rest_time'] as num?)?.toInt(),
       notes: json['notes'] as String? ?? '',
       exercise: WorkoutExerciseModel.optionalFromJson(json['exercise']),
     );
@@ -44,6 +46,7 @@ class TodayExerciseModel extends TodayExerciseEntry {
         orderNumber: orderNumber,
         sets: sets,
         reps: reps,
+        restTime: restTime,
         notes: notes,
         exercise: exercise,
       );
@@ -55,6 +58,7 @@ class TodayWorkoutModel extends TodayWorkoutEntry {
     required super.title,
     required super.dayNumber,
     required super.isRest,
+    super.note,
     required super.exercises,
     required super.dayCompleted,
   });
@@ -81,6 +85,7 @@ class TodayWorkoutModel extends TodayWorkoutEntry {
       title: json['title'] as String? ?? '',
       dayNumber: _optInt(json['day_number']) ?? 0,
       isRest: json['is_rest'] as bool? ?? false,
+      note: json['note'] as String? ?? '',
       exercises: exercises,
       dayCompleted: json['day_completed'] as bool? ?? false,
     );
@@ -91,6 +96,7 @@ class TodayWorkoutModel extends TodayWorkoutEntry {
         title: title,
         dayNumber: dayNumber,
         isRest: isRest,
+        note: note,
         exercises: exercises,
         dayCompleted: dayCompleted,
       );

@@ -50,6 +50,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
             title: day.name.trim().isEmpty
                 ? 'Day ${day.dayNumber}'
                 : day.name.trim(),
+            note: day.note.trim().isEmpty ? null : day.note.trim(),
           );
           if (isClosed) return;
           switch (dayResult) {
@@ -88,10 +89,11 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
             }
             continue;
           }
-          // 4. Add exercises to this day — only library UUIDs persist.
+          // 4. Add exercises to this day — catalog ids are opaque strings
+          // (e.g. "0489"), never UUID-validated (DOC_6 §1.2).
           for (var i = 0; i < day.exercises.length; i++) {
             final exercise = day.exercises[i];
-            if (!_isValidUuid(exercise.id)) continue;
+            if (exercise.id.isEmpty) continue;
             final exerciseResult = await _addExercise(
               template.id,
               dayId,
@@ -112,11 +114,4 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
         emit(SaveWorkoutPlanSuccess());
     }
   }
-
-  static final _uuidRegex = RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    caseSensitive: false,
-  );
-
-  bool _isValidUuid(String id) => _uuidRegex.hasMatch(id);
 }

@@ -104,6 +104,15 @@ class _Body extends StatelessWidget {
   }
 }
 
+/// Formats rest seconds as `90s` / `1:30` (DOC_6 §1.5); null → "—".
+String _formatRest(int? seconds) {
+  if (seconds == null) return '—';
+  if (seconds < 60) return '${seconds}s';
+  final m = seconds ~/ 60;
+  final s = (seconds % 60).toString().padLeft(2, '0');
+  return '$m:$s';
+}
+
 class _PlanContent extends StatefulWidget {
   const _PlanContent({required this.plan});
 
@@ -306,7 +315,7 @@ class _PlanContentState extends State<_PlanContent> {
                                         ),
                                       ),
                                       Text(
-                                        '${ex.sets ?? '—'}×${ex.reps ?? '—'}',
+                                        '${ex.sets ?? '—'}×${ex.reps ?? '—'} • ${_formatRest(ex.restTime)}',
                                         style: AppTextStyles.meduim12(context)
                                             .copyWith(
                                               color: AppColors.textSecondary,

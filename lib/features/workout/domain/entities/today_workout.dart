@@ -15,6 +15,7 @@ class TodayExerciseEntry {
     required this.orderNumber,
     this.sets,
     this.reps,
+    this.restTime,
     this.notes = '',
     this.exercise,
   });
@@ -27,6 +28,9 @@ class TodayExerciseEntry {
   final int orderNumber;
   final int? sets;
   final int? reps;
+
+  /// Rest between sets in seconds (DOC_6 §1.5); null = unset.
+  final int? restTime;
   final String notes;
   final WorkoutExerciseEntry? exercise;
 
@@ -40,6 +44,7 @@ class TodayExerciseEntry {
         orderNumber: orderNumber,
         sets: sets,
         reps: reps,
+        restTime: restTime,
         notes: notes,
         exercise: exercise,
       );
@@ -56,6 +61,7 @@ class TodayWorkoutEntry {
     required this.title,
     required this.dayNumber,
     required this.isRest,
+    this.note = '',
     required this.exercises,
     required this.dayCompleted,
   });
@@ -64,6 +70,9 @@ class TodayWorkoutEntry {
   final String title;
   final int dayNumber;
   final bool isRest;
+
+  /// Coach tip (DOC_6 §1.4); "" when unset.
+  final String note;
   final List<TodayExerciseEntry> exercises;
   final bool dayCompleted;
 

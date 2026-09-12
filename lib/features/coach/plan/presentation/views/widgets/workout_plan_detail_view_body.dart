@@ -1,10 +1,12 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/core/widgets/unfocus_on_tap.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_state.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
+import 'package:athletica/features/coach/plan/presentation/views/customize_workout_assignment_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/exercise_library_picker_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_day_exercises_view.dart';
 import 'package:athletica/features/workout/domain/entities/workout_template.dart';
@@ -249,6 +251,7 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
       _days[index] = _days[index].copyWith(
         name: result.name,
         exercises: List.from(result.exercises),
+        note: result.note,
       );
     });
   }
@@ -258,6 +261,8 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
     name: d.title,
     durationMinutes: 60,
     isRest: d.isRest,
+    note: d.note,
+    exerciseCount: d.exerciseCount,
     exercises: d.exercises.map((e) {
       final ex = e.exercise;
       return ProgramExercise(
@@ -265,6 +270,12 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
         name: (ex?.nameEn.isNotEmpty ?? false) ? ex!.nameEn : e.exerciseId,
         nameEn: ex?.nameEn,
         nameAr: ex?.nameAr,
+        thumbnailUrl: pickGenderedUrl(
+          maleUrl: ex?.thumbnailUrlMale ?? '',
+          femaleUrl: ex?.thumbnailUrlFemale ?? '',
+        ),
+        videoUrlMale: ex?.videoUrlMale ?? '',
+        videoUrlFemale: ex?.videoUrlFemale ?? '',
       );
     }).toList(),
   );
@@ -384,6 +395,14 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
     }
     if (result.name.isNotEmpty && result.name != day.title) {
       final ok = await cubit.editDay(day.id, title: result.name);
+      if (!mounted) return;
+      if (!ok) {
+        _showMutationError();
+        return;
+      }
+    }
+    if (result.note != day.note) {
+      final ok = await cubit.editDay(day.id, note: result.note);
       if (!mounted) return;
       if (!ok) {
         _showMutationError();
@@ -840,8 +859,9 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
     ).showSnackBar(SnackBar(content: Text(message ?? 'Delete failed')));
   }
 
-  void _showAssignSheet(BuildContext context, WorkoutTemplateEntry template) {
-    showModalBottomSheet(
+  void _showAssignSheet(BuildContext context, WorkoutTemplateEntry template) async {
+    final selection =
+        await showModalBottomSheet<({String relationId, String clientName})>(
       context: context,
       backgroundColor: AppColors.cardBackground,
       isScrollControlled: true,
@@ -850,12 +870,26 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
       ),
       builder: (_) => MultiBlocProvider(
         providers: [
-          BlocProvider.value(value: context.read<WorkoutTemplateDetailCubit>()),
           BlocProvider.value(value: context.read<CoachClientsCubit>()),
           BlocProvider.value(value: context.read<WorkoutPlansCubit>()),
         ],
         child: _AssignToClientSheet(template: template),
       ),
+    );
+    if (selection == null || !context.mounted) return;
+    final assigned = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CustomizeWorkoutAssignmentView(
+          template: template,
+          coachClientId: selection.relationId,
+          clientName: selection.clientName,
+        ),
+      ),
+    );
+    if (!context.mounted || assigned != true) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Workout assigned successfully')),
     );
   }
 }
@@ -1940,7 +1974,7 @@ class _AssignToClientSheet extends StatefulWidget {
 class _AssignToClientSheetState extends State<_AssignToClientSheet> {
   late final TextEditingController _searchController;
   String? _selectedRelationId;
-  bool _submitting = false;
+  String? _selectedClientName;
 
   @override
   void initState() {
@@ -1954,32 +1988,15 @@ class _AssignToClientSheetState extends State<_AssignToClientSheet> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  /// Client picked — hand off to the Customize Workout Assignment page,
+  /// which performs the actual assignment on confirm.
+  void _continue() {
     final relationId = _selectedRelationId;
-    if (relationId == null || _submitting) return;
-    setState(() => _submitting = true);
-    // Assign with the template's own title/description (no overrides).
-    final planId = await context.read<WorkoutTemplateDetailCubit>().assign(
-      coachClientId: relationId,
-    );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    if (planId == null) {
-      final err = context.read<WorkoutTemplateDetailCubit>().lastError;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(err ?? 'Assignment failed')));
-      return;
-    }
-    // Refresh assigned plans for that client per API docs (assign → GET plans).
-    await context.read<WorkoutPlansCubit>().load(
-      clientId: relationId,
-      isActive: true,
-    );
-    if (!mounted) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Workout assigned successfully')),
+    final clientName = _selectedClientName;
+    if (relationId == null || clientName == null) return;
+    Navigator.pop(
+      context,
+      (relationId: relationId, clientName: clientName),
     );
   }
 
@@ -2096,51 +2113,52 @@ class _AssignToClientSheetState extends State<_AssignToClientSheet> {
                           _selectedRelationId == client.relationId;
                       return GestureDetector(
                         onTap: () {
-                          setState(
-                            () => _selectedRelationId = client.relationId,
-                          );
+                          setState(() {
+                            _selectedRelationId = client.relationId;
+                            _selectedClientName = client.name;
+                          });
                           context.read<WorkoutPlansCubit>().load(
                             clientId: client.relationId,
                             isActive: true,
                           );
                         },
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 48.r,
-                              height: 48.r,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.surfaceDark,
-                                border: isSelected
-                                    ? Border.all(
-                                        color: AppColors.buttonColor,
-                                        width: 2,
-                                      )
-                                    : null,
-                              ),
-                              child: Icon(
-                                Icons.person,
-                                color: AppColors.textSecondary,
-                                size: 26.sp,
-                              ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 48.r,
+                            height: 48.r,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.surfaceDark,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: AppColors.buttonColor,
+                                      width: 2,
+                                    )
+                                  : null,
                             ),
-                            SizedBox(height: 4.h),
-                            SizedBox(
-                              width: 64.w,
-                              child: Text(
-                                client.name.split(' ').first,
-                                style: AppTextStyles.meduim11(
-                                  context,
-                                ).copyWith(color: AppColors.textSecondary),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            child: Icon(
+                              Icons.person,
+                              color: AppColors.textSecondary,
+                              size: 26.sp,
                             ),
-                          ],
-                        ),
-                      );
-                    },
+                          ),
+                          SizedBox(height: 4.h),
+                          SizedBox(
+                            width: 64.w,
+                            child: Text(
+                              client.name.split(' ').first,
+                              style: AppTextStyles.meduim11(
+                                context,
+                              ).copyWith(color: AppColors.textSecondary),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                   ),
                 );
               },
@@ -2229,30 +2247,20 @@ class _AssignToClientSheetState extends State<_AssignToClientSheet> {
               width: double.infinity,
               height: 50.h,
               child: ElevatedButton(
-                onPressed: (_selectedRelationId == null || _submitting)
-                    ? null
-                    : _submit,
+                onPressed:
+                    _selectedRelationId == null ? null : _continue,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.buttonColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                 ),
-                child: _submitting
-                    ? SizedBox(
-                        width: 20.r,
-                        height: 20.r,
-                        child: const CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'Submit',
-                        style: AppTextStyles.semiBold14(
-                          context,
-                        ).copyWith(color: Colors.white),
-                      ),
+                child: Text(
+                  'Continue',
+                  style: AppTextStyles.semiBold14(
+                    context,
+                  ).copyWith(color: Colors.white),
+                ),
               ),
             ),
             SizedBox(height: 8.h),

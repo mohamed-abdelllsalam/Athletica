@@ -104,6 +104,7 @@ class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
       title: workout.title,
       dayNumber: workout.dayNumber,
       isRest: workout.isRest,
+      note: workout.note,
       exercises: updated,
       dayCompleted: workout.isRest ? true : done,
     );

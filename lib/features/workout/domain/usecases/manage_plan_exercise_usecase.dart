@@ -13,6 +13,7 @@ class ManagePlanExerciseUseCase {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   }) =>
       _repository.addPlanExercise(
@@ -22,6 +23,7 @@ class ManagePlanExerciseUseCase {
         orderNumber: orderNumber,
         sets: sets,
         reps: reps,
+        restTime: restTime,
         notes: notes,
       );
 

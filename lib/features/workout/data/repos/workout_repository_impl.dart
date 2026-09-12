@@ -91,10 +91,14 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<ApiResult<WorkoutTemplateEntry>> createTemplateDay(
     String templateId, {
     required String title,
+    String? note,
   }) =>
       _guard(
-        () async =>
-            (await _dataSource.createTemplateDay(templateId, title: title)).toEntity(),
+        () async => (await _dataSource.createTemplateDay(
+          templateId,
+          title: title,
+          note: note,
+        )).toEntity(),
       );
 
   @override
@@ -104,6 +108,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) =>
       _guard(
         () async => (await _dataSource.updateTemplateDay(
@@ -112,6 +117,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
           title: title,
           dayNumber: dayNumber,
           isRest: isRest,
+          note: note,
         ))
             .toEntity(),
       );
@@ -255,10 +261,14 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<ApiResult<WorkoutPlanEntry>> createPlanDay(
     String planId, {
     required String title,
+    String? note,
   }) =>
       _guard(
-        () async =>
-            (await _dataSource.createPlanDay(planId, title: title)).toEntity(),
+        () async => (await _dataSource.createPlanDay(
+          planId,
+          title: title,
+          note: note,
+        )).toEntity(),
       );
 
   @override
@@ -268,6 +278,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     String? title,
     int? dayNumber,
     bool? isRest,
+    String? note,
   }) =>
       _guard(
         () async => (await _dataSource.updatePlanDay(
@@ -276,6 +287,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
           title: title,
           dayNumber: dayNumber,
           isRest: isRest,
+          note: note,
         ))
             .toEntity(),
       );
@@ -307,6 +319,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   }) =>
       _guard(
@@ -317,6 +330,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
           orderNumber: orderNumber,
           sets: sets,
           reps: reps,
+          restTime: restTime,
           notes: notes,
         ))
             .toEntity(),
@@ -330,6 +344,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     int? orderNumber,
     int? sets,
     int? reps,
+    int? restTime,
     String? notes,
   }) =>
       _guard(
@@ -340,6 +355,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
           orderNumber: orderNumber,
           sets: sets,
           reps: reps,
+          restTime: restTime,
           notes: notes,
         ))
             .toEntity(),

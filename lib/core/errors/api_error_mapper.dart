@@ -72,6 +72,8 @@ String? _messageForKey(String key) => switch (key) {
       'exercise_not_completed' => 'This exercise is not completed.',
       'sets_invalid' => 'Sets must be a positive number.',
       'reps_invalid' => 'Reps must be a positive number.',
+      'rest_time_invalid' =>
+        'Rest time must be a positive integer (seconds).',
       'workout_day_not_found' => 'Workout day not found.',
       'exercise_log_not_found' => 'Exercise log not found.',
       'food_already_in_meal' => 'This food is already in the meal.',

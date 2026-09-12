@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
 import 'package:athletica/features/coach/plan/presentation/views/workout_plan_detail_view.dart';
 import 'package:athletica/features/coach/workout_templates/presentation/cubits/save_workout_plan_cubit.dart';
@@ -80,6 +81,7 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
     clientCount: 0,
     iconAsset: 'assets/images/plan/upper_body_icon.svg',
     description: t.description,
+    totalExercises: t.exerciseCount,
     days: t.days
         .map(
           (d) => ProgramDay(
@@ -87,6 +89,8 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
             name: d.title,
             durationMinutes: 60,
             isRest: d.isRest,
+            note: d.note,
+            exerciseCount: d.exerciseCount,
             exercises: d.exercises.map((e) {
               final ex = e.exercise;
               return ProgramExercise(
@@ -96,6 +100,12 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                     : e.exerciseId,
                 nameEn: ex?.nameEn,
                 nameAr: ex?.nameAr,
+                thumbnailUrl: pickGenderedUrl(
+                  maleUrl: ex?.thumbnailUrlMale ?? '',
+                  femaleUrl: ex?.thumbnailUrlFemale ?? '',
+                ),
+                videoUrlMale: ex?.videoUrlMale ?? '',
+                videoUrlFemale: ex?.videoUrlFemale ?? '',
               );
             }).toList(),
           ),
@@ -270,44 +280,40 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                       ),
                     );
                   }
-                  return RefreshIndicator(
-                    onRefresh: () =>
-                        context.read<WorkoutTemplatesCubit>().refresh(),
-                    child: ListView.separated(
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 4.h,
-                      ),
-                      itemCount: programs.length,
-                      separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                      itemBuilder: (context, index) {
-                        final program = programs[index];
-                        final color = _iconColors[index % _iconColors.length];
-                        return _ProgramCard(
-                          program: program,
-                          iconColor: color,
-                          onTap: () async {
-                            final navigator = Navigator.of(context);
-                            final templatesCubit = context
-                                .read<WorkoutTemplatesCubit>();
-                            final changed = await navigator.push<bool>(
-                              MaterialPageRoute(
-                                builder: (_) => BlocProvider.value(
-                                  value: templatesCubit,
-                                  child: WorkoutPlanDetailView(
-                                    program: program,
-                                  ),
+                  return ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 4.h,
+                    ),
+                    itemCount: programs.length,
+                    separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                    itemBuilder: (context, index) {
+                      final program = programs[index];
+                      final color = _iconColors[index % _iconColors.length];
+                      return _ProgramCard(
+                        program: program,
+                        iconColor: color,
+                        onTap: () async {
+                          final navigator = Navigator.of(context);
+                          final templatesCubit = context
+                              .read<WorkoutTemplatesCubit>();
+                          final changed = await navigator.push<bool>(
+                            MaterialPageRoute(
+                              builder: (_) => BlocProvider.value(
+                                value: templatesCubit,
+                                child: WorkoutPlanDetailView(
+                                  program: program,
                                 ),
                               ),
-                            );
-                            if ((changed ?? false) && context.mounted) {
-                              context.read<WorkoutTemplatesCubit>().refresh();
-                            }
-                          },
-                        );
-                      },
-                    ),
+                            ),
+                          );
+                          if ((changed ?? false) && context.mounted) {
+                            context.read<WorkoutTemplatesCubit>().refresh();
+                          }
+                        },
+                      );
+                    },
                   );
                 }(),
               },
