@@ -19,12 +19,21 @@ final class WorkoutTodayLoading extends WorkoutTodayState {
 /// [errorMessage] carries a failed toggle error while keeping the loaded
 /// list visible (load failures still use [WorkoutTodayError]).
 final class WorkoutTodayLoaded extends WorkoutTodayState {
-  const WorkoutTodayLoaded(this.workout, {this.togglingLogId, this.errorMessage});
+  const WorkoutTodayLoaded(
+    this.workout, {
+    this.togglingLogId,
+    this.errorMessage,
+    this.dayCompletionConfirmed = false,
+  });
 
   @override
   final TodayWorkoutEntry? workout;
   final String? togglingLogId;
   final String? errorMessage;
+
+  /// True only on the successful backend response that changes an incomplete
+  /// day to complete. It is never set by the optimistic update or initial load.
+  final bool dayCompletionConfirmed;
 }
 
 final class WorkoutTodayError extends WorkoutTodayState {

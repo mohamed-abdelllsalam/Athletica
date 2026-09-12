@@ -51,6 +51,8 @@ import 'package:athletica/features/profile/presentation/views/profile_info_view.
 import 'package:athletica/features/profile/presentation/views/profile_view.dart';
 import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:athletica/features/splash/presentation/views/splash_view.dart';
+import 'package:athletica/features/workout/presentation/views/todays_workout_view.dart';
+import 'package:athletica/features/workout/presentation/views/workout_my_plan_view.dart';
 import 'package:athletica/features/workout_session/presentation/views/workout_session_view.dart';
 import 'package:athletica/features/assigned/presentation/views/assigned_view.dart';
 import 'package:flutter/material.dart';
@@ -212,6 +214,27 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (context) => const InfoView());
     case HomeView.routeName:
       return MaterialPageRoute(builder: (context) => const HomeView());
+    case WorkoutMyPlanView.routeName:
+      final args = settings.arguments;
+      final typedArgs = args is WorkoutMyPlanRouteArgs
+          ? args
+          : const WorkoutMyPlanRouteArgs();
+      return MaterialPageRoute(
+        builder: (context) => WorkoutMyPlanView(
+          initialDayNumber: typedArgs.initialDayNumber,
+          userGender: typedArgs.userGender,
+        ),
+      );
+    case TodaysWorkoutView.routeName:
+      final args = settings.arguments;
+      final typedArgs = args is TodaysWorkoutRouteArgs
+          ? args
+          : const TodaysWorkoutRouteArgs();
+      return MaterialPageRoute(
+        builder: (context) => TodaysWorkoutView(
+          userGender: typedArgs.userGender,
+        ),
+      );
     case ClientCoachView.routeName:
       return MaterialPageRoute(builder: (context) => const ClientCoachView());
     case MyPlanDetailsView.routeName:

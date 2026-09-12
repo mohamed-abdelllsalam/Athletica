@@ -9,11 +9,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 /// Client daily workout — `GET /workout/today` + per-exercise
 /// complete/uncomplete via `log_id`.
 class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
-  WorkoutTodayCubit(
-    this._getToday,
-    this._complete,
-    this._uncomplete,
-  ) : super(const WorkoutTodayInitial());
+  WorkoutTodayCubit(this._getToday, this._complete, this._uncomplete)
+    : super(const WorkoutTodayInitial());
 
   final GetTodayWorkoutUseCase _getToday;
   final CompleteWorkoutExerciseUseCase _complete;
@@ -37,7 +34,6 @@ class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
   /// `{exercise_log, day_completed}` response; surfaces day completion
   /// so the UI can celebrate without a full reload.
   /// Returns `dayCompleted` on success, null on failure/not-loaded.
-  /// [dayCompletedCallback] fires only when the day flips to complete.
   Future<bool?> toggle(String logId, bool targetCompleted) async {
     final current = state;
     if (current is! WorkoutTodayLoaded) return null;
@@ -57,6 +53,7 @@ class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return null;
+        final justConfirmed = !workout.dayCompleted && data.dayCompleted;
         emit(
           WorkoutTodayLoaded(
             _withCompletion(
@@ -66,6 +63,7 @@ class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
               completedAt: data.completedAt,
               dayCompleted: data.dayCompleted,
             ),
+            dayCompletionConfirmed: justConfirmed,
           ),
         );
         return data.dayCompleted;
@@ -97,7 +95,8 @@ class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
               : e,
         )
         .toList();
-    final done = dayCompleted ??
+    final done =
+        dayCompleted ??
         (updated.isNotEmpty && updated.every((e) => e.completed));
     return TodayWorkoutEntry(
       dayId: workout.dayId,

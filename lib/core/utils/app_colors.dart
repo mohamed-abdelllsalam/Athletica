@@ -15,7 +15,7 @@ abstract class AppColors {
   static const Color buttonColor = Color(0xFF42309E);
 
   static const Color streakGreen = Color(0xFF4CAF50);
-  static const Color streakBlue = Color(0xFF42A5F5);
+  static const Color streakBlue = Color(0xFF42309e);
   static const Color streakPurple = Color(0xFF5273E0);
   static const Color streakFire = Color(0xFFFF9800);
 

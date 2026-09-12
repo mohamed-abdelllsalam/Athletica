@@ -2,6 +2,7 @@ import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
 class SummarySection extends StatelessWidget {
   const SummarySection({
@@ -28,7 +29,7 @@ class SummarySection extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           Text(
-            'Friday 7 Nov',
+            DateFormat('EEEE d MMM').format(DateTime.now()),
             style: AppTextStyles.medium14(
               context,
             ).copyWith(color: AppColors.textSecondary),
@@ -85,4 +86,3 @@ class SummarySection extends StatelessWidget {
     );
   }
 }
-
