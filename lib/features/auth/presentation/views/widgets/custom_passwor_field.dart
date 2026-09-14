@@ -8,11 +8,13 @@ class CustomPasswordField extends StatefulWidget {
     this.validator,
     this.hintText = 'Enter your password',
     this.labelText = 'Password',
+    this.textInputAction = TextInputAction.done,
   });
   final void Function(String?) onSaved;
   final String? Function(String?)? validator;
   final String hintText;
   final String labelText;
+  final TextInputAction textInputAction;
 
   @override
   State<CustomPasswordField> createState() => _CustomPasswordFieldState();
@@ -33,7 +35,7 @@ class _CustomPasswordFieldState extends State<CustomPasswordField> {
         },
         icon: Icon(isObscure ? Icons.visibility_off : Icons.visibility),
       ),
-      textInputAction: TextInputAction.done,
+      textInputAction: widget.textInputAction,
       validator: widget.validator,
       labelText: widget.labelText,
       hintText: widget.hintText,

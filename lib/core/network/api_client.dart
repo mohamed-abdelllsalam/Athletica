@@ -2,18 +2,16 @@ import 'package:athletica/core/helper/app_navigator_key.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/network/session_expired_guard.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
-import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
+import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
-  static final SessionExpiredGuard _sessionExpiredGuard =
-      SessionExpiredGuard();
+  static final SessionExpiredGuard _sessionExpiredGuard = SessionExpiredGuard();
 
   late final Dio _dio;
 
@@ -41,15 +39,17 @@ class ApiClient {
         },
         onError: (error, handler) async {
           final requestOptions = error.requestOptions;
-          final wasAuthenticatedRequest =
-              requestOptions.headers['Authorization'] != null &&
-                  !ApiEndpoints.isPublicAuthPath(requestOptions.uri.path);
+          final isPublicAuth = ApiEndpoints.isPublicAuthPath(
+            requestOptions.uri.path,
+          );
           final isSessionExpired =
-              error.response?.statusCode == 401 && wasAuthenticatedRequest;
+              (error.response?.statusCode == 401 ||
+                  _isAuthenticationRequiredBody(error.response?.data)) &&
+              !isPublicAuth;
           if (isSessionExpired) {
             // Single-flight: a burst of concurrent 401s (e.g. the dashboard
             // firing 5-6 authenticated requests at once) must produce ONE
-            // message + ONE navigation, not one per request. Duplicates still
+            // navigation + ONE message, not one per request. Duplicates still
             // propagate as UnauthorizedFailure but show no global UI.
             if (!_sessionExpiredGuard.shouldHandle(DateTime.now())) {
               handler.next(error);
@@ -58,23 +58,14 @@ class ApiClient {
             try {
               // Navigate first (sync) so old routes/listeners are disposed
               // before their cubits emit UnauthorizedFailure — per-screen UI
-              // then never shows its own duplicate message.
+              // then never shows its own duplicate message. The login page
+              // itself shows the single "session expired" message client-side.
               appNavigatorKey.currentState?.pushNamedAndRemoveUntil(
-                OnBoardingView.routeName,
+                SignInView.routeName,
                 (_) => false,
+                arguments: const {'sessionExpired': true},
               );
               await TokenStorageService.instance.clearAll();
-              final context = appNavigatorKey.currentContext;
-              if (context != null && context.mounted) {
-                ScaffoldMessenger.of(context)
-                  ..clearSnackBars()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text('Session expired, please login again.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-              }
             } finally {
               _sessionExpiredGuard.complete();
             }
@@ -100,4 +91,22 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+}
+
+/// Returns true when the backend body explicitly says authentication is
+/// required (e.g. `{"error": "auth_required"}` or
+/// `{"message": "Authentication required"}`), even if the status code
+/// is not exactly 401.
+bool _isAuthenticationRequiredBody(dynamic data) {
+  if (data is! Map) return false;
+  final values = [
+    data['error']?.toString().toLowerCase() ?? '',
+    data['message']?.toString().toLowerCase() ?? '',
+  ];
+  return values.any(
+    (v) =>
+        v.contains('auth_required') ||
+        v.contains('authentication required') ||
+        v == 'auth required',
+  );
 }

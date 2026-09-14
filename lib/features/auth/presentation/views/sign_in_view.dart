@@ -5,14 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SignInView extends StatelessWidget {
-  const SignInView({super.key});
+  const SignInView({super.key, this.sessionExpired = false});
   static const String routeName = 'signInView';
+
+  /// When true, the login page shows a one-time "session expired" message.
+  /// Set by [ApiClient] after a 401 / "Authentication required" response.
+  final bool sessionExpired;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<AuthCubit>(),
-      child: const Scaffold(body: SignInViewBody()),
+      child: Scaffold(body: SignInViewBody(sessionExpired: sessionExpired)),
     );
   }
 }

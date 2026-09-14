@@ -19,7 +19,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SignInViewBody extends StatefulWidget {
-  const SignInViewBody({super.key});
+  const SignInViewBody({super.key, this.sessionExpired = false});
+
+  final bool sessionExpired;
 
   @override
   State<SignInViewBody> createState() => _SignInViewBodyState();
@@ -30,6 +32,26 @@ class _SignInViewBodyState extends State<SignInViewBody> {
   AutovalidateMode autoValidateMode = AutovalidateMode.disabled;
   late String email, password;
   bool isChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Single client-side notice for expired sessions. Post-frame so the
+    // ScaffoldMessenger is ready; shown exactly once per page instance.
+    if (widget.sessionExpired) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Session expired, please login again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+      });
+    }
+  }
 
   void _submit(BuildContext context) {
     if (!formKey.currentState!.validate()) {

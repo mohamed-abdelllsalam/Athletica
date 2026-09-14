@@ -179,7 +179,12 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case OnBoardingView.routeName:
       return MaterialPageRoute(builder: (context) => const OnBoardingView());
     case SignInView.routeName:
-      return MaterialPageRoute(builder: (context) => const SignInView());
+      final signInArgs = settings.arguments;
+      final sessionExpired =
+          signInArgs is Map && signInArgs['sessionExpired'] == true;
+      return MaterialPageRoute(
+        builder: (context) => SignInView(sessionExpired: sessionExpired),
+      );
     case RoleSelectionView.routeName:
       return MaterialPageRoute(builder: (context) => const RoleSelectionView());
     case SignUpView.routeName:

@@ -6,6 +6,7 @@ import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:athletica/features/auth/presentation/views/verify_your_identity_view.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
+import 'package:athletica/features/auth/presentation/views/widgets/custom_passwor_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
@@ -175,23 +176,19 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        CustomFormTextField(
+                        CustomPasswordField(
                           onSaved: (value) => password = value!,
                           hintText: 'Enter your password',
-                          keyboardType: TextInputType.visiblePassword,
                           labelText: 'Password',
                           textInputAction: TextInputAction.next,
-                          obscureText: true,
                           validator: validatePassword,
                         ),
                         const SizedBox(height: 16),
-                        CustomFormTextField(
+                        CustomPasswordField(
                           onSaved: (value) => confirmPassword = value!,
                           hintText: 'Confirm your password',
-                          keyboardType: TextInputType.visiblePassword,
                           labelText: 'Confirm Password',
                           textInputAction: TextInputAction.done,
-                          obscureText: true,
                           validator: (value) {
                             if (value == null || value.length < 8) {
                               return 'Confirm your password';
