@@ -123,8 +123,8 @@ class _CustomizeWorkoutAssignmentViewBodyState
         CustomizeAssignmentState>(
       listener: (context, state) {
         switch (state) {
-          case CustomizeAssignmentSuccess():
-            Navigator.pop(context, true);
+          case CustomizeAssignmentSuccess(:final planId):
+            Navigator.pop(context, planId);
           case CustomizeAssignmentFailure(:final message):
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(message), backgroundColor: Colors.red),

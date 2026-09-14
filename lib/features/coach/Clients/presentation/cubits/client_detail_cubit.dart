@@ -1,6 +1,7 @@
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/clients/domain/entities/client_detail.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/delete_client_nutrition_plan_usecase.dart';
+import 'package:athletica/features/coach/clients/domain/usecases/delete_client_workout_plan_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/get_client_detail_usecase.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -26,10 +27,12 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
   ClientDetailCubit(
     this._getClientDetail,
     this._deleteNutritionPlan,
+    this._deleteWorkoutPlan,
   ) : super(ClientDetailInitial());
 
   final GetClientDetailUseCase _getClientDetail;
   final DeleteClientNutritionPlanUseCase _deleteNutritionPlan;
+  final DeleteClientWorkoutPlanUseCase _deleteWorkoutPlan;
 
   String? _currentClientId;
 
@@ -54,6 +57,22 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
     if (current is! ClientDetailLoaded) return;
 
     final result = await _deleteNutritionPlan(planId);
+    switch (result) {
+      case ApiSuccess():
+        if (_currentClientId != null) {
+          await loadClientDetail(_currentClientId!);
+        }
+      case ApiError(:final failure):
+        if (isClosed) return;
+        emit(ClientDetailError(failure.message));
+    }
+  }
+
+  Future<void> deleteWorkoutPlan(String planId) async {
+    final current = state;
+    if (current is! ClientDetailLoaded) return;
+
+    final result = await _deleteWorkoutPlan(planId);
     switch (result) {
       case ApiSuccess():
         if (_currentClientId != null) {

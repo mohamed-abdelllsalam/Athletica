@@ -9,4 +9,5 @@ abstract class CoachClientsRepository {
   Future<ApiResult<ClientDetail>> getClientDetail(String clientId);
   Future<ApiResult<void>> removeAssignedClient(String coachClientId);
   Future<ApiResult<void>> deleteNutritionPlan(String planId);
+  Future<ApiResult<void>> deleteWorkoutPlan(String planId);
 }

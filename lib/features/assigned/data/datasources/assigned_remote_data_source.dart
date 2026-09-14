@@ -34,8 +34,22 @@ class AssignedRemoteDataSourceImpl implements AssignedRemoteDataSource {
       nutrition = null;
     }
 
-    // Workout: no endpoint exists yet, always null
-    return ClientAssignedModel(workout: null, nutrition: nutrition);
+    // Fetch workout plan the same way as nutrition.
+    // Response: { "plan": {...} } or { "data": { "plan": {...} } };
+    // plan == null (or no_active_plan_found) → workout stays null.
+    AssignedWorkoutModel? workout;
+    try {
+      final workoutRes = await _dio.get(ApiEndpoints.workoutMyPlans);
+      final plan = _extractPlan(workoutRes.data);
+      if (plan != null) {
+        workout = AssignedWorkoutModel.fromJson(plan);
+      }
+    } catch (_) {
+      // Any error — leave workout as null
+      workout = null;
+    }
+
+    return ClientAssignedModel(workout: workout, nutrition: nutrition);
   }
 
   @override
@@ -50,4 +64,17 @@ class AssignedRemoteDataSourceImpl implements AssignedRemoteDataSource {
       data: <String, dynamic>{},
     );
   }
+}
+
+/// Extracts the `plan` map from either `{ "plan": {...} }` or
+/// `{ "data": { "plan": {...} } }`. Returns null when absent.
+Map<String, dynamic>? _extractPlan(dynamic data) {
+  if (data is! Map<String, dynamic>) return null;
+  final nested = data['data'];
+  final Map<String, dynamic> root = nested is Map<String, dynamic>
+      ? nested
+      : data;
+  final plan = root['plan'];
+  if (plan is Map<String, dynamic>) return plan;
+  return null;
 }

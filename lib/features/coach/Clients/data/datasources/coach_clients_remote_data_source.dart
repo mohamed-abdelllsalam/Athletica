@@ -18,6 +18,9 @@ abstract class CoachClientsRemoteDataSource {
 
   /// `DELETE /nutrition/plans/:planId` — deactivates the plan.
   Future<void> deleteNutritionPlan(String planId);
+
+  /// `DELETE /workout/plans/:planId` — deactivates the plan.
+  Future<void> deleteWorkoutPlan(String planId);
 }
 
 class CoachClientsRemoteDataSourceImpl implements CoachClientsRemoteDataSource {
@@ -62,5 +65,10 @@ class CoachClientsRemoteDataSourceImpl implements CoachClientsRemoteDataSource {
   @override
   Future<void> deleteNutritionPlan(String planId) async {
     await _dio.delete(ApiEndpoints.nutritionPlan(planId));
+  }
+
+  @override
+  Future<void> deleteWorkoutPlan(String planId) async {
+    await _dio.delete(ApiEndpoints.workoutPlan(planId));
   }
 }

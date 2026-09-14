@@ -1470,50 +1470,12 @@ class _AssignToClientSheet extends StatefulWidget {
 
 class _AssignToClientSheetState extends State<_AssignToClientSheet> {
   final TextEditingController _searchController = TextEditingController();
-  DateTime _startDate = DateTime(2026, 6, 20);
-  DateTime _endDate = DateTime(2026, 8, 20);
   String? _selectedClientId;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickDate(bool isStart) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: isStart ? _startDate : _endDate,
-      firstDate: DateTime(2025),
-      lastDate: DateTime(2030),
-      builder: (context, child) => Theme(data: ThemeData.dark(), child: child!),
-    );
-    if (picked == null) return;
-    setState(() {
-      if (isStart) {
-        _startDate = picked;
-      } else {
-        _endDate = picked;
-      }
-    });
-  }
-
-  String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day},${date.year}';
   }
 
   void _submit(AssignPlanState state) {
@@ -1771,26 +1733,6 @@ class _AssignToClientSheetState extends State<_AssignToClientSheet> {
                 ),
         ),
         SizedBox(height: 16.h),
-        Row(
-          children: [
-            Expanded(
-              child: _DatePickerCard(
-                label: 'Start Data',
-                date: _formatDate(_startDate),
-                onTap: () => _pickDate(true),
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: _DatePickerCard(
-                label: 'End Data',
-                date: _formatDate(_endDate),
-                onTap: () => _pickDate(false),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
         SizedBox(
           width: double.infinity,
           height: 50.h,
@@ -2030,60 +1972,6 @@ class _EditTemplateMetaSheetState extends State<_EditTemplateMetaSheet> {
               ),
             ),
             SizedBox(height: 8.h),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DatePickerCard extends StatelessWidget {
-  const _DatePickerCard({
-    required this.label,
-    required this.date,
-    required this.onTap,
-  });
-
-  final String label;
-  final String date;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_today_outlined,
-              color: AppColors.textSecondary,
-              size: 16.sp,
-            ),
-            SizedBox(width: 8.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTextStyles.meduim11(
-                    context,
-                  ).copyWith(color: AppColors.textSecondary),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  date,
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary, fontSize: 13.sp),
-                ),
-              ],
-            ),
           ],
         ),
       ),

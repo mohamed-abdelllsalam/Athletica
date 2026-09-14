@@ -1,3 +1,5 @@
+import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/clients/domain/entities/client_detail.dart';
@@ -5,6 +7,12 @@ import 'package:athletica/features/coach/clients/presentation/cubits/client_deta
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_info_view.dart';
 import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
+import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
+import 'package:athletica/features/coach/plan/presentation/views/customize_workout_assignment_view.dart';
+import 'package:athletica/features/workout/domain/entities/workout_template.dart';
+import 'package:athletica/features/workout/domain/usecases/get_workout_template_detail_usecase.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_templates_cubit.dart';
+import 'package:athletica/features/workout/presentation/cubits/workout_templates_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -309,8 +317,68 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     );
   }
 
+  void _confirmDeactivateWorkout(
+    BuildContext context,
+    String planId,
+    String title,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: const Text(
+          'Deactivate Plan',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'This will deactivate "$title". The client will no longer see this plan.',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              // Clear the local fallback so the card disappears even though
+              // the detail endpoint still returns workout_plan: null.
+              setState(() {
+                _justAssignedWorkoutTitle = null;
+                _justAssignedWorkoutSubtitle = null;
+                _justAssignedWorkoutId = null;
+              });
+              context.read<ClientDetailCubit>().deleteWorkoutPlan(planId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text(
+              'Deactivate',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAssignedPlanSection(BuildContext context, ClientDetail detail) {
     final nutritionPlan = detail.nutritionPlan;
+    final workoutTitle =
+        _justAssignedWorkoutTitle ?? _workoutTitle(detail.workoutPlan);
+    final workoutSubtitle =
+        _justAssignedWorkoutSubtitle ?? _workoutSubtitle(detail.workoutPlan);
+    final workoutPlanId =
+        _workoutId(detail.workoutPlan) ?? _justAssignedWorkoutId;
+
+    Future<void> reload() async {
+      if (context.mounted) {
+        context.read<ClientDetailCubit>().loadClientDetail(widget.clientId);
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,19 +401,123 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           )
         else
           _AssignPlanCard(
+            label: 'Assign Nutrition Plan',
             onPressed: () async {
               await Navigator.pushNamed(
                 context,
                 'nutrition-templates-list',
                 arguments: {'clientId': detail.client.id},
               );
-              if (context.mounted) {
-                context.read<ClientDetailCubit>().loadClientDetail(widget.clientId);
-              }
+              await reload();
             },
+          ),
+        SizedBox(height: 10.h),
+        if (workoutTitle != null)
+          _PlanCard(
+            iconData: Icons.fitness_center,
+            iconBgColor: AppColors.primaryBlue,
+            title: workoutTitle,
+            subtitle: workoutSubtitle,
+            onDelete: workoutPlanId != null
+                ? () => _confirmDeactivateWorkout(
+                    context,
+                    workoutPlanId,
+                    workoutTitle,
+                  )
+                : null,
+          )
+        else
+          _AssignPlanCard(
+            label: 'Assign Workout Plan',
+            onPressed: () => _openWorkoutAssignSheet(context, detail),
           ),
       ],
     );
+  }
+
+  String? _workoutTitle(dynamic workoutPlan) {
+    if (workoutPlan is Map<String, dynamic>) {
+      final title = workoutPlan['title'] as String?;
+      if (title != null && title.isNotEmpty) return title;
+    }
+    return null;
+  }
+
+  String? _workoutId(dynamic workoutPlan) {
+    if (workoutPlan is Map<String, dynamic>) {
+      final id = workoutPlan['id'] as String?;
+      if (id != null && id.isNotEmpty) return id;
+    }
+    return null;
+  }
+
+  String _workoutSubtitle(dynamic workoutPlan) {
+    if (workoutPlan is Map<String, dynamic>) {
+      final description = workoutPlan['description'] as String?;
+      if (description != null && description.isNotEmpty) return description;
+    }
+    return 'Workout Plan';
+  }
+
+  /// The backend still returns `workout_plan: null` on the client detail
+  /// (placeholder until the workout feature ships server-side), so a
+  /// reload alone can't show the new assignment. The just-assigned plan
+  /// is therefore kept locally and shown until the backend provides it.
+  String? _justAssignedWorkoutTitle;
+  String? _justAssignedWorkoutSubtitle;
+  String? _justAssignedWorkoutId;
+
+  /// Opens the plan picker as a full screen (same style as the workout
+  /// library) instead of navigating to the workout library screen itself.
+  /// Picking a plan pushes the sets/reps customization for this client.
+  Future<void> _openWorkoutAssignSheet(
+    BuildContext context,
+    ClientDetail detail,
+  ) async {
+    final assigned =
+        await Navigator.push<({String planId, String title, String subtitle})>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) => sl<WorkoutTemplatesCubit>()..load(),
+                ),
+                BlocProvider(
+                  create: (_) => sl<AssignPlanCubit>()..loadClients(),
+                ),
+              ],
+              child: _SelectWorkoutTemplateView(
+                clientName: detail.client.displayName,
+                clientEmail: detail.client.email,
+              ),
+            ),
+          ),
+        );
+    if (assigned != null && context.mounted) {
+      final cubit = context.read<ClientDetailCubit>();
+      await cubit.loadClientDetail(widget.clientId);
+      if (!context.mounted) return;
+      final reloaded = cubit.state;
+      final backendTitle = reloaded is ClientDetailLoaded
+          ? _workoutTitle(reloaded.detail.workoutPlan)
+          : null;
+      setState(() {
+        if (backendTitle != null) {
+          // Backend now provides the plan — local fallback no longer needed.
+          _justAssignedWorkoutTitle = null;
+          _justAssignedWorkoutSubtitle = null;
+          _justAssignedWorkoutId = null;
+        } else {
+          _justAssignedWorkoutTitle = assigned.title;
+          _justAssignedWorkoutSubtitle = assigned.subtitle;
+          _justAssignedWorkoutId = assigned.planId;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Workout assigned successfully')),
+      );
+    }
   }
 
   Widget _buildProgressOverviewSection(BuildContext context, ClientDetail detail) {
@@ -378,6 +550,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           iconColor: const Color(0xFFB76CFF),
           currentStreak: workoutStreak.current,
           lastDate: workoutStreak.lastDate,
+          showLastDate: false,
         ),
         SizedBox(height: 16.h),
         _TabSelector(
@@ -401,6 +574,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     required Color iconColor,
     required int currentStreak,
     required String? lastDate,
+    bool showLastDate = true,
   }) {
     final now = DateTime.now();
     final days = List.generate(7, (i) {
@@ -442,7 +616,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
                         context,
                       ).copyWith(color: AppColors.textPrimary),
                     ),
-                    if (lastDate != null)
+                    if (showLastDate && lastDate != null)
                       Text(
                         'Last: $lastDate',
                         style: AppTextStyles.meduim11(
@@ -795,9 +969,10 @@ class _PlanCard extends StatelessWidget {
 // ---------- Assign Plan Card ----------
 
 class _AssignPlanCard extends StatelessWidget {
-  const _AssignPlanCard({required this.onPressed});
+  const _AssignPlanCard({required this.onPressed, this.label = 'Assign Plan'});
 
   final VoidCallback onPressed;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -823,7 +998,7 @@ class _AssignPlanCard extends StatelessWidget {
             ),
             SizedBox(width: 8.w),
             Text(
-              'Assign Nutrition Plan',
+              label,
               style: AppTextStyles.semiBold14(
                 context,
               ).copyWith(color: AppColors.primaryBlue),
@@ -867,6 +1042,324 @@ class _StatItem extends StatelessWidget {
           ).copyWith(color: AppColors.textPrimary),
         ),
       ],
+    );
+  }
+}
+
+// ---------- Workout plan picker (full screen, inline assign) ----------
+
+/// Full screen listing the coach's workout templates — same style as the
+/// workout library — so a workout can be assigned without leaving the
+/// client profile flow. Tapping a plan loads its full details (the list
+/// API sends counts only) then pushes the sets/reps customization for
+/// this client.
+///
+/// The list stays disabled until the roster is loaded and this client's
+/// `coach_clients.id` relation id is resolved, so tapping a plan can
+/// never hit a "still loading" state.
+class _SelectWorkoutTemplateView extends StatefulWidget {
+  const _SelectWorkoutTemplateView({
+    required this.clientName,
+    required this.clientEmail,
+  });
+
+  final String clientName;
+  final String clientEmail;
+
+  @override
+  State<_SelectWorkoutTemplateView> createState() =>
+      _SelectWorkoutTemplateViewState();
+}
+
+class _SelectWorkoutTemplateViewState
+    extends State<_SelectWorkoutTemplateView> {
+  String _query = '';
+  String? _loadingId;
+
+  List<WorkoutTemplateEntry> _filtered(List<WorkoutTemplateEntry> items) {
+    if (_query.isEmpty) return items;
+    final lower = _query.toLowerCase();
+    return items
+        .where(
+          (t) =>
+              t.title.toLowerCase().contains(lower) ||
+              t.description.toLowerCase().contains(lower),
+        )
+        .toList();
+  }
+
+  Future<void> _pick(WorkoutTemplateEntry item, String relationId) async {
+    if (_loadingId != null) return;
+    setState(() => _loadingId = item.id);
+    final result = await sl<GetWorkoutTemplateDetailUseCase>()(item.id);
+    if (!mounted) return;
+    switch (result) {
+      case ApiError(:final failure):
+        setState(() => _loadingId = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failure.message), backgroundColor: Colors.red),
+        );
+      case ApiSuccess(:final data):
+        setState(() => _loadingId = null);
+        final assignedPlanId = await Navigator.push<String>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CustomizeWorkoutAssignmentView(
+              template: data,
+              coachClientId: relationId,
+              clientName: widget.clientName,
+            ),
+          ),
+        );
+        if (!mounted) return;
+        // Return the assigned plan info so the profile updates immediately
+        // (the detail endpoint still returns workout_plan: null).
+        if (assignedPlanId != null && assignedPlanId.isNotEmpty) {
+          Navigator.pop(context, (
+            planId: assignedPlanId,
+            title: item.title,
+            subtitle: item.description.isNotEmpty
+                ? item.description
+                : 'Workout Plan',
+          ));
+        }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.primaryAppColor,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildAppBar(context),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Container(
+                height: 48.h,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDark,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: TextField(
+                  onChanged: (v) => setState(() => _query = v),
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Search plans...',
+                    hintStyle: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: AppColors.textSecondary,
+                      size: 20.sp,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 14.h),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Expanded(
+              child: BlocBuilder<
+                WorkoutTemplatesCubit,
+                WorkoutTemplatesState
+              >(
+                builder: (context, templatesState) {
+                  return BlocBuilder<AssignPlanCubit, AssignPlanState>(
+                    builder: (context, assignState) {
+                      final items = switch (templatesState) {
+                        WorkoutTemplatesLoaded(:final items) => items,
+                        _ => null,
+                      };
+                      // coach_client_id must be the coach_clients.id relation
+                      // id, resolved from the roster by the client's email.
+                      final clients = switch (assignState) {
+                        AssignPlanClientsLoaded(:final clients) => clients,
+                        AssignPlanAssigning(:final clients) => clients,
+                        AssignPlanError(:final clients) => clients,
+                        _ => null,
+                      };
+                      if (items == null || clients == null) {
+                        final templatesError =
+                            templatesState is WorkoutTemplatesError
+                            ? templatesState.message
+                            : null;
+                        final clientsError =
+                            assignState is AssignPlanClientsError
+                            ? assignState.message
+                            : null;
+                        final error = templatesError ?? clientsError;
+                        if (error != null) return _buildError(error);
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+                      final matchEmail = widget.clientEmail
+                          .trim()
+                          .toLowerCase();
+                      final match = clients
+                          .where(
+                            (c) =>
+                                c.email.trim().toLowerCase() == matchEmail,
+                          )
+                          .firstOrNull;
+                      if (match == null) {
+                        return _buildError(
+                          'Client not found in your roster',
+                          showRetry: false,
+                        );
+                      }
+                      return _buildList(items, match.relationId);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Icon(
+              Icons.arrow_back_ios,
+              color: AppColors.textPrimary,
+              size: 20.sp,
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            'Select Workout Plan',
+            style: AppTextStyles.semiBold15(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(String message, {bool showRetry = true}) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              message,
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            if (showRetry) ...[
+              SizedBox(height: 16.h),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<WorkoutTemplatesCubit>().load();
+                  context.read<AssignPlanCubit>().loadClients();
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildList(List<WorkoutTemplateEntry> items, String relationId) {
+    final filtered = _filtered(items);
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text(
+          'No workout plans available',
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
+        ),
+      );
+    }
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      itemCount: filtered.length,
+      separatorBuilder: (_, _) => SizedBox(height: 8.h),
+      itemBuilder: (context, index) {
+        final item = filtered[index];
+        final isLoading = item.id == _loadingId;
+        return GestureDetector(
+          onTap: () => _pick(item, relationId),
+          child: Container(
+            padding: EdgeInsets.all(14.w),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: AppColors.surfaceDark, width: 1),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40.r,
+                  height: 40.r,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: isLoading
+                      ? SizedBox(
+                          width: 20.r,
+                          height: 20.r,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Icon(
+                          Icons.fitness_center,
+                          color: AppColors.primaryBlue,
+                          size: 20.sp,
+                        ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        style: AppTextStyles.semiBold14(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        '${item.dayCount} days • ${item.exerciseCount} exercises',
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

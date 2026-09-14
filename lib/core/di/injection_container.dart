@@ -33,6 +33,7 @@ import 'package:athletica/features/coach/clients/domain/usecases/get_coach_clien
 import 'package:athletica/features/coach/clients/domain/usecases/get_client_detail_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_join_requests_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/delete_client_nutrition_plan_usecase.dart';
+import 'package:athletica/features/coach/clients/domain/usecases/delete_client_workout_plan_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/reject_coach_join_request_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/remove_coach_assigned_client_usecase.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/client_detail_cubit.dart';
@@ -338,6 +339,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetNutritionPlanUseCase(sl()));
   sl.registerLazySingleton(() => DeleteNutritionPlanUseCase(sl()));
   sl.registerLazySingleton(() => DeleteClientNutritionPlanUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteClientWorkoutPlanUseCase(sl()));
   sl.registerLazySingleton(() => AddPlanMealUseCase(sl()));
   sl.registerLazySingleton(() => UpdatePlanMealUseCase(sl()));
   sl.registerLazySingleton(() => DeletePlanMealUseCase(sl()));
@@ -421,7 +423,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => ProfileCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => CoachProfileCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => CoachClientsCubit(sl(), sl()));
-  sl.registerFactory(() => ClientDetailCubit(sl(), sl()));
+  sl.registerFactory(() => ClientDetailCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachInviteCubit(sl(), sl()));
   sl.registerFactory(() => ClientCoachCubit(sl(), sl(), sl()));

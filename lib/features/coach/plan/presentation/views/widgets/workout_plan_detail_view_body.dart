@@ -877,7 +877,7 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
       ),
     );
     if (selection == null || !context.mounted) return;
-    final assigned = await Navigator.push<bool>(
+    final assignedPlanId = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (_) => CustomizeWorkoutAssignmentView(
@@ -887,7 +887,11 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
         ),
       ),
     );
-    if (!context.mounted || assigned != true) return;
+    if (!context.mounted ||
+        assignedPlanId == null ||
+        assignedPlanId.isEmpty) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Workout assigned successfully')),
     );

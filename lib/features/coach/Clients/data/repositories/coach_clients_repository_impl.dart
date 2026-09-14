@@ -73,4 +73,16 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
       return ApiError(UnknownFailure(e.toString()));
     }
   }
+
+  @override
+  Future<ApiResult<void>> deleteWorkoutPlan(String planId) async {
+    try {
+      await _dataSource.deleteWorkoutPlan(planId);
+      return const ApiSuccess(null);
+    } on DioException catch (e) {
+      return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
 }
