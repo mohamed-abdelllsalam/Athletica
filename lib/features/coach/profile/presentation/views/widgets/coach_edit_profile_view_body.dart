@@ -3,6 +3,7 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_state.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_photo_view.dart';
+import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_edit_profile_fields.dart';
 import 'package:athletica/features/profile/domain/entities/user_profile_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -59,11 +60,11 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
       _initialLocation = profile.location ?? '';
       _usernameController.text = _initialUsername;
       _bioController.text = _initialBio;
-      _selectedSpecialization =
-          Specialization.fromKey(_initialSpecializationKey);
+      _selectedSpecialization = Specialization.fromKey(
+        _initialSpecializationKey,
+      );
       _phoneNumberController.text = _initialPhoneNumber;
-      _selectedLocation =
-          _initialLocation.isEmpty ? null : _initialLocation;
+      _selectedLocation = _initialLocation.isEmpty ? null : _initialLocation;
       _onFieldChanged();
     }
   }
@@ -71,8 +72,8 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
   void _onFieldChanged() {
     final specChanged =
         _selectedSpecialization?.name != _initialSpecializationKey;
-    final changed = _usernameController.text.trim() !=
-            _initialUsername.trim() ||
+    final changed =
+        _usernameController.text.trim() != _initialUsername.trim() ||
         _bioController.text != _initialBio ||
         specChanged ||
         _phoneNumberController.text.trim() != _initialPhoneNumber.trim() ||
@@ -152,31 +153,7 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary,
-              size: 20.sp,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Edit Profile',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bold20(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-          ),
-          SizedBox(width: 20.sp),
-        ],
-      ),
-    );
+    return CoachEditProfileAppBar(onBack: () => Navigator.pop(context));
   }
 
   Widget _buildAvatar(BuildContext context) {
@@ -190,168 +167,51 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
       _ => null,
     };
 
-    return Center(
-      child: GestureDetector(
-        onTap: () {
-          final cubit = context.read<CoachProfileCubit>();
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: cubit,
-                child: const CoachProfilePhotoView(),
-              ),
+    return CoachEditProfileAvatar(
+      profileImage: profileImage,
+      onTap: () {
+        final cubit = context.read<CoachProfileCubit>();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BlocProvider.value(
+              value: cubit,
+              child: const CoachProfilePhotoView(),
             ),
-          );
-        },
-        child: CircleAvatar(
-          radius: 46.r,
-          backgroundColor: AppColors.cardBackground,
-          backgroundImage: profileImage != null && profileImage.isNotEmpty
-              ? NetworkImage(profileImage)
-              : null,
-          child: profileImage == null || profileImage.isEmpty
-              ? Icon(
-                  Icons.person,
-                  size: 46.sp,
-                  color: AppColors.textSecondary,
-                )
-              : null,
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildSpecializationDropdown(BuildContext context) {
-    final locale = Localizations.localeOf(context).languageCode;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Specialization',
-          style: AppTextStyles.medium13(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        SizedBox(height: 8.h),
-        DropdownButtonFormField<Specialization>(
-          initialValue: _selectedSpecialization,
-          isExpanded: true,
-          dropdownColor: AppColors.cardBackground,
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            filled: false,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide:
-                  BorderSide(color: AppColors.textTertiary, width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide:
-                  BorderSide(color: AppColors.primaryBlue, width: 1.5),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 16.h,
-            ),
-          ),
-          items: Specialization.values.map((s) {
-            return DropdownMenuItem(
-              value: s,
-              child: Text(s.label(locale)),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() => _selectedSpecialization = value);
-            _onFieldChanged();
-          },
-        ),
-      ],
+    return CoachSpecializationField(
+      selected: _selectedSpecialization,
+      onChanged: (value) {
+        setState(() => _selectedSpecialization = value);
+        _onFieldChanged();
+      },
     );
   }
 
   Widget _buildLocationDropdown(BuildContext context) {
-    // Keep showing a legacy/custom value even if it is not in the fixed list.
     final items = [
       ...egyptLocations,
       if (_initialLocation.isNotEmpty &&
           !egyptLocations.contains(_initialLocation))
         _initialLocation,
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Location',
-              style: AppTextStyles.medium13(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            ),
-            const Spacer(),
-            if (_selectedLocation != null)
-              GestureDetector(
-                onTap: () {
-                  setState(() => _selectedLocation = null);
-                  _onFieldChanged();
-                },
-                child: Text(
-                  'Clear',
-                  style: AppTextStyles.medium13(
-                    context,
-                  ).copyWith(color: AppColors.primaryBlue),
-                ),
-              ),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedLocation,
-          isExpanded: true,
-          dropdownColor: AppColors.cardBackground,
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: 'Select your Location',
-            hintStyle: AppTextStyles.medium13(
-              context,
-            ).copyWith(color: AppColors.textSecondary),
-            filled: false,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide:
-                  BorderSide(color: AppColors.textTertiary, width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide:
-                  BorderSide(color: AppColors.primaryBlue, width: 1.5),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 16.h,
-            ),
-          ),
-          items: items.map((location) {
-            return DropdownMenuItem(
-              value: location,
-              child: Text(
-                location,
-                overflow: TextOverflow.ellipsis,
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() => _selectedLocation = value);
-            _onFieldChanged();
-          },
-        ),
-      ],
+    return CoachLocationField(
+      selected: _selectedLocation,
+      items: items,
+      onClear: () {
+        setState(() => _selectedLocation = null);
+        _onFieldChanged();
+      },
+      onChanged: (value) {
+        setState(() => _selectedLocation = value);
+        _onFieldChanged();
+      },
     );
   }
 
@@ -362,36 +222,11 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
     required TextInputType keyboardType,
     int maxLines = 1,
   }) {
-    return TextField(
+    return CoachProfileTextField(
+      label: label,
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      style: AppTextStyles.medium14(
-        context,
-      ).copyWith(color: AppColors.textPrimary),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: AppTextStyles.medium13(
-          context,
-        ).copyWith(color: AppColors.textSecondary),
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        floatingLabelStyle: AppTextStyles.medium13(
-          context,
-        ).copyWith(color: AppColors.primaryBlue),
-        filled: false,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: AppColors.textTertiary, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: AppColors.primaryBlue, width: 1.5),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 16.w,
-          vertical: 16.h,
-        ),
-      ),
     );
   }
 
@@ -408,10 +243,7 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
           Navigator.pop(context);
         } else if (state is CoachProfileError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -426,8 +258,9 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
             child: ElevatedButton(
               onPressed: (_hasChanges && !isUpdating) ? _saveProfile : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    _hasChanges ? AppColors.primaryBlue : AppColors.surfaceDark,
+                backgroundColor: _hasChanges
+                    ? AppColors.primaryBlue
+                    : AppColors.surfaceDark,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14.r),
                 ),
@@ -464,14 +297,15 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
 
     final newUsername =
         username != _initialUsername.trim() && username.isNotEmpty
-            ? username
-            : null;
-    final newBio =
-        _bioController.text != _initialBio ? _bioController.text : null;
+        ? username
+        : null;
+    final newBio = _bioController.text != _initialBio
+        ? _bioController.text
+        : null;
     final newSpecialization =
         _selectedSpecialization?.name != _initialSpecializationKey
-            ? _selectedSpecialization?.name
-            : null;
+        ? _selectedSpecialization?.name
+        : null;
     final newPhoneNumber = phoneNumber != _initialPhoneNumber.trim()
         ? phoneNumber
         : null;
@@ -486,18 +320,18 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
         newSpecialization == null &&
         newPhoneNumber == null &&
         newLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No changes to save.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No changes to save.')));
       return;
     }
 
     context.read<CoachProfileCubit>().updateProfile(
-          username: newUsername,
-          bio: newBio,
-          specialization: newSpecialization,
-          phoneNumber: newPhoneNumber,
-          location: newLocation,
-        );
+      username: newUsername,
+      bio: newBio,
+      specialization: newSpecialization,
+      phoneNumber: newPhoneNumber,
+      location: newLocation,
+    );
   }
 }
