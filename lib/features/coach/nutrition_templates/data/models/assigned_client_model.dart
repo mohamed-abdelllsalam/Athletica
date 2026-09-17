@@ -1,3 +1,4 @@
+import 'package:athletica/core/utils/goal_format.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/entities/assigned_client.dart';
 
 /// Parses `GET /coach/clients` entries:
@@ -22,7 +23,7 @@ class AssignedClientModel {
       relationId: (json['id'] as String?) ?? '',
       name: (user['username'] as String?) ?? '',
       email: (user['email'] as String?) ?? '',
-      goal: (client['goal'] as String?) ?? '',
+      goal: normalizeGoalValue((client['goal'] as String?) ?? ''),
     );
   }
 

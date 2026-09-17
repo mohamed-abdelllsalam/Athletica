@@ -79,8 +79,8 @@ class _CoachClientWorkoutTemplatePickerState
           ),
         );
         if (!mounted) return;
-        // Return the assigned plan info so the profile updates immediately
-        // (the detail endpoint still returns workout_plan: null).
+        // Return the assigned plan info; the detail screen reloads the real
+        // workout plan from the backend afterwards.
         if (assignedPlanId != null && assignedPlanId.isNotEmpty) {
           Navigator.pop(context, (
             planId: assignedPlanId,

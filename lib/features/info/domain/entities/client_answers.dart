@@ -33,9 +33,25 @@ class ClientAnswer {
 }
 
 class ClientAnswers {
-  const ClientAnswers({required this.answers});
+  const ClientAnswers({
+    required this.answers,
+    this.total = 0,
+    this.totalQuestions = 0,
+  });
 
   final List<ClientAnswer> answers;
 
+  /// Distinct question groups answered (`total` from `GET /client/answers`).
+  /// Falls back to `answers.length` for pre-DOC_7 payloads without totals.
+  final int total;
+
+  /// Per-language question total (`total_questions`).
+  final int totalQuestions;
+
   bool get isEmpty => answers.isEmpty;
+
+  /// Backend totals are the source of truth for completion. Never use
+  /// `answers.length`: bilingual en+ar double answers can make the array
+  /// longer than the distinct-group total.
+  bool get isComplete => totalQuestions > 0 && total >= totalQuestions;
 }

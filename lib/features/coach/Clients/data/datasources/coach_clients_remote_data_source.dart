@@ -10,7 +10,9 @@ abstract class CoachClientsRemoteDataSource {
   /// `GET /coach/clients` — clients assigned via the coach-client flow.
   Future<List<CoachAssignedClientModel>> getAssignedClients();
 
-  /// `GET /coach/clients/:id` — detailed client profile with plans and streaks.
+  /// `GET /coach/clients/:id` — detailed client profile with plans,
+  /// answers and totals. `:id` is the nested `client.id`
+  /// (`client_profiles.id`), not the top-level assignment id.
   Future<ClientDetailModel> getClientDetail(String clientId);
 
   /// `DELETE /coach/clients/:id` — removes the assignment (cascades plans).

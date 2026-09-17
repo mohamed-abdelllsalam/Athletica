@@ -1,3 +1,4 @@
+import 'package:athletica/core/utils/goal_format.dart';
 import 'package:athletica/features/profile/domain/entities/user_profile_entity.dart';
 
 class UserProfileModel {
@@ -83,7 +84,7 @@ class UserProfileModel {
         String s => double.tryParse(s),
         _ => null,
       },
-      goal: effectiveProfile['goal']?.toString(),
+      goal: normalizeGoal(effectiveProfile['goal']?.toString()),
       createdAt: user['created_at'] != null
           ? DateTime.tryParse(user['created_at'] as String)
           : null,

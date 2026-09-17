@@ -1,3 +1,5 @@
+import 'package:athletica/core/utils/client_answers_completion.dart'
+    show parseCompletionCount;
 import 'package:athletica/features/info/domain/entities/client_answers.dart';
 
 class ClientAnswerModel extends ClientAnswer {
@@ -35,14 +37,22 @@ class ClientAnswerModel extends ClientAnswer {
 }
 
 class ClientAnswersModel extends ClientAnswers {
-  const ClientAnswersModel({required super.answers});
+  const ClientAnswersModel({
+    required super.answers,
+    super.total,
+    super.totalQuestions,
+  });
 
   factory ClientAnswersModel.fromJson(Map<String, dynamic> json) {
     final rawAnswers = json['answers'] as List<dynamic>? ?? const [];
+    final answers = rawAnswers
+        .map((a) => ClientAnswerModel.fromJson(a as Map<String, dynamic>))
+        .toList();
     return ClientAnswersModel(
-      answers: rawAnswers
-          .map((a) => ClientAnswerModel.fromJson(a as Map<String, dynamic>))
-          .toList(),
+      answers: answers,
+      // Backward compatible: pre-DOC_7 payloads have no totals.
+      total: parseCompletionCount(json['total']) ?? answers.length,
+      totalQuestions: parseCompletionCount(json['total_questions']) ?? 0,
     );
   }
 }

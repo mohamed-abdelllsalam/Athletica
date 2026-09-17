@@ -201,13 +201,6 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
             'This will deactivate "$title". The client will no longer see this plan.',
         onConfirm: () {
           Navigator.pop(dialogContext);
-          // Clear the local fallback so the card disappears even though
-          // the detail endpoint still returns workout_plan: null.
-          setState(() {
-            _justAssignedWorkoutTitle = null;
-            _justAssignedWorkoutSubtitle = null;
-            _justAssignedWorkoutId = null;
-          });
           context.read<ClientDetailCubit>().deleteWorkoutPlan(planId);
         },
       ),
@@ -216,12 +209,13 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
 
   Widget _buildAssignedPlanSection(BuildContext context, ClientDetail detail) {
     final nutritionPlan = detail.nutritionPlan;
-    final workoutTitle =
-        _justAssignedWorkoutTitle ?? _workoutTitle(detail.workoutPlan);
+    final workoutPlan = detail.workoutPlan;
+    final workoutTitle = workoutPlan?.title;
     final workoutSubtitle =
-        _justAssignedWorkoutSubtitle ?? _workoutSubtitle(detail.workoutPlan);
-    final workoutPlanId =
-        _workoutId(detail.workoutPlan) ?? _justAssignedWorkoutId;
+        (workoutPlan?.description?.isNotEmpty ?? false)
+            ? workoutPlan!.description!
+            : 'Workout Plan';
+    final workoutPlanId = workoutPlan?.id;
 
     Future<void> reload() async {
       if (context.mounted) {
@@ -252,38 +246,6 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     );
   }
 
-  String? _workoutTitle(dynamic workoutPlan) {
-    if (workoutPlan is Map<String, dynamic>) {
-      final title = workoutPlan['title'] as String?;
-      if (title != null && title.isNotEmpty) return title;
-    }
-    return null;
-  }
-
-  String? _workoutId(dynamic workoutPlan) {
-    if (workoutPlan is Map<String, dynamic>) {
-      final id = workoutPlan['id'] as String?;
-      if (id != null && id.isNotEmpty) return id;
-    }
-    return null;
-  }
-
-  String _workoutSubtitle(dynamic workoutPlan) {
-    if (workoutPlan is Map<String, dynamic>) {
-      final description = workoutPlan['description'] as String?;
-      if (description != null && description.isNotEmpty) return description;
-    }
-    return 'Workout Plan';
-  }
-
-  /// The backend still returns `workout_plan: null` on the client detail
-  /// (placeholder until the workout feature ships server-side), so a
-  /// reload alone can't show the new assignment. The just-assigned plan
-  /// is therefore kept locally and shown until the backend provides it.
-  String? _justAssignedWorkoutTitle;
-  String? _justAssignedWorkoutSubtitle;
-  String? _justAssignedWorkoutId;
-
   /// Opens the plan picker as a full screen (same style as the workout
   /// library) instead of navigating to the workout library screen itself.
   /// Picking a plan pushes the sets/reps customization for this client.
@@ -312,25 +274,12 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           ),
         );
     if (assigned != null && context.mounted) {
-      final cubit = context.read<ClientDetailCubit>();
-      await cubit.loadClientDetail(widget.clientId);
+      // The detail endpoint now returns the real workout plan, so a reload
+      // shows the new assignment directly.
+      await context.read<ClientDetailCubit>().loadClientDetail(
+        widget.clientId,
+      );
       if (!context.mounted) return;
-      final reloaded = cubit.state;
-      final backendTitle = reloaded is ClientDetailLoaded
-          ? _workoutTitle(reloaded.detail.workoutPlan)
-          : null;
-      setState(() {
-        if (backendTitle != null) {
-          // Backend now provides the plan — local fallback no longer needed.
-          _justAssignedWorkoutTitle = null;
-          _justAssignedWorkoutSubtitle = null;
-          _justAssignedWorkoutId = null;
-        } else {
-          _justAssignedWorkoutTitle = assigned.title;
-          _justAssignedWorkoutSubtitle = assigned.subtitle;
-          _justAssignedWorkoutId = assigned.planId;
-        }
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Workout assigned successfully')),
       );

@@ -1,3 +1,4 @@
+import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/domain/entities/client_question.dart';
@@ -106,6 +107,11 @@ class _InfoViewBodyState extends State<InfoViewBody> {
                 onPressed: () => context.read<InfoCubit>().loadQuestions(),
                 text: 'Try Again',
               ),
+            // Fail-closed escape: logout is the only way out of Info.
+            TextButton(
+              onPressed: () => context.read<AuthCubit>().logout(),
+              child: const Text('Logout'),
+            ),
           ],
         ),
       ),
@@ -217,7 +223,8 @@ class _InfoViewBodyState extends State<InfoViewBody> {
           return _buildError(context, state.message);
         }
         if (_questions.isEmpty) {
-          return _buildError(context, 'No questions available right now.', retry: false);
+          // Fail-closed: empty questionnaire never leads to Home.
+          return _buildError(context, 'No questions available right now.');
         }
         return _buildQuestionsFlow(context, state);
       },

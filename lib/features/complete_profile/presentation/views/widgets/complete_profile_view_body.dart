@@ -1,12 +1,44 @@
+import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/auth/domain/usecases/check_client_profile_completion_usecase.dart';
 import 'package:athletica/features/complete_profile/presentation/views/widgets/photo_upload_area.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
+import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class CompleteProfileViewBody extends StatelessWidget {
+class CompleteProfileViewBody extends StatefulWidget {
   const CompleteProfileViewBody({super.key});
+
+  @override
+  State<CompleteProfileViewBody> createState() =>
+      _CompleteProfileViewBodyState();
+}
+
+class _CompleteProfileViewBodyState extends State<CompleteProfileViewBody> {
+  bool _resolving = false;
+
+  /// Completion-aware Done: incomplete clients must answer the
+  /// questionnaire first (fail-closed on error), complete ones go Home.
+  Future<void> _onDone() async {
+    if (_resolving) return;
+    setState(() => _resolving = true);
+    final result = await sl<CheckClientProfileCompletionUseCase>()();
+    if (!mounted) return;
+    final complete = switch (result) {
+      ApiSuccess(:final data) => data,
+      ApiError() => false,
+    };
+    setState(() => _resolving = false);
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      complete ? HomeView.routeName : InfoView.routeName,
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,13 +127,7 @@ class CompleteProfileViewBody extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        HomeView.routeName,
-                        (route) => false,
-                      );
-                    },
+                    onPressed: _resolving ? null : _onDone,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.buttonColor,
                       foregroundColor: AppColors.textPrimary,
@@ -110,12 +136,20 @@ class CompleteProfileViewBody extends StatelessWidget {
                       ),
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                     ),
-                    child: Text(
-                      'Done',
-                      style: AppTextStyles.semiBold15(
-                        context,
-                      ).copyWith(color: AppColors.textPrimary),
-                    ),
+                    child: _resolving
+                        ? SizedBox(
+                            height: 20.h,
+                            width: 20.w,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            'Done',
+                            style: AppTextStyles.semiBold15(
+                              context,
+                            ).copyWith(color: AppColors.textPrimary),
+                          ),
                   ),
                 ),
                 SizedBox(height: 32.h),

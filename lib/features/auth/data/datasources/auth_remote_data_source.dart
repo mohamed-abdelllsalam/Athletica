@@ -1,4 +1,5 @@
 import 'package:athletica/core/network/api_endpoints.dart';
+import 'package:athletica/core/utils/client_answers_completion.dart';
 import 'package:athletica/features/auth/data/models/user_model.dart';
 import 'package:dio/dio.dart';
 
@@ -122,9 +123,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<bool> hasSubmittedClientAnswers() async {
     try {
       final response = await _dio.get(ApiEndpoints.clientAnswers);
-      final data = response.data as Map<String, dynamic>?;
-      final answers = data?['answers'] as List<dynamic>? ?? const [];
-      return answers.isNotEmpty;
+      return isClientAnswersComplete(response.data);
     } catch (_) {
       return false;
     }
@@ -133,8 +132,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<bool> checkClientProfileCompletion() async {
     final response = await _dio.get(ApiEndpoints.clientAnswers);
-    final data = response.data as Map<String, dynamic>?;
-    final answers = data?['answers'] as List<dynamic>? ?? const [];
-    return answers.isNotEmpty;
+    return isClientAnswersComplete(response.data);
   }
 }

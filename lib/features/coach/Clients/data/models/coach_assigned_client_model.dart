@@ -1,3 +1,4 @@
+import 'package:athletica/core/utils/goal_format.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
 
 /// Parses a `GET /coach/clients` entry:
@@ -40,7 +41,7 @@ class CoachAssignedClientModel {
       clientId: client['id'] as String? ?? '',
       name: user['name'] as String? ?? user['username'] as String? ?? '',
       email: user['email'] as String? ?? '',
-      goal: client['goal'] as String? ?? '',
+      goal: normalizeGoalValue(client['goal'] as String? ?? ''),
       profileImage: client['profile_image'] as String?,
       gender: client['gender'] as String?,
       birthDate: DateTime.tryParse(client['birth_date'] as String? ?? ''),
