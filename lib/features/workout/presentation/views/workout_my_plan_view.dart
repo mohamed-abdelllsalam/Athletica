@@ -18,6 +18,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'widgets/workout_my_plan_day_sections.dart';
+import 'widgets/workout_my_plan_header.dart';
+import 'widgets/workout_status_view.dart';
+
 class WorkoutMyPlanRouteArgs {
   const WorkoutMyPlanRouteArgs({this.initialDayNumber, this.userGender});
 
@@ -76,9 +80,9 @@ class _Body extends StatelessWidget {
               ),
               Text(
                 'My Plan',
-                style: AppTextStyles.bold20(context).copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTextStyles.bold20(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -93,31 +97,32 @@ class _Body extends StatelessWidget {
             },
             builder: (context, state) => switch (state) {
               WorkoutMyPlanInitial() || WorkoutMyPlanLoading() => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              WorkoutMyPlanError(:final message) => _StatusView(
-                  icon: Icons.error_outline,
-                  title: 'Could not load your plan',
-                  message: message,
-                  actionLabel: 'Retry',
-                  onAction: () =>
-                      context.read<WorkoutMyPlanCubit>().loadActive(),
-                ),
-              WorkoutMyPlanLoaded(:final plan) => plan == null
-                  ? _StatusView(
-                      icon: Icons.fitness_center,
-                      title: 'No training plan yet',
-                      message: 'Your assigned training plan will appear here.',
-                      actionLabel: 'Refresh',
-                      onAction: () =>
-                          context.read<WorkoutMyPlanCubit>().loadActive(),
-                    )
-                  : const Center(child: CircularProgressIndicator()),
+                child: CircularProgressIndicator(),
+              ),
+              WorkoutMyPlanError(:final message) => WorkoutStatusView(
+                icon: Icons.error_outline,
+                title: 'Could not load your plan',
+                message: message,
+                actionLabel: 'Retry',
+                onAction: () => context.read<WorkoutMyPlanCubit>().loadActive(),
+              ),
+              WorkoutMyPlanLoaded(:final plan) =>
+                plan == null
+                    ? WorkoutStatusView(
+                        icon: Icons.fitness_center,
+                        title: 'No training plan yet',
+                        message:
+                            'Your assigned training plan will appear here.',
+                        actionLabel: 'Refresh',
+                        onAction: () =>
+                            context.read<WorkoutMyPlanCubit>().loadActive(),
+                      )
+                    : const Center(child: CircularProgressIndicator()),
               WorkoutMyPlanDetailLoaded(:final plan) => _PlanBody(
-                  plan: plan,
-                  initialDayNumber: initialDayNumber,
-                  userGender: userGender,
-                ),
+                plan: plan,
+                initialDayNumber: initialDayNumber,
+                userGender: userGender,
+              ),
             },
           ),
         ),
@@ -144,16 +149,16 @@ class _PlanBody extends StatefulWidget {
 class _PlanBodyState extends State<_PlanBody> {
   late int _selectedDayNumber;
 
-  List<PlanDayEntry> get _days => [...widget.plan.days]
-    ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
+  List<PlanDayEntry> get _days =>
+      [...widget.plan.days]..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
 
   @override
   void initState() {
     super.initState();
     final days = _days;
     final requested = widget.initialDayNumber;
-    _selectedDayNumber = requested != null &&
-            days.any((day) => day.dayNumber == requested)
+    _selectedDayNumber =
+        requested != null && days.any((day) => day.dayNumber == requested)
         ? requested
         : (days.isEmpty ? 0 : days.first.dayNumber);
   }
@@ -162,7 +167,7 @@ class _PlanBodyState extends State<_PlanBody> {
   Widget build(BuildContext context) {
     final days = _days;
     if (days.isEmpty) {
-      return _StatusView(
+      return WorkoutStatusView(
         icon: Icons.event_busy_outlined,
         title: 'This plan has no days',
         message: 'Your coach has not added any training days yet.',
@@ -185,69 +190,55 @@ class _PlanBodyState extends State<_PlanBody> {
         ),
         padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 28.h),
         children: [
-          _PlanHeader(plan: widget.plan, dayCount: days.length),
+          WorkoutMyPlanHeader(plan: widget.plan, dayCount: days.length),
           SizedBox(height: 16.h),
-          SizedBox(
-            height: 66.h,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: days.length,
-              separatorBuilder: (_, _) => SizedBox(width: 9.w),
-              itemBuilder: (context, index) {
-                final day = days[index];
-                return _DayChip(
-                  key: ValueKey(day.id),
-                  day: day,
-                  selected: day.dayNumber == selected.dayNumber,
-                  onTap: () => setState(
-                    () => _selectedDayNumber = day.dayNumber,
-                  ),
-                );
-              },
-            ),
+          WorkoutMyPlanDaySelector(
+            days: days,
+            selectedDayNumber: selected.dayNumber,
+            onSelected: (dayNumber) =>
+                setState(() => _selectedDayNumber = dayNumber),
           ),
           SizedBox(height: 18.h),
           Text(
             'Day ${selected.dayNumber} — ${selected.isRest ? 'Rest Day' : selected.title}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.bold20(context).copyWith(
-              color: AppColors.textPrimary,
-              height: 1.25,
-            ),
+            style: AppTextStyles.bold20(
+              context,
+            ).copyWith(color: AppColors.textPrimary, height: 1.25),
           ),
           if (selected.note.trim().isNotEmpty) ...[
             SizedBox(height: 6.h),
             Text(
               selected.note.trim(),
-              style: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textSecondary,
-                height: 1.35,
-              ),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary, height: 1.35),
             ),
           ],
           SizedBox(height: 14.h),
           if (selected.isRest)
-            _RestDay(note: selected.note)
+            WorkoutMyPlanRestDay(note: selected.note)
           else if (exercises.isEmpty)
-            const _EmptyDay()
+            const WorkoutMyPlanEmptyDay()
           else
             ...exercises.asMap().entries.map(
-                  (entry) => Padding(
-                    padding: EdgeInsets.only(bottom: 10.h),
-                    child: _PlanExerciseRow(
-                      key: ValueKey(entry.value.id),
-                      exercise: entry.value,
-                      order: entry.key + 1,
-                      gender: widget.userGender,
-                    ),
-                  ),
+              (entry) => Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: _PlanExerciseRow(
+                  key: ValueKey(entry.value.id),
+                  exercise: entry.value,
+                  order: entry.key + 1,
+                  gender: widget.userGender,
                 ),
+              ),
+            ),
           if (!selected.isRest && exercises.isNotEmpty) ...[
             BlocBuilder<WorkoutTodayCubit, WorkoutTodayState>(
               builder: (context, state) {
-                final today = state is WorkoutTodayLoaded ? state.workout : null;
+                final today = state is WorkoutTodayLoaded
+                    ? state.workout
+                    : null;
                 if (!_isExecutableToday(selected, today)) {
                   return const SizedBox.shrink();
                 }
@@ -255,8 +246,8 @@ class _PlanBodyState extends State<_PlanBody> {
                 final label = today.dayCompleted
                     ? 'View Completed Workout'
                     : done > 0
-                        ? 'Continue Workout'
-                        : 'Start Workout';
+                    ? 'Continue Workout'
+                    : 'Start Workout';
                 return Padding(
                   padding: EdgeInsets.only(top: 12.h),
                   child: SizedBox(
@@ -283,9 +274,9 @@ class _PlanBodyState extends State<_PlanBody> {
                       ),
                       label: Text(
                         label,
-                        style: AppTextStyles.semiBold15(context).copyWith(
-                          color: Colors.white,
-                        ),
+                        style: AppTextStyles.semiBold15(
+                          context,
+                        ).copyWith(color: Colors.white),
                       ),
                     ),
                   ),
@@ -307,114 +298,6 @@ bool _isExecutableToday(PlanDayEntry selected, TodayWorkoutEntry? today) {
     return false;
   }
   return today.exercises.every((exercise) => exercise.logId.isNotEmpty);
-}
-
-class _PlanHeader extends StatelessWidget {
-  const _PlanHeader({required this.plan, required this.dayCount});
-  final WorkoutPlanEntry plan;
-  final int dayCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: AppColors.primaryPurple.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Your Training Plan',
-            style: AppTextStyles.meduim12(context).copyWith(
-              color: AppColors.primaryPurple,
-            ),
-          ),
-          SizedBox(height: 5.h),
-          Text(
-            plan.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.bold20(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 5.h),
-          Text(
-            '$dayCount ${dayCount == 1 ? 'day' : 'days'} per cycle',
-            style: AppTextStyles.medium14(context).copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          if (plan.description.trim().isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Text(
-              plan.description.trim(),
-              style: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textSecondary,
-                height: 1.35,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DayChip extends StatelessWidget {
-  const _DayChip({
-    super.key,
-    required this.day,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final PlanDayEntry day;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.primaryPurple : AppColors.cardBackground,
-      borderRadius: BorderRadius.circular(14.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14.r),
-        child: Container(
-          constraints: BoxConstraints(minWidth: 92.w),
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Day ${day.dayNumber}',
-                style: AppTextStyles.semiBold14(context).copyWith(
-                  color: selected ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-              SizedBox(height: 3.h),
-              Text(
-                day.isRest ? 'Rest' : day.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.meduim12(context).copyWith(
-                  color: selected
-                      ? Colors.white.withValues(alpha: 0.8)
-                      : AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _PlanExerciseRow extends StatelessWidget {
@@ -443,15 +326,15 @@ class _PlanExerciseRow extends StatelessWidget {
       gender: gender,
     );
     void showVideo() => showExerciseVideoDialog(
-          context,
-          title: name,
-          videoUrl: resolveExerciseVideoUrl(
-            maleUrl: catalog?.videoUrlMale ?? '',
-            femaleUrl: catalog?.videoUrlFemale ?? '',
-            gender: gender,
-          ),
-          thumbnailUrl: thumbnail,
-        );
+      context,
+      title: name,
+      videoUrl: resolveExerciseVideoUrl(
+        maleUrl: catalog?.videoUrlMale ?? '',
+        femaleUrl: catalog?.videoUrlFemale ?? '',
+        gender: gender,
+      ),
+      thumbnailUrl: thumbnail,
+    );
 
     return WorkoutExerciseRow(
       order: order,
@@ -465,112 +348,6 @@ class _PlanExerciseRow extends StatelessWidget {
       thumbnail: ExerciseThumbnail(size: 58, thumbnailUrl: thumbnail),
       onTap: showVideo,
       onMediaTap: showVideo,
-    );
-  }
-}
-
-class _RestDay extends StatelessWidget {
-  const _RestDay({required this.note});
-  final String note;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 28.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.bedtime_outlined,
-            color: AppColors.primaryPurple,
-            size: 36.sp,
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            note.trim().isNotEmpty
-                ? note.trim()
-                : 'Recover and get ready for your next training day.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.medium14(context).copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyDay extends StatelessWidget {
-  const _EmptyDay();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(20.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Text(
-        'No exercises are assigned to this day.',
-        textAlign: TextAlign.center,
-        style: AppTextStyles.medium14(context).copyWith(
-          color: AppColors.textSecondary,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusView extends StatelessWidget {
-  const _StatusView({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 64.h),
-      children: [
-        Icon(icon, color: AppColors.primaryPurple, size: 42.sp),
-        SizedBox(height: 14.h),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.bold20(context).copyWith(
-            color: AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.medium14(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        if (actionLabel != null && onAction != null) ...[
-          SizedBox(height: 16.h),
-          Center(
-            child: TextButton(onPressed: onAction, child: Text(actionLabel!)),
-          ),
-        ],
-      ],
     );
   }
 }

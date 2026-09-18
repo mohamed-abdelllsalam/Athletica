@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'widgets/workout_assigned_day_card.dart';
+import 'widgets/workout_prescription_fields.dart';
+
 /// Coach view of one assigned plan — `GET /workout/plans/:pid` +
 /// per-exercise `{sets, reps}` editing. Same card/row styling as the
 /// template detail; sets/reps are positive ints per API docs.
@@ -142,77 +145,23 @@ class _Content extends StatelessWidget {
             ),
           )
         else
-          ...days.map(
-            (day) => _DayCard(
+          ...days.map((day) {
+            final exercises = [...day.exercises]
+              ..sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
+            return WorkoutAssignedDayCard(
               day: day,
-              isArabic: _isArabic(context),
-              planId: plan.id,
-            ),
-          ),
+              exercises: exercises
+                  .map(
+                    (ex) => _ExerciseRow(
+                      exercise: ex,
+                      dayId: day.id,
+                      isArabic: _isArabic(context),
+                    ),
+                  )
+                  .toList(),
+            );
+          }),
       ],
-    );
-  }
-}
-
-class _DayCard extends StatelessWidget {
-  const _DayCard({
-    required this.day,
-    required this.isArabic,
-    required this.planId,
-  });
-
-  final PlanDayEntry day;
-  final bool isArabic;
-  final String planId;
-
-  @override
-  Widget build(BuildContext context) {
-    final exercises = [...day.exercises]
-      ..sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Day ${day.dayNumber} — ${day.title}',
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                ),
-              ),
-              if (day.isRest)
-                Text(
-                  'Rest',
-                  style: AppTextStyles.meduim12(
-                    context,
-                  ).copyWith(color: AppColors.textSecondary),
-                ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          if (!day.isRest && exercises.isEmpty)
-            Text(
-              'No exercises yet.',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            )
-          else
-            ...exercises.map(
-              (ex) =>
-                  _ExerciseRow(exercise: ex, dayId: day.id, isArabic: isArabic),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -311,82 +260,13 @@ class _ExerciseRowState extends State<_ExerciseRow> {
       arabic: ex?.nameAr,
       english: ex?.nameEn,
     );
-    return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${widget.exercise.orderNumber}. $name',
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                ),
-                if (widget.exercise.notes.isNotEmpty)
-                  Text(
-                    widget.exercise.notes,
-                    style: AppTextStyles.meduim12(
-                      context,
-                    ).copyWith(color: AppColors.textSecondary),
-                  ),
-              ],
-            ),
-          ),
-          SizedBox(width: 8.w),
-          SizedBox(
-            width: 52.w,
-            child: TextField(
-              controller: _setsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Sets',
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-          ),
-          SizedBox(
-            width: 52.w,
-            child: TextField(
-              controller: _repsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Reps',
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-          ),
-          SizedBox(
-            width: 52.w,
-            child: TextField(
-              controller: _restController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Rest(s)',
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-          ),
-          GestureDetector(
-            onTap: _save,
-            child: Icon(Icons.check, color: AppColors.streakGreen, size: 20.sp),
-          ),
-        ],
-      ),
+    return WorkoutPrescriptionFields(
+      exercise: widget.exercise,
+      name: name,
+      setsController: _setsController,
+      repsController: _repsController,
+      restController: _restController,
+      onSave: _save,
     );
   }
 }

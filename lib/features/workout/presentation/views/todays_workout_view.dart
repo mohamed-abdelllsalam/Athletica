@@ -4,7 +4,6 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/core/utils/rest_time_format.dart';
 import 'package:athletica/core/utils/workout_display_format.dart';
-import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/core/widgets/workout_exercise_row.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/exercise_thumbnail.dart';
@@ -15,6 +14,10 @@ import 'package:athletica/features/workout/presentation/views/workout_complete_v
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import 'widgets/today_workout_progress_card.dart';
+import 'widgets/today_workout_status_sections.dart';
+import 'widgets/workout_status_view.dart';
 
 class TodaysWorkoutRouteArgs {
   const TodaysWorkoutRouteArgs({this.userGender});
@@ -87,8 +90,8 @@ class _BodyState extends State<_Body> {
             },
             builder: (context, state) => switch (state) {
               WorkoutTodayInitial() ||
-              WorkoutTodayLoading() => const _LoadingView(),
-              WorkoutTodayError(:final message) => _MessageView(
+              WorkoutTodayLoading() => const TodayWorkoutLoadingView(),
+              WorkoutTodayError(:final message) => WorkoutStatusView(
                 icon: Icons.error_outline,
                 title: 'Could not load today\'s workout',
                 message: message,
@@ -97,7 +100,7 @@ class _BodyState extends State<_Body> {
               ),
               WorkoutTodayLoaded(:final workout, :final togglingLogId) =>
                 workout == null
-                    ? _MessageView(
+                    ? WorkoutStatusView(
                         icon: Icons.fitness_center,
                         title: 'No workout today',
                         message: 'No workout is assigned for today.',
@@ -106,7 +109,7 @@ class _BodyState extends State<_Body> {
                             context.read<WorkoutTodayCubit>().load(),
                       )
                     : workout.isRest
-                    ? _RestView(workout: workout)
+                    ? TodayWorkoutRestView(workout: workout)
                     : _WorkoutView(
                         workout: workout,
                         togglingLogId: togglingLogId,
@@ -190,7 +193,7 @@ class _WorkoutView extends StatelessWidget {
             ),
           ],
           SizedBox(height: 18.h),
-          _ProgressCard(completed: completed, total: total),
+          TodayWorkoutProgressCard(completed: completed, total: total),
           SizedBox(height: 18.h),
           Text(
             'Exercises',
@@ -200,7 +203,7 @@ class _WorkoutView extends StatelessWidget {
           ),
           SizedBox(height: 10.h),
           if (exercises.isEmpty)
-            const _InlineEmpty()
+            const TodayWorkoutEmptyExercises()
           else
             ...exercises.asMap().entries.map((entry) {
               final exercise = entry.value;
@@ -235,166 +238,6 @@ class _WorkoutView extends StatelessWidget {
                 ),
               );
             }),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.completed, required this.total});
-  final int completed;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = total == 0 ? 0.0 : completed / total;
-    return Container(
-      padding: EdgeInsets.all(16.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Workout Progress',
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                ),
-              ),
-              Text(
-                '$completed / $total',
-                style: AppTextStyles.semiBold14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8.h,
-              backgroundColor: AppColors.surfaceDark,
-              valueColor: const AlwaysStoppedAnimation(AppColors.primaryPurple),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RestView extends StatelessWidget {
-  const _RestView({required this.workout});
-  final TodayWorkoutEntry workout;
-
-  @override
-  Widget build(BuildContext context) {
-    return _MessageView(
-      icon: Icons.bedtime_outlined,
-      title: 'Day ${workout.dayNumber} — Rest Day',
-      message: workout.note.trim().isNotEmpty
-          ? workout.note.trim()
-          : 'Recover today and come back ready for your next session.',
-    );
-  }
-}
-
-class _InlineEmpty extends StatelessWidget {
-  const _InlineEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(18.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(14.r),
-      ),
-      child: Text(
-        'No exercises are assigned to this day.',
-        textAlign: TextAlign.center,
-        style: AppTextStyles.medium14(
-          context,
-        ).copyWith(color: AppColors.textSecondary),
-      ),
-    );
-  }
-}
-
-class _MessageView extends StatelessWidget {
-  const _MessageView({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 64.h),
-      children: [
-        Icon(icon, color: AppColors.primaryPurple, size: 42.sp),
-        SizedBox(height: 14.h),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.bold20(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        if (actionLabel != null && onAction != null) ...[
-          SizedBox(height: 16.h),
-          Center(
-            child: TextButton(onPressed: onAction, child: Text(actionLabel!)),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return AppShimmer(
-      child: ListView(
-        padding: EdgeInsets.all(16.r),
-        children: [
-          SkeletonBox(width: 220.w, height: 28.h, radius: 8.r),
-          SizedBox(height: 18.h),
-          SkeletonBox(height: 86.h, radius: 16.r),
-          SizedBox(height: 18.h),
-          for (var index = 0; index < 4; index++) ...[
-            SkeletonBox(height: 92.h, radius: 14.r),
-            SizedBox(height: 10.h),
-          ],
         ],
       ),
     );
