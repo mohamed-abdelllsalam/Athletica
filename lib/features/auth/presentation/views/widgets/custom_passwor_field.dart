@@ -4,17 +4,23 @@ import 'package:flutter/material.dart';
 class CustomPasswordField extends StatefulWidget {
   const CustomPasswordField({
     super.key,
-    required this.onSaved,
+    this.onSaved,
     this.validator,
     this.hintText = 'Enter your password',
     this.labelText = 'Password',
     this.textInputAction = TextInputAction.done,
+    this.controller,
+    this.autofillHints,
+    this.onFieldSubmitted,
   });
-  final void Function(String?) onSaved;
+  final void Function(String?)? onSaved;
   final String? Function(String?)? validator;
   final String hintText;
   final String labelText;
   final TextInputAction textInputAction;
+  final TextEditingController? controller;
+  final Iterable<String>? autofillHints;
+  final void Function(String)? onFieldSubmitted;
 
   @override
   State<CustomPasswordField> createState() => _CustomPasswordFieldState();
@@ -26,6 +32,9 @@ class _CustomPasswordFieldState extends State<CustomPasswordField> {
   @override
   Widget build(BuildContext context) {
     return CustomFormTextField(
+      controller: widget.controller,
+      autofillHints: widget.autofillHints,
+      onFieldSubmitted: widget.onFieldSubmitted,
       onSaved: widget.onSaved,
       obscureText: isObscure,
       suffixIcon: IconButton(

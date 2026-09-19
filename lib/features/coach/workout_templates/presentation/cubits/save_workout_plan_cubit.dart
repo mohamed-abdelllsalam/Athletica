@@ -55,7 +55,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
           if (isClosed) return;
           switch (dayResult) {
             case ApiError(:final failure):
-              emit(SaveWorkoutPlanError(failure.message));
+              emit(SaveWorkoutPlanError(_partialMessage(failure.message)));
               return;
             case ApiSuccess(:final data):
               template = data;
@@ -66,7 +66,9 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
           if (added.length != 1) {
             emit(
               SaveWorkoutPlanError(
-                'Could not identify the saved day. Please reload your plans before trying again.',
+                _partialMessage(
+                  'Could not identify the saved day. Please reload your plans before trying again.',
+                ),
               ),
             );
             return;
@@ -82,7 +84,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
             if (isClosed) return;
             switch (restResult) {
               case ApiError(:final failure):
-                emit(SaveWorkoutPlanError(failure.message));
+                emit(SaveWorkoutPlanError(_partialMessage(failure.message)));
                 return;
               case ApiSuccess(:final data):
                 template = data;
@@ -103,7 +105,7 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
             if (isClosed) return;
             switch (exerciseResult) {
               case ApiError(:final failure):
-                emit(SaveWorkoutPlanError(failure.message));
+                emit(SaveWorkoutPlanError(_partialMessage(failure.message)));
                 return;
               case ApiSuccess(:final data):
                 template = data;
@@ -114,4 +116,12 @@ class SaveWorkoutPlanCubit extends Cubit<SaveWorkoutPlanState> {
         emit(SaveWorkoutPlanSuccess());
     }
   }
+
+  /// The template (and any earlier days/exercises) already exists
+  /// server-side when a day/exercise write fails — there is no
+  /// transactional endpoint — so the message must say so instead of
+  /// implying nothing was saved. Retrying creates a new template; the
+  /// coach should check the library first to avoid duplicates.
+  static String _partialMessage(String serverMessage) =>
+      '$serverMessage The workout plan was partially saved — check your library before trying again.';
 }

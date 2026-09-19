@@ -51,9 +51,9 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
   }
 
   @override
-  Future<ApiResult<void>> removeAssignedClient(String coachClientId) async {
+  Future<ApiResult<void>> removeAssignedClient(String clientId) async {
     try {
-      await _dataSource.removeAssignedClient(coachClientId);
+      await _dataSource.removeAssignedClient(clientId);
       return const ApiSuccess(null);
     } on DioException catch (e) {
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));

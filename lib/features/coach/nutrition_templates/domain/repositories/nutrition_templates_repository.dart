@@ -79,7 +79,8 @@ abstract class NutritionTemplatesRepository {
   Future<ApiResult<List<AssignedClient>>> getAssignedClients();
 
   /// Removes the coach-client relationship (`DELETE /coach/clients/:id`).
+  /// [clientId] is the `client_profiles.id` (DELETE path param).
   /// Cascades: deletes all nutrition plans, meals, meal logs and workout data
   /// for that client.
-  Future<ApiResult<void>> removeAssignedClient(String coachClientId);
+  Future<ApiResult<void>> removeAssignedClient(String clientId);
 }

@@ -45,7 +45,6 @@ class _PickerBodyState extends State<_PickerBody> {
   Timer? _debounce;
   String _selectedMuscle = 'All';
   late Set<String> _selectedIds;
-  List<WorkoutExerciseEntry> _loaded = [];
 
   static const List<String> _muscles = [
     'All',
@@ -104,25 +103,28 @@ class _PickerBodyState extends State<_PickerBody> {
 
   int get _newCount => _selectedIds.difference(widget.alreadyAddedIds).length;
 
+  /// Selected entries keyed by id, independent of the currently visible
+  /// search results. [_loaded] is overwritten on every search, so resolving
+  /// selections from it would silently drop picks from previous result sets.
+  final Map<String, WorkoutExerciseEntry> _selectedEntries = {};
+
   void _toggle(WorkoutExerciseEntry ex) {
     setState(() {
       if (_selectedIds.contains(ex.id)) {
         if (!widget.alreadyAddedIds.contains(ex.id)) {
           _selectedIds.remove(ex.id);
+          _selectedEntries.remove(ex.id);
         }
       } else {
         _selectedIds.add(ex.id);
+        _selectedEntries[ex.id] = ex;
       }
     });
   }
 
   void _submit() {
-    final picked = _loaded
-        .where(
-          (e) =>
-              _selectedIds.contains(e.id) &&
-              !widget.alreadyAddedIds.contains(e.id),
-        )
+    final picked = _selectedEntries.values
+        .where((e) => !widget.alreadyAddedIds.contains(e.id))
         .map(
           (e) => LibraryExercise(
             id: e.id,
@@ -168,15 +170,10 @@ class _PickerBodyState extends State<_PickerBody> {
                 children: [
                   Expanded(
                     child:
-                        BlocConsumer<
+                        BlocBuilder<
                           WorkoutExercisesCubit,
                           WorkoutExercisesState
                         >(
-                          listener: (context, state) {
-                            if (state is WorkoutExercisesLoaded) {
-                              _loaded = state.items;
-                            }
-                          },
                           builder: (context, state) => switch (state) {
                             WorkoutExercisesInitial() ||
                             WorkoutExercisesLoading() => const Center(

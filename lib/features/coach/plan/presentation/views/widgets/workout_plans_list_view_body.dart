@@ -158,6 +158,9 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
               case SaveWorkoutPlanSuccess():
                 context.read<WorkoutTemplatesCubit>().refresh();
               case SaveWorkoutPlanError(:final message):
+                // A failed save may still have persisted part of the plan
+                // server-side — reload so the library reflects server truth.
+                context.read<WorkoutTemplatesCubit>().refresh();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(message), backgroundColor: Colors.red),
                 );

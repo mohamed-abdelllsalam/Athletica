@@ -129,10 +129,22 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
       return;
     }
 
-    final firstClient = clients.first;
+    // Resolve the intended roster entry by the stable client identifier.
+    // Never fall back to the first client: assigning to the wrong client
+    // would silently corrupt another client's plan.
+    final match = clients
+        .where((c) => c.clientId == clientId || c.relationId == clientId)
+        .firstOrNull;
+    if (match == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Client not found in your roster')),
+      );
+      return;
+    }
+
     context.read<AssignPlanCubit>().assign(
       templateId: templateId,
-      coachClientId: firstClient.relationId,
+      coachClientId: match.relationId,
       title: templateName,
       description: templateDescription,
     );

@@ -84,7 +84,8 @@ abstract class NutritionTemplatesRemoteDataSource {
 
   Future<List<AssignedClientModel>> getAssignedClients();
 
-  Future<void> removeAssignedClient(String coachClientId);
+  /// [clientId] is the `client_profiles.id` (DELETE path param).
+  Future<void> removeAssignedClient(String clientId);
 }
 
 class NutritionTemplatesRemoteDataSourceImpl
@@ -287,7 +288,7 @@ class NutritionTemplatesRemoteDataSourceImpl
   }
 
   @override
-  Future<void> removeAssignedClient(String coachClientId) async {
-    await _dio.delete(ApiEndpoints.coachClient(coachClientId));
+  Future<void> removeAssignedClient(String clientId) async {
+    await _dio.delete(ApiEndpoints.coachClient(clientId));
   }
 }

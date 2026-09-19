@@ -285,7 +285,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
         switch (result) {
           case ApiError(:final failure):
             if (isClosed) return;
-            emit(state.copyWith(message: failure.message));
+            await _failWithRefresh(failure.message);
             return;
           case ApiSuccess():
             break;
@@ -311,7 +311,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       switch (result) {
         case ApiError(:final failure):
           if (isClosed) return;
-          emit(state.copyWith(message: failure.message));
+          await _failWithRefresh(failure.message);
           return;
         case ApiSuccess():
           break;
@@ -338,7 +338,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       switch (result) {
         case ApiError(:final failure):
           if (isClosed) return;
-          emit(state.copyWith(message: failure.message));
+          await _failWithRefresh(failure.message);
           return;
         case ApiSuccess():
           break;
@@ -360,7 +360,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       switch (result) {
         case ApiError(:final failure):
           if (isClosed) return;
-          emit(state.copyWith(message: failure.message));
+          await _failWithRefresh(failure.message);
           return;
         case ApiSuccess():
           break;
@@ -369,6 +369,18 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
 
     hasChanges = true;
     await refresh();
+  }
+
+  /// Reports a mid-pipeline failure against server truth: earlier phases
+  /// may already have persisted, so the stale pre-edit snapshot must not
+  /// be shown as current. Refreshes, then surfaces the failure message.
+  Future<void> _failWithRefresh(String message) async {
+    await refresh();
+    if (isClosed) return;
+    final current = state;
+    if (current is TemplateDetailLoaded) {
+      emit(current.copyWith(message: message));
+    }
   }
 
   static final RegExp _uuidRegex = RegExp(

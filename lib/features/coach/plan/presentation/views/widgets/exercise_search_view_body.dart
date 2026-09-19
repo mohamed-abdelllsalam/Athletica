@@ -28,7 +28,11 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
   late final TextEditingController _searchController;
   Timer? _debounce;
   final Set<String> _selectedIds = {};
-  List<WorkoutExerciseEntry> _loaded = [];
+
+  /// Selected entries keyed by id, independent of the currently visible
+  /// search results. The loaded list is overwritten on every search, so
+  /// resolving selections from it would silently drop earlier picks.
+  final Map<String, WorkoutExerciseEntry> _selectedEntries = {};
 
   @override
   void initState() {
@@ -50,7 +54,7 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
     });
   }
 
-  List<PlanExercise> get _selected => _loaded
+  List<PlanExercise> get _selected => _selectedEntries.values
       .where((e) => _selectedIds.contains(e.id))
       .map(
         (e) => PlanExercise(
@@ -80,6 +84,7 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
           onBack: () => Navigator.pop(context, _selected),
           onClear: () => setState(() {
             _selectedIds.clear();
+            _selectedEntries.clear();
             _searchController.clear();
             context.read<WorkoutExercisesCubit>().load(
               filters: const WorkoutExerciseFilters(),
@@ -88,10 +93,7 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
         ),
         SizedBox(height: 8.h),
         Expanded(
-          child: BlocConsumer<WorkoutExercisesCubit, WorkoutExercisesState>(
-            listener: (context, state) {
-              if (state is WorkoutExercisesLoaded) _loaded = state.items;
-            },
+          child: BlocBuilder<WorkoutExercisesCubit, WorkoutExercisesState>(
             builder: (context, state) => switch (state) {
               WorkoutExercisesInitial() || WorkoutExercisesLoading() =>
                 const Center(child: CircularProgressIndicator()),
@@ -157,8 +159,10 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
                             onToggle: () => setState(() {
                               if (selected) {
                                 _selectedIds.remove(exercise.id);
+                                _selectedEntries.remove(exercise.id);
                               } else {
                                 _selectedIds.add(exercise.id);
+                                _selectedEntries[exercise.id] = exercise;
                               }
                             }),
                           );

@@ -153,6 +153,9 @@ class _NutritionPlansListViewBodyState
               case SaveNutritionPlanSuccess():
                 context.read<NutritionTemplatesListCubit>().loadTemplates();
               case SaveNutritionPlanError(:final message):
+                // A failed save may still have persisted part of the plan
+                // server-side — reload so the library reflects server truth.
+                context.read<NutritionTemplatesListCubit>().loadTemplates();
                 setState(() => _loading = false);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(message), backgroundColor: Colors.red),

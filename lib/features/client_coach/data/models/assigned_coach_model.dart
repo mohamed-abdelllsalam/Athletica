@@ -1,11 +1,15 @@
 import 'package:athletica/features/client_coach/domain/entities/assigned_coach.dart';
 
-/// Parses `GET /client/coach`:
-/// `{ "coach": { "id", "user": { "username", "email" }, "bio",
-///    "specialization" }, "assigned_at": "..." }`
+/// Parses `GET /client/coach`.
 ///
-/// [imageUrl] is best-effort parsed from common photo fields; null when the
-/// API omits them.
+/// Documented shape (DOC_2.md):
+/// `{ "coach": { "id", "user": { "username", "email" }, "bio",
+///    "specialization", "profile_image" }, "assigned_at": "..." }`
+///
+/// The real backend also returns the `GET /profile` shape in places
+/// (`{ "user": {...}, "profile": { "profile_image", ... } }`) and may wrap
+/// the payload in `data`, so [imageUrl] is parsed best-effort from every
+/// known location; null when the API omits it.
 class AssignedCoachModel {
   const AssignedCoachModel({
     required this.id,
@@ -26,39 +30,102 @@ class AssignedCoachModel {
   final DateTime? assignedAt;
 
   factory AssignedCoachModel.fromJson(Map<String, dynamic> json) {
-    final coach = json['coach'] as Map<String, dynamic>? ?? {};
-    final user = coach['user'] as Map<String, dynamic>? ?? {};
+    // Unwrap `{ "data": {...} }` when the backend envelopes the payload.
+    final root = json['data'] is Map<String, dynamic>
+        ? json['data'] as Map<String, dynamic>
+        : json;
+    final coach = root['coach'] is Map<String, dynamic>
+        ? root['coach'] as Map<String, dynamic>
+        : root;
+    final user = coach['user'] is Map<String, dynamic>
+        ? coach['user'] as Map<String, dynamic>
+        : <String, dynamic>{};
+    // Mirrors GET /profile: `{ "user": {...}, "profile": {...} }`.
+    final profile = coach['profile'] is Map<String, dynamic>
+        ? coach['profile'] as Map<String, dynamic>
+        : <String, dynamic>{};
     return AssignedCoachModel(
-      id: coach['id'] as String? ?? '',
-      username: user['username'] as String? ?? '',
-      email: user['email'] as String? ?? '',
-      bio: coach['bio'] as String? ?? '',
-      specialization: coach['specialization'] as String? ?? '',
-      imageUrl: _parseImageUrl(coach, user),
-      assignedAt: DateTime.tryParse(json['assigned_at'] as String? ?? ''),
+      id: (coach['id'] ?? root['id'])?.toString() ?? '',
+      username: _stringFrom([user, coach, root], const [
+            'username',
+            'name',
+          ]) ??
+          '',
+      email:
+          _stringFrom([user, coach, root], const ['email']) ?? '',
+      bio: _stringFrom([profile, coach, root], const ['bio']) ?? '',
+      specialization:
+          _stringFrom([profile, coach, root], const ['specialization']) ?? '',
+      imageUrl: _parseImageUrl(root, coach, profile, user),
+      assignedAt: DateTime.tryParse(
+        (root['assigned_at'] ?? json['assigned_at'])?.toString() ?? '',
+      ),
     );
   }
 
   static const List<String> _imageKeys = [
-    'image',
-    'imageUrl',
-    'avatar',
-    'photo',
     'profile_image',
     'profileImage',
+    'profile_image_url',
+    'profileImageUrl',
+    'image',
+    'imageUrl',
+    'image_url',
+    'avatar',
+    'avatar_url',
+    'photo',
+    'photo_url',
+    'picture',
+    'profile_picture',
   ];
 
-  static String? _parseImageUrl(
-    Map<String, dynamic> coach,
-    Map<String, dynamic> user,
+  static String? _stringFrom(
+    List<Map<String, dynamic>> sources,
+    List<String> keys,
   ) {
-    for (final source in [user, coach]) {
-      for (final key in _imageKeys) {
+    for (final source in sources) {
+      for (final key in keys) {
         final value = source[key];
-        if (value is String && value.isNotEmpty) return value;
+        if (value is String && value.trim().isNotEmpty) return value;
       }
     }
     return null;
+  }
+
+  static String? _parseImageUrl(
+    Map<String, dynamic> root,
+    Map<String, dynamic> coach,
+    Map<String, dynamic> profile,
+    Map<String, dynamic> user,
+  ) {
+    // Order matters: most-specific first (nested profile/user), then the
+    // flat coach object from DOC_2.md, then the top level.
+    for (final source in [profile, user, coach, root]) {
+      for (final key in _imageKeys) {
+        final candidate = _asUrlString(source[key]);
+        if (candidate != null) return candidate;
+      }
+      // Some backends nest the file as `{ "profile_image": { "url": "..." } }`.
+      for (final key in _imageKeys) {
+        final value = source[key];
+        if (value is Map<String, dynamic>) {
+          for (final nestedKey in const ['url', 'secure_url', 'src', 'path']) {
+            final candidate = _asUrlString(value[nestedKey]);
+            if (candidate != null) return candidate;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Trims whitespace and drops empty / literal `"null"` values so
+  /// [AssignedCoach.hasPhoto] stays reliable.
+  static String? _asUrlString(Object? value) {
+    if (value is! String) return null;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed.toLowerCase() == 'null') return null;
+    return trimmed;
   }
 
   AssignedCoach toEntity() => AssignedCoach(

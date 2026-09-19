@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class MealNoteTab extends StatelessWidget {
-  const MealNoteTab({super.key, required this.controller});
+  const MealNoteTab({super.key, required this.controller, required this.onSubmit});
 
   final TextEditingController controller;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +53,7 @@ class MealNoteTab extends StatelessWidget {
             width: double.infinity,
             height: 50.h,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: onSubmit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.buttonColor,
                 shape: RoundedRectangleBorder(

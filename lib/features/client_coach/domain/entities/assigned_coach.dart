@@ -20,5 +20,8 @@ class AssignedCoach {
   /// Best-effort profile photo; null when the API omits it.
   final String? imageUrl;
 
-  bool get hasPhoto => imageUrl != null && imageUrl!.isNotEmpty;
+  bool get hasPhoto {
+    final url = imageUrl?.trim();
+    return url != null && url.isNotEmpty && url.toLowerCase() != 'null';
+  }
 }

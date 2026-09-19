@@ -60,8 +60,8 @@ class CoachClientsRemoteDataSourceImpl implements CoachClientsRemoteDataSource {
   }
 
   @override
-  Future<void> removeAssignedClient(String coachClientId) async {
-    await _dio.delete(ApiEndpoints.coachClient(coachClientId));
+  Future<void> removeAssignedClient(String clientId) async {
+    await _dio.delete(ApiEndpoints.coachClient(clientId));
   }
 
   @override

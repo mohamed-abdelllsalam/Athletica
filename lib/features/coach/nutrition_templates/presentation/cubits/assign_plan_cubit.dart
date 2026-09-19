@@ -103,7 +103,9 @@ class AssignPlanCubit extends Cubit<AssignPlanState> {
   }
 
   /// Removes the coach-client relationship and reloads the roster.
-  Future<void> removeClient(String coachClientId) async {
+  /// [clientId] is the `client_profiles.id` (DELETE path param), not the
+  /// `coach_clients.id` relation id used for assignment.
+  Future<void> removeClient(String clientId) async {
     final current = state;
     final clients = current is AssignPlanClientsLoaded
         ? current.clients
@@ -112,7 +114,7 @@ class AssignPlanCubit extends Cubit<AssignPlanState> {
 
     emit(AssignPlanClientsLoading());
 
-    final result = await _removeAssignedClient(coachClientId);
+    final result = await _removeAssignedClient(clientId);
     switch (result) {
       case ApiSuccess():
         await loadClients();

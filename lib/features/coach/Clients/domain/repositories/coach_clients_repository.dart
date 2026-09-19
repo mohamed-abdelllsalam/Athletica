@@ -7,7 +7,8 @@ abstract class CoachClientsRepository {
   Future<ApiResult<List<CoachClient>>> getClientsByTrainerId(String trainerId);
   Future<ApiResult<List<CoachAssignedClient>>> getAssignedClients();
   Future<ApiResult<ClientDetail>> getClientDetail(String clientId);
-  Future<ApiResult<void>> removeAssignedClient(String coachClientId);
+  /// [clientId] is the `client_profiles.id` (DELETE path param).
+  Future<ApiResult<void>> removeAssignedClient(String clientId);
   Future<ApiResult<void>> deleteNutritionPlan(String planId);
   Future<ApiResult<void>> deleteWorkoutPlan(String planId);
 }

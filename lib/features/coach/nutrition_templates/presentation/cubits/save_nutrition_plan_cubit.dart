@@ -59,7 +59,7 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
           mealId = data.id;
         case ApiError(:final failure):
           if (isClosed) return;
-          emit(SaveNutritionPlanError(failure.message));
+          emit(SaveNutritionPlanError(_partialMessage(failure.message)));
           return;
       }
 
@@ -77,7 +77,7 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
         switch (foodResult) {
           case ApiError(:final failure):
             if (isClosed) return;
-            emit(SaveNutritionPlanError(failure.message));
+            emit(SaveNutritionPlanError(_partialMessage(failure.message)));
             return;
           case ApiSuccess():
             break;
@@ -88,6 +88,14 @@ class SaveNutritionPlanCubit extends Cubit<SaveNutritionPlanState> {
     if (isClosed) return;
     emit(SaveNutritionPlanSuccess());
   }
+
+  /// The template (and any earlier meals/foods) already exists server-side
+  /// when a meal/food write fails — there is no transactional endpoint —
+  /// so the message must say so instead of implying nothing was saved.
+  /// Retrying creates a new template; the coach should check the library
+  /// first to avoid duplicates.
+  static String _partialMessage(String serverMessage) =>
+      '$serverMessage The plan was partially saved — check your library before trying again.';
 
   static final _uuidRegex = RegExp(
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',

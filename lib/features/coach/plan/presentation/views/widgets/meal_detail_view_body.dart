@@ -37,8 +37,11 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
   late TabController _tabController;
   late List<Ingredient> _ingredients;
   final TextEditingController _searchController = TextEditingController();
+
+  /// Single source of truth for the meal note, shared by the "Meal Notes"
+  /// field in the details tab and the "Note" tab so edits in either place
+  /// mark the meal dirty and are included in the saved meal.
   final TextEditingController _mealNoteController = TextEditingController();
-  final TextEditingController _noteTabController = TextEditingController();
   late TextEditingController _nameController;
   bool _nameHasError = false;
   String _query = '';
@@ -71,8 +74,9 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     _tabController.dispose();
     _searchController.dispose();
     _mealNoteController.dispose();
-    _noteTabController.dispose();
     _nameController.dispose();
+    // _nameController has a listener; TextEditingController.dispose()
+    // unregisters it — no explicit removeListener needed for disposal.
     super.dispose();
   }
 
@@ -155,6 +159,22 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
         .toList();
   }
 
+  /// "Submit" from the Note tab: same contract as "Save Changes" in the
+  /// details tab — validates the meal name and exits with the built meal
+  /// (which carries the shared note controller text).
+  void _submitNoteTab() {
+    if (_nameController.text.trim().isEmpty) {
+      // The name field lives in the header; flag the error and show the
+      // details tab so the coach can fix it.
+      setState(() {
+        _nameHasError = true;
+        _tabController.index = 0;
+      });
+      return;
+    }
+    Navigator.pop(context, _buildMeal());
+  }
+
   Meal _buildMeal() {
     final name = _nameController.text.trim();
     final notes = _mealNoteController.text.trim();
@@ -198,7 +218,12 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
         currentGrams: currentGrams,
       ),
     );
+    if (!mounted) return;
     if (newGrams == null || newGrams <= 0) return;
+    // A zero/negative source serving (e.g. legacy "0g") would scale through
+    // divide-by-zero into Infinity/NaN macros — keep the previous valid
+    // state instead of producing invalid numbers.
+    if (currentGrams <= 0) return;
     final ratio = newGrams / currentGrams;
     final updated = Ingredient(
       id: ingredient.id,
@@ -238,6 +263,7 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
         builder: (_) => FoodSearchView(existingFoodIds: _existingFoodIds),
       ),
     );
+    if (!mounted) return;
     if (result == null || result.isEmpty) return;
     setState(() {
       var stamp = DateTime.now().millisecondsSinceEpoch;
@@ -327,7 +353,10 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
                     Navigator.pop(context, _buildMeal());
                   },
                 ),
-                MealNoteTab(controller: _noteTabController),
+                MealNoteTab(
+                  controller: _mealNoteController,
+                  onSubmit: _submitNoteTab,
+                ),
               ],
             ),
           ),

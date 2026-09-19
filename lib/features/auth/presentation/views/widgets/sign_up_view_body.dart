@@ -27,13 +27,32 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   AutovalidateMode autoValidateMode = AutovalidateMode.disabled;
 
-  late String name, email, phone, password, confirmPassword;
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _passwordController;
+  late final TextEditingController _confirmPasswordController;
   String? _selectedRole;
 
   @override
   void initState() {
     super.initState();
     _selectedRole = widget.initialRole;
+    _nameController = TextEditingController();
+    _emailController = TextEditingController();
+    _phoneController = TextEditingController();
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   bool agreeToTerms = false;
@@ -44,7 +63,10 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
       return;
     }
 
-    formKey.currentState!.save();
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +114,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
             VerifyYourIdentityView.routeName,
             (route) =>
                 route.settings.name == SignInView.routeName || route.isFirst,
-            arguments: email,
+            arguments: _emailController.text.trim(),
           );
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -131,9 +153,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                     child: Column(
                       children: [
                         CustomFormTextField(
-                          onSaved: (value) => name = value!,
-                          onFieldSubmitted: (_) =>
-                              TextInput.finishAutofillContext(),
+                          controller: _nameController,
                           autofillHints: const [AutofillHints.name],
                           hintText: 'Your name',
                           keyboardType: TextInputType.text,
@@ -148,9 +168,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                         ),
                         const SizedBox(height: 16),
                         CustomFormTextField(
-                          onSaved: (value) => email = value!,
-                          onFieldSubmitted: (_) =>
-                              TextInput.finishAutofillContext(),
+                          controller: _emailController,
                           autofillHints: const [AutofillHints.email],
                           hintText: 'Enter your email',
                           keyboardType: TextInputType.emailAddress,
@@ -159,25 +177,9 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                           validator: validateEmail,
                         ),
                         const SizedBox(height: 16),
-                        CustomFormTextField(
-                          onSaved: (value) => phone = value!,
-                          onFieldSubmitted: (_) =>
-                              TextInput.finishAutofillContext(),
-                          autofillHints: const [AutofillHints.telephoneNumber],
-                          hintText: 'Phone',
-                          keyboardType: TextInputType.phone,
-                          labelText: 'Phone',
-                          textInputAction: TextInputAction.next,
-                          validator: (value) {
-                            if (value == null || value.length < 10) {
-                              return 'Enter a valid phone number';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
                         CustomPasswordField(
-                          onSaved: (value) => password = value!,
+                          controller: _passwordController,
+                          autofillHints: const [AutofillHints.newPassword],
                           hintText: 'Enter your password',
                           labelText: 'Password',
                           textInputAction: TextInputAction.next,
@@ -185,7 +187,10 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                         ),
                         const SizedBox(height: 16),
                         CustomPasswordField(
-                          onSaved: (value) => confirmPassword = value!,
+                          controller: _confirmPasswordController,
+                          autofillHints: const [AutofillHints.newPassword],
+                          onFieldSubmitted: (_) =>
+                              TextInput.finishAutofillContext(),
                           hintText: 'Confirm your password',
                           labelText: 'Confirm Password',
                           textInputAction: TextInputAction.done,
@@ -198,6 +203,24 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Kept outside the credentials AutofillGroup so an email
+                  // autofill suggestion never spills into the phone field.
+                  // Note: phone is collected for UX only — signup API takes
+                  // username/email/password/role.
+                  CustomFormTextField(
+                    controller: _phoneController,
+                    hintText: 'Phone',
+                    keyboardType: TextInputType.phone,
+                    labelText: 'Phone',
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.length < 10) {
+                        return 'Enter a valid phone number';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
