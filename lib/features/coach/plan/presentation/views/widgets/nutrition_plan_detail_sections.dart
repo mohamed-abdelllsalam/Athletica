@@ -1,3 +1,5 @@
+import 'nutrition_plan_daily_targets.dart';
+import 'nutrition_plan_meal_card.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
@@ -106,80 +108,14 @@ class NutritionPlanOverviewTab extends StatelessWidget {
             ).copyWith(color: AppColors.textSecondary),
           ),
         SizedBox(height: 16.h),
-        // Daily targets card
-        Container(
-          padding: EdgeInsets.all(16.r),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(14.r),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Daily targets',
-                style: AppTextStyles.semiBold14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-              ),
-              SizedBox(height: 12.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  if (isCreateMode) ...[
-                    _MacroInput(
-                      controller: caloriesController,
-                      label: 'Calories',
-                      color: AppColors.primaryBlue,
-                      onChanged: (_) => onMacrosChanged(),
-                    ),
-                    _MacroInput(
-                      controller: proteinController,
-                      label: 'Protein',
-                      color: const Color(0xFF4CAF50),
-                      onChanged: (_) => onMacrosChanged(),
-                      suffix: 'g',
-                    ),
-                    _MacroInput(
-                      controller: fatController,
-                      label: 'Fat',
-                      color: const Color(0xFFFFB300),
-                      onChanged: (_) => onMacrosChanged(),
-                      suffix: 'g',
-                    ),
-                    _MacroInput(
-                      controller: carbsController,
-                      label: 'Carbs',
-                      color: const Color(0xFF42A5F5),
-                      onChanged: (_) => onMacrosChanged(),
-                      suffix: 'g',
-                    ),
-                  ] else ...[
-                    _MacroStat(
-                      value: '${plan.calories}',
-                      label: 'Calories',
-                      color: AppColors.primaryBlue,
-                    ),
-                    _MacroStat(
-                      value: '${plan.proteinGrams}g',
-                      label: 'Protein',
-                      color: const Color(0xFF4CAF50),
-                    ),
-                    _MacroStat(
-                      value: '${plan.fatGrams}g',
-                      label: 'Fat',
-                      color: const Color(0xFFFFB300),
-                    ),
-                    _MacroStat(
-                      value: '${plan.carbsGrams}g',
-                      label: 'Carbs',
-                      color: const Color(0xFF42A5F5),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
+        CoachNutritionPlanDailyTargets(
+          plan: plan,
+          isCreateMode: isCreateMode,
+          caloriesController: caloriesController,
+          proteinController: proteinController,
+          fatController: fatController,
+          carbsController: carbsController,
+          onMacrosChanged: onMacrosChanged,
         ),
         SizedBox(height: 20.h),
         Row(
@@ -269,7 +205,7 @@ class NutritionPlanOverviewTab extends StatelessWidget {
                           ),
                         ),
                         Expanded(
-                          child: _MealCard(
+                          child: CoachNutritionPlanMealCard(
                             meal: meals[i],
                             onTap: () => onMealTap(meals[i]),
                           ),
@@ -284,170 +220,3 @@ class NutritionPlanOverviewTab extends StatelessWidget {
     );
   }
 }
-
-class _MacroStat extends StatelessWidget {
-  const _MacroStat({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  final String value;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: AppTextStyles.bold24(
-            context,
-          ).copyWith(color: color, fontSize: 18.sp),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          label,
-          style: AppTextStyles.meduim12(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-class _MacroInput extends StatelessWidget {
-  const _MacroInput({
-    required this.controller,
-    required this.label,
-    required this.color,
-    required this.onChanged,
-    this.suffix,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final Color color;
-  final ValueChanged<String> onChanged;
-  final String? suffix;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          width: 56.w,
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.center,
-            onChanged: onChanged,
-            style: AppTextStyles.bold24(
-              context,
-            ).copyWith(color: color, fontSize: 18.sp),
-            decoration: InputDecoration(
-              hintText: '0',
-              hintStyle: AppTextStyles.bold24(
-                context,
-              ).copyWith(color: color.withValues(alpha: 0.4), fontSize: 18.sp),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          suffix == null ? label : '$label ($suffix)',
-          style: AppTextStyles.meduim12(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-class _MealCard extends StatelessWidget {
-  const _MealCard({required this.meal, required this.onTap});
-
-  final Meal meal;
-  final VoidCallback onTap;
-
-  static IconData _iconForType(String type) => switch (type) {
-    'Breakfast' => Icons.wb_sunny_outlined,
-    'Lunch' => Icons.restaurant_outlined,
-    'Snack' => Icons.cake_outlined,
-    'Dinner' => Icons.nightlight_outlined,
-    _ => Icons.local_cafe_outlined,
-  };
-
-  static Color _bgColorForType(String type) => switch (type) {
-    'Breakfast' => const Color(0xFF2C6E3A),
-    'Lunch' => const Color(0xFF1C5C2A),
-    'Snack' => const Color(0xFF3D2A7A),
-    'Dinner' => const Color(0xFF2A1C5A),
-    _ => const Color(0xFF1C2A5A),
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(14.r),
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(14.r),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48.r,
-              height: 48.r,
-              decoration: BoxDecoration(
-                color: _bgColorForType(meal.type),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(
-                _iconForType(meal.type),
-                color: Colors.white,
-                size: 22.sp,
-              ),
-            ),
-            SizedBox(width: 14.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    meal.name,
-                    style: AppTextStyles.semiBold14(
-                      context,
-                    ).copyWith(color: AppColors.textPrimary),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    '${meal.calories} CAL . ${meal.proteinGrams}G Protein',
-                    style: AppTextStyles.meduim12(
-                      context,
-                    ).copyWith(color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: AppColors.textSecondary,
-              size: 14.sp,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Note Tab ─────────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import 'coach_delete_request_spam_option.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
@@ -32,8 +33,11 @@ class _CoachDeleteRequestSheetState extends State<CoachDeleteRequestSheet> {
             alignment: Alignment.topLeft,
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
-              child: Icon(Icons.close,
-                  color: AppColors.textPrimary, size: 24.sp),
+              child: Icon(
+                Icons.close,
+                color: AppColors.textPrimary,
+                size: 24.sp,
+              ),
             ),
           ),
           SizedBox(height: 12.h),
@@ -42,83 +46,41 @@ class _CoachDeleteRequestSheetState extends State<CoachDeleteRequestSheet> {
             backgroundColor: AppColors.surfaceDark,
             child: widget.contact.imageAsset != null
                 ? ClipOval(
-                    child: Image.asset(widget.contact.imageAsset!,
-                        fit: BoxFit.cover,
-                        width: 72.r,
-                        height: 72.r),
+                    child: Image.asset(
+                      widget.contact.imageAsset!,
+                      fit: BoxFit.cover,
+                      width: 72.r,
+                      height: 72.r,
+                    ),
                   )
-                : Icon(Icons.person,
-                    color: AppColors.textSecondary, size: 32.sp),
+                : Icon(
+                    Icons.person,
+                    color: AppColors.textSecondary,
+                    size: 32.sp,
+                  ),
           ),
           SizedBox(height: 16.h),
           Text(
             'Delete Message Request ?',
-            style: AppTextStyles.bold20(context)
-                .copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.bold20(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
           SizedBox(height: 20.h),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
               'Other actions you can take',
-              style: AppTextStyles.meduim12(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.meduim12(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             ),
           ),
           SizedBox(height: 12.h),
-          Container(
-            padding:
-                EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Mark as Spam',
-                        style: AppTextStyles.semiBold15(context)
-                            .copyWith(color: AppColors.textPrimary),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        'Send Future messages from ${widget.contact.name} to spam',
-                        style: AppTextStyles.meduim12(context)
-                            .copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () =>
-                      setState(() => _markAsSpam = !_markAsSpam),
-                  child: Container(
-                    width: 22.r,
-                    height: 22.r,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _markAsSpam
-                            ? AppColors.primaryBlue
-                            : AppColors.textSecondary,
-                        width: 2,
-                      ),
-                      color: _markAsSpam
-                          ? AppColors.primaryBlue
-                          : Colors.transparent,
-                    ),
-                    child: _markAsSpam
-                        ? Icon(Icons.check,
-                            color: AppColors.textPrimary, size: 14.sp)
-                        : null,
-                  ),
-                ),
-              ],
-            ),
+          CoachDeleteRequestSpamOption(
+            contactName: widget.contact.name,
+            markAsSpam: _markAsSpam,
+            onToggle: () => setState(() => _markAsSpam = !_markAsSpam),
           ),
           SizedBox(height: 20.h),
           SizedBox(
@@ -135,8 +97,9 @@ class _CoachDeleteRequestSheetState extends State<CoachDeleteRequestSheet> {
               ),
               child: Text(
                 'Delete',
-                style: AppTextStyles.semiBold15(context)
-                    .copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.semiBold15(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               ),
             ),
           ),

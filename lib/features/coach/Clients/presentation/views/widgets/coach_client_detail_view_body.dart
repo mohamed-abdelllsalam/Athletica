@@ -1,3 +1,4 @@
+import 'coach_client_deactivate_plan_dialog.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -211,10 +212,9 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     final nutritionPlan = detail.nutritionPlan;
     final workoutPlan = detail.workoutPlan;
     final workoutTitle = workoutPlan?.title;
-    final workoutSubtitle =
-        (workoutPlan?.description?.isNotEmpty ?? false)
-            ? workoutPlan!.description!
-            : 'Workout Plan';
+    final workoutSubtitle = (workoutPlan?.description?.isNotEmpty ?? false)
+        ? workoutPlan!.description!
+        : 'Workout Plan';
     final workoutPlanId = workoutPlan?.id;
 
     Future<void> reload() async {
@@ -276,9 +276,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
     if (assigned != null && context.mounted) {
       // The detail endpoint now returns the real workout plan, so a reload
       // shows the new assignment directly.
-      await context.read<ClientDetailCubit>().loadClientDetail(
-        widget.clientId,
-      );
+      await context.read<ClientDetailCubit>().loadClientDetail(widget.clientId);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Workout assigned successfully')),

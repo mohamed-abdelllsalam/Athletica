@@ -1,8 +1,8 @@
+import 'coach_certificate_form.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/add_certificate_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/add_certificate_state.dart';
-import 'package:athletica/features/coach/complete_profile/presentation/views/widgets/coach_dashed_upload_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -66,55 +66,10 @@ class _CoachAddCertificateViewBodyState
         body: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Certificates',
-                  style: AppTextStyles.bold20(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  'Add certificate details to highlight your expertise to potential clients',
-                  style: AppTextStyles.regular13(
-                    context,
-                  ).copyWith(color: AppColors.textSecondary),
-                ),
-                SizedBox(height: 20.h),
-                CoachDashedUploadBox(
-                  title: 'Upload your certificates',
-                  subtitle:
-                      'Upload your certificates to verify your expertise.',
-                  onUploadTap: () {},
-                ),
-                SizedBox(height: 24.h),
-                Text(
-                  'Certificate Name',
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                ),
-                SizedBox(height: 8.h),
-                _InputField(
-                  controller: _nameController,
-                  hint: 'Ex. Certified Strength Coach Level 2',
-                ),
-                SizedBox(height: 20.h),
-                Text(
-                  'Description',
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                ),
-                SizedBox(height: 8.h),
-                _InputField(
-                  controller: _descriptionController,
-                  hint: 'Brief description or organization name',
-                ),
-                SizedBox(height: 32.h),
-              ],
+            child: CoachCertificateForm(
+              nameController: _nameController,
+              descriptionController: _descriptionController,
+              onUpload: () {},
             ),
           ),
         ),
@@ -164,36 +119,6 @@ class _CoachAddCertificateViewBodyState
               );
             },
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InputField extends StatelessWidget {
-  const _InputField({required this.controller, required this.hint});
-
-  final TextEditingController controller;
-  final String hint;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      style: AppTextStyles.medium14(
-        context,
-      ).copyWith(color: AppColors.textPrimary),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: AppTextStyles.regular13(
-          context,
-        ).copyWith(color: AppColors.textTertiary),
-        filled: true,
-        fillColor: AppColors.cardBackground,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide.none,
         ),
       ),
     );

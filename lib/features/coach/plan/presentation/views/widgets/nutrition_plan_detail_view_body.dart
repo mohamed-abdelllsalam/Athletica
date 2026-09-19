@@ -1,7 +1,9 @@
+import 'nutrition_plan_detail_states.dart';
+import 'nutrition_plan_primary_action.dart';
+import 'nutrition_plan_dialogs.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/core/widgets/unfocus_on_tap.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/template_detail_cubit.dart';
@@ -192,40 +194,11 @@ class _NutritionPlanDetailViewBodyState
     }
     final action = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: Text(
-          'Unsaved changes',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Do you want to save your changes before leaving?',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'saveExit'),
-            child: Text(
-              'Save and exit',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.primaryBlue),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'discard'),
-            child: Text(
-              'Discard',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.red),
-            ),
-          ),
-        ],
+      builder: (_) => CoachNutritionPlanUnsavedChangesDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onSaveAndExit: () => Navigator.pop(context, 'saveExit'),
+        onDiscard: () => Navigator.pop(context, 'discard'),
       ),
     );
     if (!mounted || action == null) return;
@@ -307,45 +280,12 @@ class _NutritionPlanDetailViewBodyState
           switch (state) {
             case TemplateDetailInitial():
             case TemplateDetailLoading():
-              return AppShimmer(
-                child: ListView.separated(
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.all(20.r),
-                  itemCount: 5,
-                  separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                  itemBuilder: (_, _) =>
-                      SkeletonBox(height: 72.h, radius: 14.r),
-                ),
-              );
+              return const CoachNutritionPlanDetailLoading();
             case TemplateDetailError(:final message):
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      message,
-                      style: AppTextStyles.medium14(
-                        context,
-                      ).copyWith(color: AppColors.textSecondary),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 16.h),
-                    ElevatedButton(
-                      onPressed: () => context.read<TemplateDetailCubit>().load(
-                        widget.plan.id,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
-                      ),
-                      child: Text(
-                        'Retry',
-                        style: AppTextStyles.medium14(
-                          context,
-                        ).copyWith(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
+              return CoachNutritionPlanDetailError(
+                message: message,
+                onRetry: () =>
+                    context.read<TemplateDetailCubit>().load(widget.plan.id),
               );
             case TemplateDetailLoaded(:final plan):
               return _buildContent(context, plan);
@@ -415,48 +355,10 @@ class _NutritionPlanDetailViewBodyState
             onDelete: () => _confirmDeleteTemplate(context),
           ),
           SizedBox(height: 16.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: widget.isCreateMode
-                  ? ElevatedButton(
-                      onPressed: _trySavePlan,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.buttonColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                      child: Text(
-                        'Save Plan',
-                        style: AppTextStyles.medium14(
-                          context,
-                        ).copyWith(color: Colors.white),
-                      ),
-                    )
-                  : ElevatedButton.icon(
-                      onPressed: () => _showAssignSheet(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.buttonColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.person_outline,
-                        color: Colors.white,
-                        size: 18.sp,
-                      ),
-                      label: Text(
-                        'Assign to client',
-                        style: AppTextStyles.medium14(
-                          context,
-                        ).copyWith(color: Colors.white),
-                      ),
-                    ),
-            ),
+          CoachNutritionPlanPrimaryAction(
+            isCreateMode: widget.isCreateMode,
+            onSave: _trySavePlan,
+            onAssign: () => _showAssignSheet(context),
           ),
           SizedBox(height: 16.h),
           Padding(
@@ -539,50 +441,12 @@ class _NutritionPlanDetailViewBodyState
     final clientCount = plan?.clientCount ?? 0;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          'Delete template?',
-          style: AppTextStyles.bold20(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          clientCount > 0
-              ? 'This template is assigned to $clientCount client(s). '
-                    'You must remove all assigned plans first before deleting.'
-              : 'This will permanently delete this template and cannot be undone.',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-          if (clientCount == 0)
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5252),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-              ),
-              child: const Text('Delete'),
-            ),
-        ],
+      builder: (_) => CoachNutritionPlanDeleteDialog(
+        titleStyle: AppTextStyles.bold20(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onCancel: () => Navigator.pop(context, false),
+        onDelete: () => Navigator.pop(context, true),
+        clientCount: clientCount,
       ),
     );
     if (confirmed == true && context.mounted) {

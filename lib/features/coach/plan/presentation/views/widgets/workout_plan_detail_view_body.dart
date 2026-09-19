@@ -1,3 +1,9 @@
+import 'workout_plan_detail_states.dart';
+import 'workout_plan_create_content.dart';
+import 'workout_plan_note_tab.dart';
+import 'workout_plan_dialogs.dart';
+import 'workout_plan_add_day_dialog.dart';
+import 'workout_plan_create_overview_tab.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/widgets/exercise_video.dart';
@@ -144,40 +150,11 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
     }
     final action = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: Text(
-          'Unsaved changes',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Do you want to save your changes before leaving?',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'saveExit'),
-            child: Text(
-              'Save and exit',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.primaryBlue),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'discard'),
-            child: Text(
-              'Discard',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.red),
-            ),
-          ),
-        ],
+      builder: (_) => CoachWorkoutPlanUnsavedChangesDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onSaveAndExit: () => Navigator.pop(context, 'saveExit'),
+        onDiscard: () => Navigator.pop(context, 'discard'),
       ),
     );
     if (!mounted || action == null) return;
@@ -296,30 +273,12 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
   Future<void> _removeDay(TemplateDayEntry day) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: Text(
-          'Delete day?',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Remove "${day.title}" and its exercises?',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
+      builder: (_) => CoachWorkoutPlanDeleteDayDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onCancel: () => Navigator.pop(context, false),
+        onDelete: () => Navigator.pop(context, true),
+        dayTitle: day.title,
       ),
     );
     if (confirm != true || !mounted) return;
@@ -540,88 +499,30 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
         if (didPop) return;
         await _exitWithResolution();
       },
-      child: Column(
-        children: [
-          SizedBox(height: 20.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: GestureDetector(
-              onTap: _exitWithResolution,
-              child: const Align(
-                alignment: Alignment.centerLeft,
-                child: Icon(Icons.arrow_back_ios_new),
-              ),
-            ),
-          ),
-          SizedBox(height: 16.h),
-          WorkoutPlanCreateHeader(
-            iconAsset: _currentIconAsset,
-            nameController: _nameController,
-            nameHasError: _nameHasError,
-            dayCount: _days.length,
-            selectedCategory: _selectedCategory,
-            categories: _createCategories,
-            onCategoryChanged: (value) =>
-                setState(() => _selectedCategory = value),
-          ),
-          SizedBox(height: 16.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ElevatedButton(
-                onPressed: _trySavePlan,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.buttonColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: Text(
-                  'Save Plan',
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 16.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: AppColors.buttonColor,
-              indicatorWeight: 2,
-              labelStyle: AppTextStyles.semiBold14(context),
-              unselectedLabelStyle: AppTextStyles.medium14(context),
-              labelColor: AppColors.buttonColor,
-              unselectedLabelColor: AppColors.textSecondary,
-              tabs: const [
-                Tab(text: 'Overview'),
-                Tab(text: 'Note'),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                WorkoutPlanCreateOverviewTab(
-                  descriptionController: _descriptionController,
-                  descriptionHasError: _descriptionHasError,
-                  days: _days,
-                  onAddDay: _addDayLocal,
-                  onOpenDay: _handleDayTapByIndex,
-                  onToggleRest: _toggleRestLocal,
-                  onReorder: _reorderLocal,
-                ),
-                WorkoutPlanNoteTab(controller: _noteController),
-              ],
-            ),
-          ),
-        ],
+      child: CoachWorkoutPlanCreateContent(
+        header: WorkoutPlanCreateHeader(
+          iconAsset: _currentIconAsset,
+          nameController: _nameController,
+          nameHasError: _nameHasError,
+          dayCount: _days.length,
+          selectedCategory: _selectedCategory,
+          categories: _createCategories,
+          onCategoryChanged: (value) =>
+              setState(() => _selectedCategory = value),
+        ),
+        overview: WorkoutPlanCreateOverviewTab(
+          descriptionController: _descriptionController,
+          descriptionHasError: _descriptionHasError,
+          days: _days,
+          onAddDay: _addDayLocal,
+          onOpenDay: _handleDayTapByIndex,
+          onToggleRest: _toggleRestLocal,
+          onReorder: _reorderLocal,
+        ),
+        note: WorkoutPlanNoteTab(controller: _noteController),
+        tabController: _tabController,
+        onExit: _exitWithResolution,
+        onSave: _trySavePlan,
       ),
     );
   }
@@ -656,30 +557,13 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
               WorkoutTemplateDetailLoading() => const Center(
                 child: CircularProgressIndicator(),
               ),
-              WorkoutTemplateDetailError(:final message) => Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20.w),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.medium14(
-                          context,
-                        ).copyWith(color: AppColors.textSecondary),
-                      ),
-                      SizedBox(height: 12.h),
-                      TextButton(
-                        onPressed: () => context
-                            .read<WorkoutTemplateDetailCubit>()
-                            .load(widget.program.id),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
+              WorkoutTemplateDetailError(:final message) =>
+                CoachWorkoutPlanDetailError(
+                  message: message,
+                  onRetry: () => context
+                      .read<WorkoutTemplateDetailCubit>()
+                      .load(widget.program.id),
                 ),
-              ),
               WorkoutTemplateDetailLoaded(:final template, :final mutating) =>
                 WorkoutPlanDetailContent(
                   template: template,
@@ -729,46 +613,12 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          'Delete template?',
-          style: AppTextStyles.bold20(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'This will permanently delete "${template.title}" and cannot be undone.',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5252),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (_) => CoachWorkoutPlanDeleteDialog(
+        titleStyle: AppTextStyles.bold20(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onCancel: () => Navigator.pop(context, false),
+        onDelete: () => Navigator.pop(context, true),
+        templateTitle: template.title,
       ),
     );
     if (confirmed != true || !context.mounted) return;

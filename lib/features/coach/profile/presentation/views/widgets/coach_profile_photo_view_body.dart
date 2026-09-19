@@ -1,3 +1,6 @@
+import 'coach_profile_photo_preview_actions.dart';
+import 'coach_profile_photo_options.dart';
+import 'coach_profile_photo_image.dart';
 import 'dart:io';
 
 import 'package:athletica/core/utils/app_colors.dart';
@@ -84,7 +87,9 @@ class _CoachProfilePhotoViewBodyState extends State<CoachProfilePhotoViewBody> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
         title: const Text('Delete Photo'),
-        content: const Text('Are you sure you want to delete your profile photo?'),
+        content: const Text(
+          'Are you sure you want to delete your profile photo?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -159,117 +164,18 @@ class _CoachProfilePhotoViewBodyState extends State<CoachProfilePhotoViewBody> {
         };
         final isUploading = state is CoachProfileImageUploading;
 
-        return Container(
-          width: double.infinity,
-          color: AppColors.primaryAppColor,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              if (isUploading)
-                const CircularProgressIndicator(
-                  color: AppColors.primaryBlue,
-                )
-              else if (profileImage != null && profileImage.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    profileImage,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (_, _, _) => Container(
-                      color: const Color(0xFF1A1A1A),
-                      child: Icon(
-                        Icons.person,
-                        size: 120.sp,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  color: const Color(0xFF1A1A1A),
-                  child: Icon(
-                    Icons.person,
-                    size: 120.sp,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-            ],
-          ),
+        return CoachProfilePhotoImage(
+          profileImage: profileImage,
+          isUploading: isUploading,
         );
       },
     );
   }
 
   Widget _buildPreviewActions(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 32.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40.w,
-            height: 4.h,
-            decoration: BoxDecoration(
-              color: AppColors.textTertiary,
-              borderRadius: BorderRadius.circular(2.r),
-            ),
-          ),
-          SizedBox(height: 20.h),
-          Text(
-            'Preview',
-            style: AppTextStyles.bold20(context)
-                .copyWith(color: AppColors.textPrimary),
-          ),
-          SizedBox(height: 20.h),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saveImage,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-              ),
-              child: Text(
-                'Save Photo',
-                style: AppTextStyles.semiBold15(context)
-                    .copyWith(color: AppColors.textPrimary),
-              ),
-            ),
-          ),
-          SizedBox(height: 12.h),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: _cancelPreview,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.textTertiary),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-              ),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.semiBold15(context)
-                    .copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return CoachProfilePhotoPreviewActions(
+      onSave: _saveImage,
+      onCancel: _cancelPreview,
     );
   }
 
@@ -311,114 +217,11 @@ class _CoachProfilePhotoViewBodyState extends State<CoachProfilePhotoViewBody> {
       _ => false,
     };
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 32.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40.w,
-            height: 4.h,
-            decoration: BoxDecoration(
-              color: AppColors.textTertiary,
-              borderRadius: BorderRadius.circular(2.r),
-            ),
-          ),
-          SizedBox(height: 20.h),
-          Text(
-            'Profile Photo',
-            style: AppTextStyles.bold20(
-              context,
-            ).copyWith(color: AppColors.textPrimary),
-          ),
-          SizedBox(height: 20.h),
-          Row(
-            children: [
-              Expanded(
-                child: _PhotoOptionButton(
-                  icon: Icons.camera_alt_outlined,
-                  label: 'Camera',
-                  onTap: () => _pickImage(ImageSource.camera),
-                ),
-              ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: _PhotoOptionButton(
-                  icon: Icons.photo_library_outlined,
-                  label: 'Gallery',
-                  onTap: () => _pickImage(ImageSource.gallery),
-                ),
-              ),
-            ],
-          ),
-          if (hasImage) ...[
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _deleteImage,
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                label: Text(
-                  'Delete Photo',
-                  style: AppTextStyles.semiBold15(context)
-                      .copyWith(color: Colors.red),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 14.h),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PhotoOptionButton extends StatelessWidget {
-  const _PhotoOptionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 18.h),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: AppColors.textTertiary, width: 0.5),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppColors.textPrimary, size: 26.sp),
-            SizedBox(height: 8.h),
-            Text(
-              label,
-              style: AppTextStyles.medium13(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-          ],
-        ),
-      ),
+    return CoachProfilePhotoOptions(
+      hasImage: hasImage,
+      onCamera: () => _pickImage(ImageSource.camera),
+      onGallery: () => _pickImage(ImageSource.gallery),
+      onDelete: _deleteImage,
     );
   }
 }

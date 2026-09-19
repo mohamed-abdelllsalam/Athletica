@@ -1,3 +1,4 @@
+import 'invite_code_components.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/home/domain/entities/coach_invite_code.dart';
@@ -46,10 +47,14 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
 
     // easeOutBack overshoots above 1 — used for the scale pop only, never
     // chained into another curve. Fade/slide stay within [0, 1].
-    _fadeAnimations =
-        List.generate(digits, (i) => digitAnimation(i, Curves.easeOut));
-    _popAnimations =
-        List.generate(digits, (i) => digitAnimation(i, Curves.easeOutBack));
+    _fadeAnimations = List.generate(
+      digits,
+      (i) => digitAnimation(i, Curves.easeOut),
+    );
+    _popAnimations = List.generate(
+      digits,
+      (i) => digitAnimation(i, Curves.easeOutBack),
+    );
   }
 
   @override
@@ -96,15 +101,17 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
             Text(
               'Invite Client',
               textAlign: TextAlign.center,
-              style: AppTextStyles.bold24(context)
-                  .copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.bold24(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
             ),
             SizedBox(height: 8.h),
             Text(
               'Share this code with your client so they can connect with you.',
               textAlign: TextAlign.center,
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             ),
             SizedBox(height: 24.h),
             AnimatedBuilder(
@@ -114,7 +121,7 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
                   return Expanded(
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 3.w),
-                      child: _InviteCodeDigit(
+                      child: CoachInviteCodeDigit(
                         fade: _fadeAnimations[index],
                         pop: _popAnimations[index],
                         character: _codeChars[index],
@@ -128,17 +135,18 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
             Text(
               _expiryLabel,
               textAlign: TextAlign.center,
-              style: AppTextStyles.meduim12(context)
-                  .copyWith(color: AppColors.textTertiary),
+              style: AppTextStyles.meduim12(
+                context,
+              ).copyWith(color: AppColors.textTertiary),
             ),
             SizedBox(height: 24.h),
-            _DialogButton(
+            CoachInviteDialogButton(
               label: 'Copy Code',
               icon: Icons.copy_rounded,
               onTap: _copyCode,
             ),
             SizedBox(height: 10.h),
-            _DialogButton(
+            CoachInviteDialogButton(
               label: 'Regenerate',
               icon: Icons.refresh_rounded,
               onTap: () {},
@@ -149,103 +157,14 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Close',
-                style: AppTextStyles.medium14(context)
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _InviteCodeDigit extends StatelessWidget {
-  const _InviteCodeDigit({
-    required this.fade,
-    required this.pop,
-    required this.character,
-  });
-
-  /// Eased within [0, 1] — safe for opacity and slide offset.
-  final Animation<double> fade;
-
-  /// Overshoots above 1 — only used for the scale pop.
-  final Animation<double> pop;
-  final String character;
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: fade,
-      child: SlideTransition(
-        position:
-            fade.drive(Tween<Offset>(begin: const Offset(0, 0.6), end: Offset.zero)),
-        child: ScaleTransition(
-          scale: pop.drive(Tween<double>(begin: 0.4, end: 1)),
-          child: Container(
-            height: 56.r,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppColors.buttonColor, width: 1.5),
-            ),
-            child: Text(
-              character,
-              style: AppTextStyles.bold24(context)
-                  .copyWith(color: AppColors.textPrimary),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogButton extends StatelessWidget {
-  const _DialogButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.outlined = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool outlined;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46.h,
-      child: outlined
-          ? OutlinedButton.icon(
-              onPressed: onTap,
-              icon: Icon(icon, size: 18.sp),
-              label: Text(label),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: BorderSide(color: AppColors.surfaceDark, width: 1.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-            )
-          : ElevatedButton.icon(
-              onPressed: onTap,
-              icon: Icon(icon, size: 18.sp),
-              label: Text(label),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.buttonColor,
-                foregroundColor: AppColors.textPrimary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-            ),
     );
   }
 }

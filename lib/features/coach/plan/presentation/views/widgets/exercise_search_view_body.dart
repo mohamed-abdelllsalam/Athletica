@@ -1,3 +1,6 @@
+import 'exercise_search_summary.dart';
+import 'exercise_search_result.dart';
+import 'exercise_search_header.dart';
 import 'dart:async';
 
 import 'package:athletica/core/utils/app_colors.dart';
@@ -5,7 +8,6 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/features/coach/plan/domain/entities/plan_exercise.dart';
-import 'package:athletica/features/coach/plan/presentation/views/widgets/exercise_thumbnail.dart';
 import 'package:athletica/features/workout/domain/entities/workout_exercise_entry.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_exercises_cubit.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_exercises_state.dart';
@@ -72,57 +74,17 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
     return Column(
       children: [
         SizedBox(height: 12.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Row(
-            children: [
-              _RoundedIconButton(
-                icon: Icons.arrow_back_ios_new,
-                onTap: () => Navigator.pop(context, _selected),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Container(
-                  height: 44.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    style: AppTextStyles.medium14(
-                      context,
-                    ).copyWith(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      hintStyle: AppTextStyles.medium14(
-                        context,
-                      ).copyWith(color: AppColors.textSecondary),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: AppColors.textSecondary,
-                        size: 20.sp,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 12.h),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 10.w),
-              _RoundedIconButton(
-                icon: Icons.delete_outline,
-                onTap: () => setState(() {
-                  _selectedIds.clear();
-                  _searchController.clear();
-                  context.read<WorkoutExercisesCubit>().load(
-                    filters: const WorkoutExerciseFilters(),
-                  );
-                }),
-              ),
-            ],
-          ),
+        CoachExerciseSearchHeader(
+          controller: _searchController,
+          onChanged: _onSearchChanged,
+          onBack: () => Navigator.pop(context, _selected),
+          onClear: () => setState(() {
+            _selectedIds.clear();
+            _searchController.clear();
+            context.read<WorkoutExercisesCubit>().load(
+              filters: const WorkoutExerciseFilters(),
+            );
+          }),
         ),
         SizedBox(height: 8.h),
         Expanded(
@@ -176,89 +138,29 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
                         itemBuilder: (context, index) {
                           final exercise = items[index];
                           final selected = _selectedIds.contains(exercise.id);
-                          return Container(
-                            margin: EdgeInsets.only(bottom: 10.h),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 10.h,
+                          return CoachExerciseSearchResult(
+                            exercise: exercise,
+                            selected: selected,
+                            onPlay: () => showExerciseVideoDialog(
+                              context,
+                              title: buildBilingualLabel(
+                                primary: exercise.nameEn,
+                                arabic: exercise.nameAr,
+                                english: exercise.nameEn,
+                              ),
+                              videoUrl: resolveExerciseVideoUrl(
+                                maleUrl: exercise.videoUrlMale,
+                                femaleUrl: exercise.videoUrlFemale,
+                              ),
+                              thumbnailUrl: exercise.thumbnailUrlMale,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardBackground,
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () => showExerciseVideoDialog(
-                                    context,
-                                    title: buildBilingualLabel(
-                                      primary: exercise.nameEn,
-                                      arabic: exercise.nameAr,
-                                      english: exercise.nameEn,
-                                    ),
-                                    videoUrl: resolveExerciseVideoUrl(
-                                      maleUrl: exercise.videoUrlMale,
-                                      femaleUrl: exercise.videoUrlFemale,
-                                    ),
-                                    thumbnailUrl: exercise.thumbnailUrlMale,
-                                  ),
-                                  child: ExerciseThumbnail(
-                                    size: 72,
-                                    thumbnailUrl: exercise.thumbnailUrlMale,
-                                  ),
-                                ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        buildBilingualLabel(
-                                          primary: exercise.nameEn,
-                                          arabic: exercise.nameAr,
-                                          english: exercise.nameEn,
-                                        ),
-                                        style: AppTextStyles.medium14(context)
-                                            .copyWith(
-                                              color: AppColors.textPrimary,
-                                            ),
-                                      ),
-                                      if (exercise
-                                          .primaryMuscle
-                                          .isNotEmpty) ...[
-                                        SizedBox(height: 2.h),
-                                        Text(
-                                          exercise.primaryMuscle,
-                                          style: AppTextStyles.meduim11(context)
-                                              .copyWith(
-                                                color: AppColors.textSecondary,
-                                              ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () => setState(() {
-                                    if (selected) {
-                                      _selectedIds.remove(exercise.id);
-                                    } else {
-                                      _selectedIds.add(exercise.id);
-                                    }
-                                  }),
-                                  child: Icon(
-                                    selected
-                                        ? Icons.bookmark
-                                        : Icons.bookmark_border,
-                                    color: selected
-                                        ? AppColors.primaryBlue
-                                        : AppColors.textSecondary,
-                                    size: 22.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            onToggle: () => setState(() {
+                              if (selected) {
+                                _selectedIds.remove(exercise.id);
+                              } else {
+                                _selectedIds.add(exercise.id);
+                              }
+                            }),
                           );
                         },
                       ),
@@ -266,94 +168,11 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
           ),
         ),
         if (_selected.isNotEmpty)
-          _SummaryBar(
+          CoachExerciseSearchSummary(
             summaryText: _summaryText,
             onSubmit: () => Navigator.pop(context, _selected),
           ),
       ],
-    );
-  }
-}
-
-class _RoundedIconButton extends StatelessWidget {
-  const _RoundedIconButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44.r,
-        height: 44.r,
-        decoration: BoxDecoration(
-          color: AppColors.primaryBlue,
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        child: Icon(icon, color: Colors.white, size: 20.sp),
-      ),
-    );
-  }
-}
-
-class _SummaryBar extends StatelessWidget {
-  const _SummaryBar({required this.summaryText, required this.onSubmit});
-
-  final String summaryText;
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      color: AppColors.cardBackground,
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Summary Of Training :',
-                style: AppTextStyles.meduim12(
-                  context,
-                ).copyWith(color: AppColors.textSecondary),
-              ),
-              SizedBox(height: 2.h),
-              SizedBox(
-                width: 200.w,
-                child: Text(
-                  summaryText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.meduim12(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: onSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.buttonColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-            ),
-            child: Text(
-              'Submit',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

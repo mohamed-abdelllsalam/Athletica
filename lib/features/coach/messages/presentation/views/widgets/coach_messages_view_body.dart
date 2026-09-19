@@ -1,3 +1,4 @@
+import 'coach_messages_controls.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
@@ -45,7 +46,7 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
             SizedBox(height: 16.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: _SearchBar(
+              child: CoachMessagesSearch(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _query = v),
               ),
@@ -83,9 +84,9 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
           SizedBox(width: 16.w),
           Text(
             'Messages',
-            style: AppTextStyles.bold24(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
+            style: AppTextStyles.bold24(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
         ],
       ),
@@ -95,19 +96,17 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
   Widget _buildTabRow(BuildContext context) {
     return Row(
       children: [
-        _TabLabel(
+        CoachMessagesTab(
           label: 'Messages',
           isActive: _selectedTab == 0,
           onTap: () => setState(() => _selectedTab = 0),
         ),
         SizedBox(width: 20.w),
-        _TabLabel(
+        CoachMessagesTab(
           label: 'Requests',
           isActive: _selectedTab == 1,
-          onTap: () => Navigator.pushNamed(
-            context,
-            CoachMessageRequestsView.routeName,
-          ),
+          onTap: () =>
+              Navigator.pushNamed(context, CoachMessageRequestsView.routeName),
         ),
       ],
     );
@@ -119,11 +118,8 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       itemCount: items.length,
-      separatorBuilder: (_, _) => Divider(
-        color: AppColors.surfaceDark,
-        height: 1,
-        thickness: 1,
-      ),
+      separatorBuilder: (_, _) =>
+          Divider(color: AppColors.surfaceDark, height: 1, thickness: 1),
       itemBuilder: (context, index) {
         final preview = items[index];
         return CoachMessageItem(
@@ -152,72 +148,9 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
     return Center(
       child: Text(
         'No requests',
-        style: AppTextStyles.medium15(context).copyWith(
-          color: AppColors.textSecondary,
-        ),
-      ),
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.controller, required this.onChanged});
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48.h,
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        style: AppTextStyles.medium14(context).copyWith(
-          color: AppColors.textPrimary,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Search',
-          hintStyle: AppTextStyles.medium14(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: AppColors.textSecondary,
-            size: 20.sp,
-          ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 14.h),
-        ),
-      ),
-    );
-  }
-}
-
-class _TabLabel extends StatelessWidget {
-  const _TabLabel({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        label,
-        style: AppTextStyles.semiBold15(context).copyWith(
-          color: isActive ? AppColors.textPrimary : AppColors.primaryBlue,
-        ),
+        style: AppTextStyles.medium15(
+          context,
+        ).copyWith(color: AppColors.textSecondary),
       ),
     );
   }

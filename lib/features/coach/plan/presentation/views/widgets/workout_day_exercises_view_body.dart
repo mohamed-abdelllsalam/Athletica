@@ -1,3 +1,6 @@
+import 'workout_day_dialogs.dart';
+import 'workout_day_header.dart';
+import 'workout_day_note_tab.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
@@ -70,40 +73,11 @@ class _WorkoutDayExercisesViewBodyState
     }
     final action = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: Text(
-          'Unsaved changes',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Do you want to save your changes before leaving?',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'saveExit'),
-            child: Text(
-              'Save and exit',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.primaryBlue),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'discard'),
-            child: Text(
-              'Discard',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.red),
-            ),
-          ),
-        ],
+      builder: (_) => CoachWorkoutDayUnsavedChangesDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onSaveAndExit: () => Navigator.pop(context, 'saveExit'),
+        onDiscard: () => Navigator.pop(context, 'discard'),
       ),
     );
     if (!mounted || action == null) return;
@@ -140,33 +114,12 @@ class _WorkoutDayExercisesViewBodyState
   Future<void> _confirmDeleteDay() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          'Delete day?',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Remove "${_nameController.text.trim()}" and its exercises?',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
+      builder: (_) => CoachWorkoutDayDeleteDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onCancel: () => Navigator.pop(context, false),
+        onDelete: () => Navigator.pop(context, true),
+        dayName: _nameController.text.trim(),
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -195,43 +148,11 @@ class _WorkoutDayExercisesViewBodyState
     if (_exercises.isEmpty) return;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          'Clear All Exercises',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Remove all exercises from this day?',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Clear',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.redAccent),
-            ),
-          ),
-        ],
+      builder: (_) => CoachWorkoutDayClearExercisesDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onCancel: () => Navigator.pop(context, false),
+        onClear: () => Navigator.pop(context, true),
       ),
     );
     if (confirm == true) {

@@ -1,8 +1,10 @@
+import 'food_search_result.dart';
+import 'food_search_header.dart';
+import 'food_search_states.dart';
 import 'dart:async';
 
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/coach/plan/domain/entities/food_item.dart';
 import 'package:athletica/features/coach/plan/presentation/cubits/foods_cubit.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/food_search_components.dart';
@@ -94,59 +96,13 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
     return BlocBuilder<FoodsCubit, FoodsState>(
       builder: (context, state) {
         if (state is FoodsLoading || state is FoodsInitial) {
-          return AppShimmer(
-            child: ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              itemCount: 8,
-              itemBuilder: (_, _) => Padding(
-                padding: EdgeInsets.only(bottom: 10.h),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 14.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: SkeletonListTile(
-                    leadingSize: 40.r,
-                    trailingSize: 28.r,
-                  ),
-                ),
-              ),
-            ),
-          );
+          return CoachFoodSearchLoading();
         }
 
         if (state is FoodsError) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.message,
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16.h),
-                ElevatedButton(
-                  onPressed: () => context.read<FoodsCubit>().load(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                  ),
-                  child: Text(
-                    'Retry',
-                    style: AppTextStyles.medium14(
-                      context,
-                    ).copyWith(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
+          return CoachFoodSearchError(
+            message: state.message,
+            onRetry: () => context.read<FoodsCubit>().load(),
           );
         }
 
@@ -163,51 +119,11 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
         return Column(
           children: [
             SizedBox(height: 12.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Row(
-                children: [
-                  FoodSearchIconButton(
-                    icon: Icons.arrow_back_ios_new,
-                    onTap: () => Navigator.pop(context, selected),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Container(
-                      height: 44.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _onSearchChanged,
-                        style: AppTextStyles.medium14(
-                          context,
-                        ).copyWith(color: AppColors.textPrimary),
-                        decoration: InputDecoration(
-                          hintText: 'Search',
-                          hintStyle: AppTextStyles.medium14(
-                            context,
-                          ).copyWith(color: AppColors.textSecondary),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: AppColors.textSecondary,
-                            size: 20.sp,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 12.h),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  FoodSearchIconButton(
-                    icon: Icons.delete_outline,
-                    onTap: _clearAll,
-                  ),
-                ],
-              ),
+            CoachFoodSearchHeader(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              onBack: () => Navigator.pop(context, selected),
+              onClear: _clearAll,
             ),
             SizedBox(height: 8.h),
             AnimatedSwitcher(
@@ -274,69 +190,11 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
                                   food.id,
                                 );
                                 final isInMeal = _existingIds.contains(food.id);
-                                return Container(
-                                  margin: EdgeInsets.only(bottom: 10.h),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 12.w,
-                                    vertical: 10.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.cardBackground,
-                                    borderRadius: BorderRadius.circular(12.r),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 40.r,
-                                        height: 40.r,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surfaceDark,
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
-                                          ),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          food.emoji,
-                                          style: TextStyle(fontSize: 20.sp),
-                                        ),
-                                      ),
-                                      SizedBox(width: 12.w),
-                                      Expanded(
-                                        child: Text(
-                                          food.displayName,
-                                          style: AppTextStyles.medium14(context)
-                                              .copyWith(
-                                                color: AppColors.textPrimary,
-                                              ),
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () => _toggleSelection(food),
-                                        child: Container(
-                                          width: 28.r,
-                                          height: 28.r,
-                                          decoration: BoxDecoration(
-                                            color: isInMeal
-                                                ? AppColors.streakGreen
-                                                : isSelected
-                                                ? AppColors.primaryBlue
-                                                : AppColors.surfaceDark,
-                                            borderRadius: BorderRadius.circular(
-                                              6.r,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            isInMeal || isSelected
-                                                ? Icons.bookmark
-                                                : Icons.bookmark_border,
-                                            color: Colors.white,
-                                            size: 18.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                return CoachFoodSearchResult(
+                                  food: food,
+                                  isSelected: isSelected,
+                                  isInMeal: isInMeal,
+                                  onToggle: () => _toggleSelection(food),
                                 );
                               },
                             ),

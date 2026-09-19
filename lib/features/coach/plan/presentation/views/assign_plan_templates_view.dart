@@ -1,3 +1,6 @@
+import 'widgets/coach_assign_template_card.dart';
+import 'widgets/coach_assign_templates_header.dart';
+import 'widgets/coach_assign_templates_states.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
@@ -23,9 +26,7 @@ class AssignPlanTemplatesView extends StatelessWidget {
       ],
       child: Scaffold(
         backgroundColor: AppColors.primaryAppColor,
-        body: SafeArea(
-          child: _AssignPlanTemplatesViewBody(clientId: clientId),
-        ),
+        body: SafeArea(child: _AssignPlanTemplatesViewBody(clientId: clientId)),
       ),
     );
   }
@@ -46,138 +47,64 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
           );
           Navigator.pop(context);
         } else if (state is AssignPlanError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
       child: Column(
         children: [
-          _buildAppBar(context),
+          CoachAssignTemplatesHeader(onBack: () => Navigator.pop(context)),
           Expanded(
-            child: BlocBuilder<NutritionTemplatesListCubit,
-                NutritionTemplatesListState>(
-              builder: (context, state) {
-                if (state is NutritionTemplatesListLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child:
+                BlocBuilder<
+                  NutritionTemplatesListCubit,
+                  NutritionTemplatesListState
+                >(
+                  builder: (context, state) {
+                    if (state is NutritionTemplatesListLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (state is NutritionTemplatesListError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          state.message,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            context
-                                .read<NutritionTemplatesListCubit>()
-                                .loadTemplates();
-                          },
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (state is NutritionTemplatesListLoaded) {
-                  if (state.plans.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No templates available.\nCreate a template first to assign a plan.',
-                        textAlign: TextAlign.center,
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.plans.length,
-                    itemBuilder: (context, index) {
-                      final template = state.plans[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        color: AppColors.cardBackground,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryBlue.withAlpha(30),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.receipt_long,
-                              color: AppColors.primaryBlue,
-                            ),
-                          ),
-                          title: Text(
-                            template.name,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          subtitle: Text(
-                            template.description,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          trailing: const Icon(
-                            Icons.add_circle_outline,
-                            color: AppColors.primaryBlue,
-                          ),
-                          onTap: () {
-                            _assignDirectly(
-                              context,
-                              template.id,
-                              template.name,
-                              template.description,
-                            );
-                          },
-                        ),
+                    if (state is NutritionTemplatesListError) {
+                      return CoachAssignTemplatesError(
+                        message: state.message,
+                        onRetry: () {
+                          context
+                              .read<NutritionTemplatesListCubit>()
+                              .loadTemplates();
+                        },
                       );
-                    },
-                  );
-                }
+                    }
 
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+                    if (state is NutritionTemplatesListLoaded) {
+                      if (state.plans.isEmpty) {
+                        return const CoachAssignTemplatesEmpty();
+                      }
 
-  Widget _buildAppBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Icon(
-              Icons.arrow_back_ios,
-              color: AppColors.textPrimary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Select Template',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: state.plans.length,
+                        itemBuilder: (context, index) {
+                          final template = state.plans[index];
+                          return CoachAssignTemplateCard(
+                            template: template,
+                            onTap: () {
+                              _assignDirectly(
+                                context,
+                                template.id,
+                                template.name,
+                                template.description,
+                              );
+                            },
+                          );
+                        },
+                      );
+                    }
+
+                    return const SizedBox.shrink();
+                  },
+                ),
           ),
         ],
       ),
@@ -196,18 +123,18 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
         : (state is AssignPlanAssigning ? state.clients : null);
 
     if (clients == null || clients.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No clients loaded')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No clients loaded')));
       return;
     }
 
     final firstClient = clients.first;
     context.read<AssignPlanCubit>().assign(
-          templateId: templateId,
-          coachClientId: firstClient.relationId,
-          title: templateName,
-          description: templateDescription,
-        );
+      templateId: templateId,
+      coachClientId: firstClient.relationId,
+      title: templateName,
+      description: templateDescription,
+    );
   }
 }

@@ -1,8 +1,8 @@
+import 'widgets/exercise_library_picker_states.dart';
 import 'dart:async';
 
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
-import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
 import 'package:athletica/core/widgets/exercise_video.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
@@ -182,42 +182,16 @@ class _PickerBodyState extends State<_PickerBody> {
                             WorkoutExercisesLoading() => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                            WorkoutExercisesError(:final message) => Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(20.w),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      message,
-                                      textAlign: TextAlign.center,
-                                      style: AppTextStyles.medium14(context)
-                                          .copyWith(
-                                            color: AppColors.textSecondary,
-                                          ),
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    TextButton(
-                                      onPressed: () => context
-                                          .read<WorkoutExercisesCubit>()
-                                          .load(),
-                                      child: const Text('Retry'),
-                                    ),
-                                  ],
-                                ),
+                            WorkoutExercisesError(:final message) =>
+                              CoachExercisePickerError(
+                                message: message,
+                                onRetry: () => context
+                                    .read<WorkoutExercisesCubit>()
+                                    .load(),
                               ),
-                            ),
                             WorkoutExercisesLoaded(:final items) =>
                               items.isEmpty
-                                  ? Center(
-                                      child: Text(
-                                        'No exercises found',
-                                        style: AppTextStyles.medium14(context)
-                                            .copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                      ),
-                                    )
+                                  ? const CoachExercisePickerEmpty()
                                   : ListView.separated(
                                       physics: const BouncingScrollPhysics(),
                                       padding: EdgeInsets.fromLTRB(
@@ -274,33 +248,9 @@ class _PickerBodyState extends State<_PickerBody> {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
-          child: SizedBox(
-            height: 50.h,
-            child: ElevatedButton(
-              onPressed: _newCount > 0 ? _submit : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.buttonColor,
-                disabledBackgroundColor: AppColors.buttonColor.withValues(
-                  alpha: 0.35,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-              ),
-              child: Text(
-                _newCount == 0
-                    ? 'Add Exercises'
-                    : 'Add $_newCount Exercise${_newCount == 1 ? '' : 's'}',
-                style: AppTextStyles.semiBold14(
-                  context,
-                ).copyWith(color: Colors.white),
-              ),
-            ),
-          ),
-        ),
+      bottomNavigationBar: CoachExercisePickerAction(
+        newCount: _newCount,
+        onSubmit: _submit,
       ),
     );
   }

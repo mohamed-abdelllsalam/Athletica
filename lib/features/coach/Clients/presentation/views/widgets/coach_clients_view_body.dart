@@ -1,7 +1,9 @@
+import 'coach_clients_states.dart';
+import 'coach_active_clients_search.dart';
+import 'coach_remove_client_dialog.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_state.dart';
@@ -63,46 +65,16 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Text(
-          'Remove client?',
-          style: AppTextStyles.bold20(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          '${client.name} and all their plan data will be removed from your roster.',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF5252),
-              foregroundColor: AppColors.textPrimary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-            child: const Text('Remove'),
-          ),
-        ],
+      builder: (dialogContext) => CoachRemoveClientDialog(
+        clientName: client.name,
+        titleStyle: AppTextStyles.bold20(
+          context,
+        ).copyWith(color: AppColors.textPrimary),
+        bodyStyle: AppTextStyles.medium14(
+          context,
+        ).copyWith(color: AppColors.textSecondary),
+        onCancel: () => Navigator.pop(dialogContext, false),
+        onConfirm: () => Navigator.pop(dialogContext, true),
       ),
     );
     if (confirmed == true && context.mounted) {
@@ -138,7 +110,7 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
                 SizedBox(height: 16.h),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: _SearchBar(
+                  child: CoachActiveClientsSearch(
                     controller: _searchController,
                     onChanged: (v) => setState(() => _query = v),
                   ),
@@ -184,43 +156,11 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
 
   Widget _buildBody(CoachClientsState state) {
     return switch (state) {
-      CoachClientsInitial() || CoachClientsLoading() => AppShimmer(
-        child: ListView.separated(
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          itemCount: 6,
-          separatorBuilder: (_, _) => SizedBox(height: 12.h),
-          itemBuilder: (_, _) => SkeletonBox(height: 88.h, radius: 14.r),
-        ),
-      ),
-      CoachClientsError(:final message) => Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: AppColors.textSecondary,
-                size: 48.sp,
-              ),
-              SizedBox(height: 12.h),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: AppTextStyles.medium14(
-                  context,
-                ).copyWith(color: AppColors.textSecondary),
-              ),
-              SizedBox(height: 16.h),
-              TextButton(
-                onPressed: () =>
-                    context.read<CoachClientsCubit>().loadClients(),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+      CoachClientsInitial() ||
+      CoachClientsLoading() => const CoachClientsLoadingView(),
+      CoachClientsError(:final message) => CoachClientsErrorView(
+        message: message,
+        onRetry: () => context.read<CoachClientsCubit>().loadClients(),
       ),
       CoachClientsActionInProgress() ||
       CoachClientsLoaded() ||
@@ -286,44 +226,6 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
           ),
         );
       },
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.controller, required this.onChanged});
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 48.h,
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        style: AppTextStyles.medium14(
-          context,
-        ).copyWith(color: AppColors.textPrimary),
-        decoration: InputDecoration(
-          hintText: 'Search',
-          hintStyle: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-          prefixIcon: Icon(
-            Icons.search,
-            color: AppColors.textSecondary,
-            size: 20.sp,
-          ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 14.h),
-        ),
-      ),
     );
   }
 }

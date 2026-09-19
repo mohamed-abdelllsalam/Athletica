@@ -1,3 +1,6 @@
+import 'workout_assignment_exercise_card.dart';
+import 'workout_assignment_day_section.dart';
+import 'workout_assignment_header.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
@@ -79,12 +82,12 @@ class _CustomizeWorkoutAssignmentViewBodyState
   }
 
   String _exerciseName(TemplateExerciseEntry e) => buildBilingualLabel(
-        primary: (e.exercise?.nameEn.isNotEmpty ?? false)
-            ? e.exercise!.nameEn
-            : e.exerciseId,
-        arabic: e.exercise?.nameAr,
-        english: e.exercise?.nameEn,
-      );
+    primary: (e.exercise?.nameEn.isNotEmpty ?? false)
+        ? e.exercise!.nameEn
+        : e.exerciseId,
+    arabic: e.exercise?.nameAr,
+    english: e.exercise?.nameEn,
+  );
 
   void _submit() {
     for (final field in _fields) {
@@ -102,25 +105,27 @@ class _CustomizeWorkoutAssignmentViewBodyState
     }
     FocusScope.of(context).unfocus();
     context.read<CustomizeWorkoutAssignmentCubit>().submit(
-          templateId: widget.template.id,
-          coachClientId: widget.coachClientId,
-          loads: [
-            for (final field in _fields)
-              ExerciseLoadInput(
-                dayNumber: field.dayNumber,
-                exerciseOrder: field.exerciseOrder,
-                sets: parseLoadValue(field.sets.text),
-                reps: parseLoadValue(field.reps.text),
-                restTime: parseLoadValue(field.rest.text),
-              ),
-          ],
-        );
+      templateId: widget.template.id,
+      coachClientId: widget.coachClientId,
+      loads: [
+        for (final field in _fields)
+          ExerciseLoadInput(
+            dayNumber: field.dayNumber,
+            exerciseOrder: field.exerciseOrder,
+            sets: parseLoadValue(field.sets.text),
+            reps: parseLoadValue(field.reps.text),
+            restTime: parseLoadValue(field.rest.text),
+          ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<CustomizeWorkoutAssignmentCubit,
-        CustomizeAssignmentState>(
+    return BlocConsumer<
+      CustomizeWorkoutAssignmentCubit,
+      CustomizeAssignmentState
+    >(
       listener: (context, state) {
         switch (state) {
           case CustomizeAssignmentSuccess(:final planId):
@@ -139,9 +144,10 @@ class _CustomizeWorkoutAssignmentViewBodyState
         return UnfocusOnTap(
           child: Column(
             children: [
-              _Header(
+              CoachWorkoutAssignmentHeader(
                 planName: widget.template.title,
                 clientName: widget.clientName,
+                onBack: () => Navigator.pop(context),
               ),
               Expanded(
                 child: _fields.isEmpty
@@ -150,9 +156,9 @@ class _CustomizeWorkoutAssignmentViewBodyState
                           padding: EdgeInsets.all(24.w),
                           child: Text(
                             'This plan has no exercises to customize.',
-                            style: AppTextStyles.medium14(context).copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                            style: AppTextStyles.medium14(
+                              context,
+                            ).copyWith(color: AppColors.textSecondary),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -162,11 +168,19 @@ class _CustomizeWorkoutAssignmentViewBodyState
                         padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
                         children: [
                           for (final day in widget.template.days)
-                            _DaySection(
+                            CoachWorkoutAssignmentDaySection(
                               day: day,
-                              fields: _fields
-                                  .where((f) => f.dayNumber == day.dayNumber)
-                                  .toList(),
+                              exerciseCards: [
+                                for (final field in _fields.where(
+                                  (f) => f.dayNumber == day.dayNumber,
+                                ))
+                                  CoachWorkoutAssignmentExerciseCard(
+                                    name: field.name,
+                                    sets: field.sets,
+                                    reps: field.reps,
+                                    rest: field.rest,
+                                  ),
+                              ],
                             ),
                         ],
                       ),
@@ -180,8 +194,9 @@ class _CustomizeWorkoutAssignmentViewBodyState
                     onPressed: submitting || _fields.isEmpty ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.buttonColor,
-                      disabledBackgroundColor:
-                          AppColors.buttonColor.withValues(alpha: 0.35),
+                      disabledBackgroundColor: AppColors.buttonColor.withValues(
+                        alpha: 0.35,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14.r),
                       ),
@@ -197,9 +212,9 @@ class _CustomizeWorkoutAssignmentViewBodyState
                           )
                         : Text(
                             'Assign Workout',
-                            style: AppTextStyles.semiBold14(context).copyWith(
-                              color: Colors.white,
-                            ),
+                            style: AppTextStyles.semiBold14(
+                              context,
+                            ).copyWith(color: Colors.white),
                           ),
                   ),
                 ),
@@ -208,211 +223,6 @@ class _CustomizeWorkoutAssignmentViewBodyState
           ),
         );
       },
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.planName, required this.clientName});
-
-  final String planName;
-  final String clientName;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  color: AppColors.textPrimary,
-                  size: 20.sp,
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Text(
-                  'Customize Workout Assignment',
-                  style: AppTextStyles.semiBold15(context).copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '$planName  •  $clientName',
-            style: AppTextStyles.medium14(context).copyWith(
-              color: AppColors.textSecondary,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DaySection extends StatelessWidget {
-  const _DaySection({required this.day, required this.fields});
-
-  final TemplateDayEntry day;
-  final List<_ExerciseLoadFields> fields;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 16.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Day ${day.dayNumber} — ${day.title}',
-            style: AppTextStyles.semiBold14(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
-          ),
-          if (day.note.isNotEmpty) ...[
-            SizedBox(height: 2.h),
-            Text(
-              day.note,
-              style: AppTextStyles.meduim12(context).copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-          SizedBox(height: 8.h),
-          if (day.isRest || fields.isEmpty)
-            Text(
-              'Rest day — no exercises to customize.',
-              style: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textSecondary,
-              ),
-            )
-          else
-            for (final field in fields) _ExerciseCard(field: field),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExerciseCard extends StatelessWidget {
-  const _ExerciseCard({required this.field});
-
-  final _ExerciseLoadFields field;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            field.name,
-            style: AppTextStyles.medium14(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(
-                child: _LoadField(
-                  label: 'Sets',
-                  hint: '4',
-                  controller: field.sets,
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: _LoadField(
-                  label: 'Reps',
-                  hint: '10',
-                  controller: field.reps,
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: _LoadField(
-                  label: 'Rest (s)',
-                  hint: '90',
-                  controller: field.rest,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LoadField extends StatelessWidget {
-  const _LoadField({
-    required this.label,
-    required this.hint,
-    required this.controller,
-  });
-
-  final String label;
-  final String hint;
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.meduim12(context).copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        SizedBox(height: 6.h),
-        Container(
-          height: 44.h,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            style: AppTextStyles.medium14(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTextStyles.medium14(context).copyWith(
-                color: AppColors.textTertiary,
-              ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12.w,
-                vertical: 12.h,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

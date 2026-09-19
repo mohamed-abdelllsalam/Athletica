@@ -1,3 +1,4 @@
+import 'workout_plans_list_states.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/widgets/exercise_video.dart';
@@ -245,40 +246,15 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
               builder: (context, state) => switch (state) {
                 WorkoutTemplatesInitial() || WorkoutTemplatesLoading() =>
                   const Center(child: CircularProgressIndicator()),
-                WorkoutTemplatesError(:final message) => Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20.w),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          message,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.medium14(
-                            context,
-                          ).copyWith(color: AppColors.textSecondary),
-                        ),
-                        SizedBox(height: 12.h),
-                        TextButton(
-                          onPressed: () =>
-                              context.read<WorkoutTemplatesCubit>().refresh(),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
+                WorkoutTemplatesError(:final message) => CoachWorkoutPlansError(
+                  message: message,
+                  onRetry: () =>
+                      context.read<WorkoutTemplatesCubit>().refresh(),
                 ),
                 WorkoutTemplatesLoaded(:final items) => () {
                   final programs = _filtered(items).map(_toProgram).toList();
                   if (programs.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No programs found',
-                        style: AppTextStyles.medium14(
-                          context,
-                        ).copyWith(color: AppColors.textSecondary),
-                      ),
-                    );
+                    return const CoachWorkoutPlansEmpty();
                   }
                   return ListView.separated(
                     physics: const BouncingScrollPhysics(),

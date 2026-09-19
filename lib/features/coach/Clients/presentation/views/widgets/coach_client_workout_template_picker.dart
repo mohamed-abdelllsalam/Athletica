@@ -1,3 +1,5 @@
+import 'coach_client_workout_template_controls.dart';
+import 'coach_client_workout_template_card.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -102,34 +104,8 @@ class _CoachClientWorkoutTemplatePickerState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildAppBar(context),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Container(
-                height: 48.h,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceDark,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: TextField(
-                  onChanged: (v) => setState(() => _query = v),
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: 'Search plans...',
-                    hintStyle: AppTextStyles.medium14(
-                      context,
-                    ).copyWith(color: AppColors.textSecondary),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: AppColors.textSecondary,
-                      size: 20.sp,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 14.h),
-                  ),
-                ),
-              ),
+            CoachClientWorkoutTemplateSearch(
+              onChanged: (v) => setState(() => _query = v),
             ),
             SizedBox(height: 16.h),
             Expanded(
@@ -214,32 +190,13 @@ class _CoachClientWorkoutTemplatePickerState
   }
 
   Widget _buildError(String message, {bool showRetry = true}) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(32.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              message,
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            if (showRetry) ...[
-              SizedBox(height: 16.h),
-              ElevatedButton(
-                onPressed: () {
-                  context.read<WorkoutTemplatesCubit>().load();
-                  context.read<AssignPlanCubit>().loadClients();
-                },
-                child: const Text('Retry'),
-              ),
-            ],
-          ],
-        ),
-      ),
+    return CoachClientWorkoutTemplateError(
+      message: message,
+      showRetry: showRetry,
+      onRetry: () {
+        context.read<WorkoutTemplatesCubit>().load();
+        context.read<AssignPlanCubit>().loadClients();
+      },
     );
   }
 
@@ -263,62 +220,10 @@ class _CoachClientWorkoutTemplatePickerState
       itemBuilder: (context, index) {
         final item = filtered[index];
         final isLoading = item.id == _loadingId;
-        return GestureDetector(
+        return CoachClientWorkoutTemplateCard(
+          item: item,
+          isLoading: isLoading,
           onTap: () => _pick(item, relationId),
-          child: Container(
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppColors.surfaceDark, width: 1),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40.r,
-                  height: 40.r,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: isLoading
-                      ? SizedBox(
-                          width: 20.r,
-                          height: 20.r,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Icon(
-                          Icons.fitness_center,
-                          color: AppColors.primaryBlue,
-                          size: 20.sp,
-                        ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: AppTextStyles.semiBold14(
-                          context,
-                        ).copyWith(color: AppColors.textPrimary),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        '${item.dayCount} days • ${item.exerciseCount} exercises',
-                        style: AppTextStyles.meduim12(
-                          context,
-                        ).copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );

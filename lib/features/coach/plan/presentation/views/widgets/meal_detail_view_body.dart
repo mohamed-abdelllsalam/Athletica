@@ -1,3 +1,5 @@
+import 'meal_note_tab.dart';
+import 'meal_detail_dialogs.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/food_item.dart';
@@ -97,49 +99,12 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     }
     final action = await showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: Text(
-          'Unsaved changes',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Do you want to save your changes before leaving?',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'save'),
-            child: Text(
-              'Save',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.primaryBlue),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'saveExit'),
-            child: Text(
-              'Save and exit',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.white),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'discard'),
-            child: Text(
-              'Discard',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.red),
-            ),
-          ),
-        ],
+      builder: (_) => CoachMealUnsavedChangesDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onSave: () => Navigator.pop(context, 'save'),
+        onSaveAndExit: () => Navigator.pop(context, 'saveExit'),
+        onDiscard: () => Navigator.pop(context, 'discard'),
       ),
     );
     if (!mounted || action == null) return;
@@ -171,40 +136,11 @@ class _MealDetailViewBodyState extends State<MealDetailViewBody>
     FocusScope.of(context).unfocus();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
-        title: Text(
-          'Delete meal?',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'This removes the meal and all of its foods.',
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Delete',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.red),
-            ),
-          ),
-        ],
+      builder: (_) => CoachMealDeleteDialog(
+        titleStyle: AppTextStyles.semiBold14(context),
+        bodyStyle: AppTextStyles.medium14(context),
+        onCancel: () => Navigator.pop(context, false),
+        onDelete: () => Navigator.pop(context, true),
       ),
     );
     if (confirmed != true || !mounted) return;

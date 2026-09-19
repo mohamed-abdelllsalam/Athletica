@@ -1,3 +1,4 @@
+import 'workout_assignment_client_components.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
@@ -159,7 +160,9 @@ class _WorkoutPlanAssignClientSheetState
                       final CoachAssignedClient client = filtered[index];
                       final isSelected =
                           _selectedRelationId == client.relationId;
-                      return GestureDetector(
+                      return CoachWorkoutAssignmentClientAvatar(
+                        name: client.name,
+                        isSelected: isSelected,
                         onTap: () {
                           setState(() {
                             _selectedRelationId = client.relationId;
@@ -170,41 +173,6 @@ class _WorkoutPlanAssignClientSheetState
                             isActive: true,
                           );
                         },
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 48.r,
-                              height: 48.r,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.surfaceDark,
-                                border: isSelected
-                                    ? Border.all(
-                                        color: AppColors.buttonColor,
-                                        width: 2,
-                                      )
-                                    : null,
-                              ),
-                              child: Icon(
-                                Icons.person,
-                                color: AppColors.textSecondary,
-                                size: 26.sp,
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            SizedBox(
-                              width: 64.w,
-                              child: Text(
-                                client.name.split(' ').first,
-                                style: AppTextStyles.meduim11(
-                                  context,
-                                ).copyWith(color: AppColors.textSecondary),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
                       );
                     },
                   ),
@@ -242,45 +210,14 @@ class _WorkoutPlanAssignClientSheetState
                               ),
                               SizedBox(height: 8.h),
                               ...items.map(
-                                (plan) => GestureDetector(
+                                (plan) => CoachWorkoutAssignmentActivePlan(
+                                  title: plan.title,
                                   onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => WorkoutPlanDetailScreen(
                                         planId: plan.id,
                                       ),
-                                    ),
-                                  ),
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 8.h),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w,
-                                      vertical: 10.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceDark,
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            plan.title,
-                                            style:
-                                                AppTextStyles.medium14(
-                                                  context,
-                                                ).copyWith(
-                                                  color: AppColors.textPrimary,
-                                                ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: AppColors.textSecondary,
-                                          size: 18.sp,
-                                        ),
-                                      ],
                                     ),
                                   ),
                                 ),

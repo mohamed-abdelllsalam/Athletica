@@ -1,3 +1,4 @@
+import 'workout_editor_sections.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/plan_exercise.dart';
@@ -49,12 +50,12 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
 
   void _viewDay() {
     ProgramExercise toProgramExercise(PlanExercise e) => ProgramExercise(
-          id: e.id,
-          name: e.name,
-          thumbnailUrl: e.thumbnailUrl,
-          videoUrlMale: e.videoUrlMale,
-          videoUrlFemale: e.videoUrlFemale,
-        );
+      id: e.id,
+      name: e.name,
+      thumbnailUrl: e.thumbnailUrl,
+      videoUrlMale: e.videoUrlMale,
+      videoUrlFemale: e.videoUrlFemale,
+    );
     final day = ProgramDay(
       dayNumber: _day,
       name: 'Day $_day',
@@ -106,7 +107,7 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
             ],
           ),
           SizedBox(height: 20.h),
-          _DayCounter(
+          CoachWorkoutEditorDayCounter(
             day: _day,
             onDecrement: () {
               if (_day > 1) setState(() => _day--);
@@ -114,23 +115,23 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
             onIncrement: () => setState(() => _day++),
           ),
           SizedBox(height: 20.h),
-          _SectionLabel(label: 'Warm Up'),
+          CoachWorkoutEditorSectionLabel(label: 'Warm Up'),
           SizedBox(height: 8.h),
-          _AddExerciseButton(
+          CoachWorkoutEditorAddExerciseButton(
             onTap: () => _pickExercises('warmUp'),
             addedCount: _warmUp.length,
           ),
           SizedBox(height: 16.h),
-          _SectionLabel(label: 'Workout'),
+          CoachWorkoutEditorSectionLabel(label: 'Workout'),
           SizedBox(height: 8.h),
-          _AddExerciseButton(
+          CoachWorkoutEditorAddExerciseButton(
             onTap: () => _pickExercises('workout'),
             addedCount: _workout.length,
           ),
           SizedBox(height: 16.h),
-          _SectionLabel(label: 'Cool Down'),
+          CoachWorkoutEditorSectionLabel(label: 'Cool Down'),
           SizedBox(height: 8.h),
-          _AddExerciseButton(
+          CoachWorkoutEditorAddExerciseButton(
             onTap: () => _pickExercises('coolDown'),
             addedCount: _coolDown.length,
           ),
@@ -204,117 +205,6 @@ class _WorkoutEditorViewBodyState extends State<WorkoutEditorViewBody> {
           ),
           SizedBox(height: 24.h),
         ],
-      ),
-    );
-  }
-}
-
-class _DayCounter extends StatelessWidget {
-  const _DayCounter({
-    required this.day,
-    required this.onDecrement,
-    required this.onIncrement,
-  });
-
-  final int day;
-  final VoidCallback onDecrement;
-  final VoidCallback onIncrement;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBlue,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Row(
-        children: [
-          Text(
-            'Day',
-            style: AppTextStyles.semiBold14(
-              context,
-            ).copyWith(color: Colors.white),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onDecrement,
-            child: const Icon(Icons.remove, color: Colors.white),
-          ),
-          SizedBox(width: 16.w),
-          Text(
-            '$day',
-            style: AppTextStyles.semiBold14(
-              context,
-            ).copyWith(color: Colors.white),
-          ),
-          SizedBox(width: 16.w),
-          GestureDetector(
-            onTap: onIncrement,
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: AppTextStyles.semiBold14(
-        context,
-      ).copyWith(color: AppColors.textPrimary),
-    );
-  }
-}
-
-class _AddExerciseButton extends StatelessWidget {
-  const _AddExerciseButton({required this.onTap, this.addedCount = 0});
-
-  final VoidCallback onTap;
-  final int addedCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 14.h),
-        decoration: BoxDecoration(
-          color: AppColors.primaryBlue,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 22.r,
-              height: 22.r,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.add, color: AppColors.primaryBlue, size: 16.sp),
-            ),
-            SizedBox(width: 8.w),
-            Text(
-              addedCount > 0
-                  ? '+ Add An Exercise ($addedCount)'
-                  : '+ Add An Exercise',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: Colors.white),
-            ),
-          ],
-        ),
       ),
     );
   }

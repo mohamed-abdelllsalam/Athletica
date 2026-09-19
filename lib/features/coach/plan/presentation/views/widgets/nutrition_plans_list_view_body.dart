@@ -1,6 +1,6 @@
+import 'nutrition_plans_list_states.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_templates_list_cubit.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/save_nutrition_plan_cubit.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/save_nutrition_plan_state.dart';
@@ -243,57 +243,18 @@ class _NutritionPlansListViewBodyState
                 // First open with nothing cached yet: shimmer until the
                 // first result arrives (loading state or initial fetch).
                 if (_loading || (!_loadedOnce && _errorMessage == null)) {
-                  return AppShimmer(
-                    child: ListView.separated(
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: EdgeInsets.symmetric(horizontal: 20.w),
-                      itemCount: 6,
-                      separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                      itemBuilder: (_, _) =>
-                          SkeletonBox(height: 88.h, radius: 14.r),
-                    ),
-                  );
+                  return CoachNutritionPlansLoading();
                 }
                 if (_errorMessage != null && _apiPlans.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _errorMessage!,
-                          style: AppTextStyles.medium14(
-                            context,
-                          ).copyWith(color: AppColors.textSecondary),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 16.h),
-                        ElevatedButton(
-                          onPressed: () => context
-                              .read<NutritionTemplatesListCubit>()
-                              .loadTemplates(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryBlue,
-                          ),
-                          child: Text(
-                            'Retry',
-                            style: AppTextStyles.medium14(
-                              context,
-                            ).copyWith(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
+                  return CoachNutritionPlansError(
+                    message: _errorMessage!,
+                    onRetry: () => context
+                        .read<NutritionTemplatesListCubit>()
+                        .loadTemplates(),
                   );
                 }
                 if (_filtered.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No plans found',
-                      style: AppTextStyles.medium14(
-                        context,
-                      ).copyWith(color: AppColors.textSecondary),
-                    ),
-                  );
+                  return CoachNutritionPlansEmpty();
                 }
                 return NotificationListener<ScrollNotification>(
                   onNotification: (scrollInfo) {

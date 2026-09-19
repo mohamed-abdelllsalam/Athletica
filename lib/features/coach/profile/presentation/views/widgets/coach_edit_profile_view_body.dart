@@ -1,5 +1,6 @@
+import 'coach_edit_profile_header.dart';
+import 'coach_edit_profile_save_action.dart';
 import 'package:athletica/core/utils/app_colors.dart';
-import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_state.dart';
 import 'package:athletica/features/coach/profile/presentation/views/coach_profile_photo_view.dart';
@@ -249,40 +250,10 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
       },
       builder: (context, state) {
         final isUpdating = state is CoachProfileUpdating;
-        return Container(
-          width: double.infinity,
-          padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
-          color: AppColors.primaryAppColor,
-          child: SizedBox(
-            height: 52.h,
-            child: ElevatedButton(
-              onPressed: (_hasChanges && !isUpdating) ? _saveProfile : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _hasChanges
-                    ? AppColors.primaryBlue
-                    : AppColors.surfaceDark,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-                elevation: 0,
-              ),
-              child: isUpdating
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      'Save Change',
-                      style: AppTextStyles.semiBold15(
-                        context,
-                      ).copyWith(color: AppColors.textPrimary),
-                    ),
-            ),
-          ),
+        return CoachEditProfileSaveAction(
+          hasChanges: _hasChanges,
+          isUpdating: isUpdating,
+          onSave: _saveProfile,
         );
       },
     );
