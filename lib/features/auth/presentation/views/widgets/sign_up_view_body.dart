@@ -29,7 +29,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
 
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
-  late final TextEditingController _phoneController;
   late final TextEditingController _passwordController;
   late final TextEditingController _confirmPasswordController;
   String? _selectedRole;
@@ -40,7 +39,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
     _selectedRole = widget.initialRole;
     _nameController = TextEditingController();
     _emailController = TextEditingController();
-    _phoneController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
   }
@@ -49,7 +47,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -203,24 +200,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Kept outside the credentials AutofillGroup so an email
-                  // autofill suggestion never spills into the phone field.
-                  // Note: phone is collected for UX only — signup API takes
-                  // username/email/password/role.
-                  CustomFormTextField(
-                    controller: _phoneController,
-                    hintText: 'Phone',
-                    keyboardType: TextInputType.phone,
-                    labelText: 'Phone',
-                    textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.length < 10) {
-                        return 'Enter a valid phone number';
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(

@@ -33,6 +33,10 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
   late final CoachHomeStatsCubit _statsCubit;
   late final CoachInviteCubit _inviteCubit;
 
+  /// True while the invite dialog is open. It reloads itself on regenerate,
+  /// so the listener must not stack another dialog or duplicate its errors.
+  bool _inviteDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -111,13 +115,22 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
             current is CoachInviteRevoked,
         listener: (context, state) async {
           if (state is CoachInviteSuccess) {
+            // An open dialog reloads itself on regenerate — never stack.
+            if (_inviteDialogOpen) return;
+            _inviteDialogOpen = true;
             await showDialog<void>(
               context: context,
-              builder: (_) => InviteCodeDialog(invite: state.invite),
+              builder: (_) => InviteCodeDialog(
+                invite: state.invite,
+                inviteCubit: _inviteCubit,
+              ),
             );
+            _inviteDialogOpen = false;
           } else if (state is CoachInviteRevoked) {
             _showSnackBar(context, 'Invite link revoked.');
           } else if (state is CoachInviteError) {
+            // The open dialog already surfaces regenerate errors inline.
+            if (_inviteDialogOpen) return;
             _showSnackBar(context, state.message);
           }
         },

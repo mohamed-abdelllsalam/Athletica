@@ -2,33 +2,52 @@ import 'invite_code_components.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/home/domain/entities/coach_invite_code.dart';
+import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_cubit.dart';
+import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Small dialog that reveals the 6-character invite code with a staggered
-/// animation and lets the coach copy the code. The Regenerate button is
-/// static for now — wiring comes later.
+/// animation and lets the coach copy it or regenerate it (revoke + fresh
+/// code). Regenerating reloads this dialog in place with the new code.
+///
+/// [inviteCubit] is passed directly (not read from context) because this
+/// dialog lives on its own route, outside the cubit's provider scope.
 class InviteCodeDialog extends StatefulWidget {
-  const InviteCodeDialog({super.key, required this.invite});
+  const InviteCodeDialog({super.key, required this.invite, required this.inviteCubit});
 
   final CoachInviteCode invite;
+  final CoachInviteCubit inviteCubit;
 
   @override
   State<InviteCodeDialog> createState() => _InviteCodeDialogState();
 }
 
 class _InviteCodeDialogState extends State<InviteCodeDialog>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final List<Animation<double>> _fadeAnimations;
-  late final List<Animation<double>> _popAnimations;
+    // Multi-ticker mixin (not single): regenerating replays the reveal by
+    // disposing the old controller and creating a new one, which
+    // SingleTickerProviderStateMixin forbids and turns into a double-dispose.
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late List<Animation<double>> _fadeAnimations;
+  late List<Animation<double>> _popAnimations;
+  bool _animationsInit = false;
+
+  late CoachInviteCode _invite;
 
   static const int _perDigitDurationMs = 90;
 
   @override
   void initState() {
     super.initState();
+    _invite = widget.invite;
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
+    if (_animationsInit) _controller.dispose();
     final digits = _codeChars.length;
     final totalMs = (digits * _perDigitDurationMs + 350).clamp(400, 1500);
     _controller = AnimationController(
@@ -55,19 +74,25 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
       digits,
       (i) => digitAnimation(i, Curves.easeOutBack),
     );
+    _animationsInit = true;
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_animationsInit) _controller.dispose();
     super.dispose();
   }
 
-  List<String> get _codeChars =>
-      widget.invite.code.trim().toUpperCase().split('');
+  List<String> get _codeChars => _invite.code.trim().toUpperCase().split('');
+
+  void _onRegenerated(CoachInviteCode invite) {
+    setState(() => _invite = invite);
+    // Replay the reveal for the fresh code (handles any length).
+    _setupAnimations();
+  }
 
   void _copyCode() {
-    Clipboard.setData(ClipboardData(text: widget.invite.code.trim()));
+    Clipboard.setData(ClipboardData(text: _invite.code.trim()));
     _showCopied('Code copied to clipboard.');
   }
 
@@ -78,7 +103,7 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
   }
 
   String get _expiryLabel {
-    final expiresAt = widget.invite.expiresAt;
+    final expiresAt = _invite.expiresAt;
     if (expiresAt == null) return 'This code does not expire.';
     final hour12 = expiresAt.hour % 12 == 0 ? 12 : expiresAt.hour % 12;
     final period = expiresAt.hour < 12 ? 'AM' : 'PM';
@@ -89,7 +114,21 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    // Re-expose the home cubit's instance inside this route so regenerate
+    // results reload the dialog in place instead of stacking new dialogs.
+    return BlocProvider.value(
+      value: widget.inviteCubit,
+      child: BlocConsumer<CoachInviteCubit, CoachInviteState>(
+        listenWhen: (previous, current) =>
+            current is CoachInviteSuccess || current is CoachInviteError,
+        listener: (context, state) {
+          if (state is CoachInviteSuccess) {
+            _onRegenerated(state.invite);
+          } else if (state is CoachInviteError) {
+            _showCopied(state.message);
+          }
+        },
+        builder: (context, state) => Dialog(
       backgroundColor: AppColors.cardBackground,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       child: Padding(
@@ -146,12 +185,24 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
               onTap: _copyCode,
             ),
             SizedBox(height: 10.h),
-            CoachInviteDialogButton(
-              label: 'Regenerate',
-              icon: Icons.refresh_rounded,
-              onTap: () {},
-              outlined: true,
-            ),
+            if (state is CoachInviteLoading)
+              SizedBox(
+                height: 46.h,
+                child: const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else
+              CoachInviteDialogButton(
+                label: 'Regenerate',
+                icon: Icons.refresh_rounded,
+                onTap: widget.inviteCubit.regenerateInviteLink,
+                outlined: true,
+              ),
             SizedBox(height: 6.h),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -163,6 +214,8 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
               ),
             ),
           ],
+        ),
+      ),
         ),
       ),
     );
