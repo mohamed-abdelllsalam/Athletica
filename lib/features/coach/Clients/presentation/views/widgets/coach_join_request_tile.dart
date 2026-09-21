@@ -33,13 +33,7 @@ class CoachJoinRequestTile extends StatelessWidget {
               width: 54.r,
               height: 54.r,
               color: AppColors.surfaceDark,
-              child: request.imageAsset != null
-                  ? Image.asset(request.imageAsset!, fit: BoxFit.cover)
-                  : Icon(
-                      Icons.person,
-                      color: AppColors.textSecondary,
-                      size: 28.sp,
-                    ),
+              child: _RequestAvatar(request: request),
             ),
           ),
           SizedBox(width: 14.w),
@@ -80,6 +74,44 @@ class CoachJoinRequestTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Requester avatar: network photo first, then the legacy local asset,
+/// then the person placeholder (also on network-image failure).
+class _RequestAvatar extends StatelessWidget {
+  const _RequestAvatar({required this.request});
+
+  final JoinRequest request;
+
+  @override
+  Widget build(BuildContext context) {
+    if (request.hasPhoto) {
+      return Image.network(
+        request.imageUrl!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, _, _) => const _PlaceholderIcon(),
+      );
+    }
+    if (request.imageAsset != null) {
+      return Image.asset(request.imageAsset!, fit: BoxFit.cover);
+    }
+    return const _PlaceholderIcon();
+  }
+}
+
+class _PlaceholderIcon extends StatelessWidget {
+  const _PlaceholderIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      Icons.person,
+      color: AppColors.textSecondary,
+      size: 28.sp,
     );
   }
 }
