@@ -6,6 +6,7 @@ import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dar
 import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_info_view.dart';
+import 'package:athletica/features/profile/presentation/views/widgets/profile_assigned_plans_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -471,37 +472,20 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
   }
 
   Widget _buildAssignedPlanSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Assigned Plan',
-          style: AppTextStyles.bold20(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        SizedBox(height: 12.h),
-        _PlanCard(
-          iconData: Icons.fitness_center,
-          iconBgColor: AppColors.primaryBlue,
-          title: 'Workout Upper',
-          subtitle: 'Upper Body Strength',
-        ),
-        SizedBox(height: 10.h),
-        _PlanCard(
-          iconData: Icons.receipt_long,
-          iconBgColor: AppColors.streakGreen,
-          title: 'Diet Plan',
-          subtitle: 'Muscle Gain Diet',
-        ),
-        SizedBox(height: 10.h),
-        _PlanCard(
-          iconData: Icons.emoji_events,
-          iconBgColor: AppColors.streakFire,
-          title: 'Fitness Goal',
-          subtitle: 'Weight Loss',
-        ),
-      ],
+    return BlocBuilder<ProfileCubit, ProfileState>(
+      buildWhen: (prev, curr) => curr is! ProfileInitial,
+      builder: (context, state) {
+        final profile = switch (state) {
+          ProfileLoaded(:final profile) => profile,
+          ProfileUpdating(:final profile) => profile,
+          ProfileImageUploading(:final profile) => profile,
+          ProfileImageUploaded(:final profile) => profile,
+          ProfileImageDeleted(:final profile) => profile,
+          ProfileError(:final profile) => profile,
+          _ => null,
+        };
+        return ProfileAssignedPlansSection(profile: profile);
+      },
     );
   }
 
@@ -790,65 +774,6 @@ class _LineChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(_LineChartPainter old) =>
       old.dataPoints != dataPoints || old.xLabels != xLabels;
-}
-
-// ---------- Plan Card ----------
-
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({
-    required this.iconData,
-    required this.iconBgColor,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData iconData;
-  final Color iconBgColor;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40.r,
-            height: 40.r,
-            decoration: BoxDecoration(
-              color: iconBgColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Icon(iconData, color: iconBgColor, size: 20.sp),
-          ),
-          SizedBox(width: 12.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.semiBold14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                subtitle,
-                style: AppTextStyles.meduim12(
-                  context,
-                ).copyWith(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ---------- Subscription Row ----------

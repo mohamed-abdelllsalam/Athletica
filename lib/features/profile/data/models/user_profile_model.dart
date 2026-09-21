@@ -20,6 +20,9 @@ class UserProfileModel {
     this.goal,
     this.createdAt,
     this.updatedAt,
+    this.assignedAt,
+    this.workoutPlan,
+    this.nutritionPlan,
   });
 
   final String id;
@@ -39,6 +42,13 @@ class UserProfileModel {
   final String? goal;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  /// Top-level `assigned_at` from `GET /profile`; null when absent/null.
+  final DateTime? assignedAt;
+
+  /// Top-level plan summaries from `GET /profile`; null when absent/null.
+  final AssignedWorkoutPlanSummary? workoutPlan;
+  final AssignedNutritionPlanSummary? nutritionPlan;
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     final user = json['user'] as Map<String, dynamic>? ?? {};
@@ -91,6 +101,49 @@ class UserProfileModel {
       updatedAt: effectiveProfile['updated_at'] != null
           ? DateTime.tryParse(effectiveProfile['updated_at'] as String)
           : null,
+      // New top-level keys from `GET /profile`; absent/null on old backends.
+      assignedAt: _parseAssignedAt(json['assigned_at']),
+      workoutPlan: _parseWorkoutPlan(json['workout_plan']),
+      nutritionPlan: _parseNutritionPlan(json['nutrition_plan']),
+    );
+  }
+
+  static DateTime? _parseAssignedAt(Object? value) {
+    if (value == null) return null;
+    if (value is! String) return null;
+    if (value.trim().isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  /// Returns null for null/missing/non-map values; tolerates partially
+  /// missing plan fields with the same empty-default conventions as the
+  /// rest of this model. Only the summary fields this endpoint returns are
+  /// read — never full plan details.
+  static AssignedWorkoutPlanSummary? _parseWorkoutPlan(Object? value) {
+    if (value is! Map<String, dynamic>) return null;
+    return AssignedWorkoutPlanSummary(
+      id: value['id']?.toString() ?? '',
+      title: value['title']?.toString() ?? '',
+      description: value['description']?.toString() ?? '',
+      isActive: value['is_active'] as bool? ?? true,
+      createdAt: value['created_at'] != null
+          ? DateTime.tryParse(value['created_at'].toString())
+          : null,
+      startDate: value['start_date']?.toString() ?? '',
+      cycleDays: (value['cycle_days'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  static AssignedNutritionPlanSummary? _parseNutritionPlan(Object? value) {
+    if (value is! Map<String, dynamic>) return null;
+    return AssignedNutritionPlanSummary(
+      id: value['id']?.toString() ?? '',
+      title: value['title']?.toString() ?? '',
+      description: value['description']?.toString() ?? '',
+      isActive: value['is_active'] as bool? ?? true,
+      createdAt: value['created_at'] != null
+          ? DateTime.tryParse(value['created_at'].toString())
+          : null,
     );
   }
 
@@ -122,5 +175,8 @@ class UserProfileModel {
         goal: goal,
         createdAt: createdAt,
         updatedAt: updatedAt,
+        assignedAt: assignedAt,
+        workoutPlan: workoutPlan,
+        nutritionPlan: nutritionPlan,
       );
 }

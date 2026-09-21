@@ -3,8 +3,9 @@ import 'package:athletica/features/client_coach/domain/entities/coach_link_reque
 /// Parses `POST /coach-requests`:
 /// `{ "id", "coach_id", "client_id", "status", ... }`.
 ///
-/// Some deployments also include coach info in the response; [coachName] is
-/// best-effort parsed from it and empty when absent.
+/// Newer backends return `{ "id", "status", "coach": { "id", "user", ... } }`
+/// where ids may be ints; [coachName] is best-effort parsed from the nested
+/// coach object and empty when absent.
 class CoachLinkRequestModel {
   const CoachLinkRequestModel({
     required this.id,
@@ -18,8 +19,9 @@ class CoachLinkRequestModel {
 
   factory CoachLinkRequestModel.fromJson(Map<String, dynamic> json) {
     return CoachLinkRequestModel(
-      id: json['id'] as String? ?? '',
-      status: json['status'] as String? ?? 'pending',
+      // Backend may return int ids (e.g. `{ "id": 123, ... }`); never cast.
+      id: json['id']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'pending',
       coachName: _parseCoachName(json),
     );
   }
@@ -28,12 +30,12 @@ class CoachLinkRequestModel {
     final coach = json['coach'];
     if (coach is Map<String, dynamic>) {
       for (final key in ['username', 'name']) {
-        final value = coach[key] as String?;
+        final value = coach[key]?.toString();
         if (value != null && value.isNotEmpty) return value;
       }
     }
     for (final key in ['coach_username', 'coach_name']) {
-      final value = json[key] as String?;
+      final value = json[key]?.toString();
       if (value != null && value.isNotEmpty) return value;
     }
     return '';

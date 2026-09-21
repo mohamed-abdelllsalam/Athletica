@@ -38,6 +38,25 @@ final class AssignPlanError extends AssignPlanState {
   final List<AssignedClient> clients;
 }
 
+/// Resolves the intended roster entry by the stable client identifier.
+///
+/// Matches either the `client_profiles.id` ([AssignedClient.clientId]) or the
+/// `coach_clients.id` relation id ([AssignedClient.relationId]). Returns null
+/// when the client is not in the roster — callers must surface that instead
+/// of falling back to another client: assigning to the wrong client would
+/// silently corrupt another client's plan.
+AssignedClient? findRosterMatch(
+  List<AssignedClient> clients,
+  String clientId,
+) {
+  for (final client in clients) {
+    if (client.clientId == clientId || client.relationId == clientId) {
+      return client;
+    }
+  }
+  return null;
+}
+
 class AssignPlanCubit extends Cubit<AssignPlanState> {
   AssignPlanCubit(
     this._getAssignedClients,

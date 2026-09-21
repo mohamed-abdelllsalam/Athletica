@@ -138,6 +138,56 @@ class CoachProfileEntity {
       );
 }
 
+/// Summary of the client's assigned workout plan as returned by
+/// `GET /profile` (`workout_plan` key).
+///
+/// This is a summary only (id, title, description, etc.) — not the full plan
+/// from `GET /workout/my/plans`. Deliberately separate from `WorkoutPlanEntry`,
+/// whose contract (coach ids, days) does not match this endpoint.
+class AssignedWorkoutPlanSummary {
+  const AssignedWorkoutPlanSummary({
+    required this.id,
+    required this.title,
+    this.description = '',
+    this.isActive = true,
+    this.createdAt,
+    this.startDate = '',
+    this.cycleDays = 0,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final bool isActive;
+  final DateTime? createdAt;
+
+  /// Raw `start_date` value; '' when unset.
+  final String startDate;
+  final int cycleDays;
+}
+
+/// Summary of the client's assigned nutrition plan as returned by
+/// `GET /profile` (`nutrition_plan` key).
+///
+/// Summary only — not the full plan from `GET /nutrition/my/plans`.
+/// Deliberately separate from `MyPlan`, whose contract (meal counts, meals)
+/// does not match this endpoint.
+class AssignedNutritionPlanSummary {
+  const AssignedNutritionPlanSummary({
+    required this.id,
+    required this.title,
+    this.description = '',
+    this.isActive = true,
+    this.createdAt,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final bool isActive;
+  final DateTime? createdAt;
+}
+
 class ClientProfileEntity {
   const ClientProfileEntity({
     required this.id,
@@ -153,6 +203,9 @@ class ClientProfileEntity {
     this.goal,
     this.createdAt,
     this.updatedAt,
+    this.assignedAt,
+    this.workoutPlan,
+    this.nutritionPlan,
   });
 
   final String id;
@@ -169,6 +222,15 @@ class ClientProfileEntity {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// When the client was assigned to their coach; null when no coach or when
+  /// the backend omits it (old responses).
+  final DateTime? assignedAt;
+
+  /// Active plan summaries from `GET /profile`; null when none assigned or
+  /// when the backend omits them (old responses).
+  final AssignedWorkoutPlanSummary? workoutPlan;
+  final AssignedNutritionPlanSummary? nutritionPlan;
+
   ClientProfileEntity copyWith({
     String? name,
     String? email,
@@ -180,6 +242,9 @@ class ClientProfileEntity {
     double? height,
     double? weight,
     String? goal,
+    DateTime? assignedAt,
+    AssignedWorkoutPlanSummary? workoutPlan,
+    AssignedNutritionPlanSummary? nutritionPlan,
   }) =>
       ClientProfileEntity(
         id: id,
@@ -195,5 +260,8 @@ class ClientProfileEntity {
         goal: goal ?? this.goal,
         createdAt: createdAt,
         updatedAt: updatedAt,
+        assignedAt: assignedAt ?? this.assignedAt,
+        workoutPlan: workoutPlan ?? this.workoutPlan,
+        nutritionPlan: nutritionPlan ?? this.nutritionPlan,
       );
 }

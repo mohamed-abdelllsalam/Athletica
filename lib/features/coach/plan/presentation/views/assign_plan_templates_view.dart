@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'widgets/coach_assign_template_card.dart';
 import 'widgets/coach_assign_templates_header.dart';
 import 'widgets/coach_assign_templates_states.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/features/coach/nutrition_templates/domain/entities/assigned_client.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_templates_list_cubit.dart';
 import 'package:flutter/material.dart';
@@ -117,24 +120,29 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
     String templateName,
     String templateDescription,
   ) {
-    final state = context.read<AssignPlanCubit>().state;
-    final clients = state is AssignPlanClientsLoaded
-        ? state.clients
-        : (state is AssignPlanAssigning ? state.clients : null);
+    // Fire-and-forget: all outcomes (including errors) are reported via
+    // snackbars inside; the future never throws.
+    _assignWhenReady(context, templateId, templateName, templateDescription);
+  }
 
-    if (clients == null || clients.isEmpty) {
+  Future<void> _assignWhenReady(
+    BuildContext context,
+    String templateId,
+    String templateName,
+    String templateDescription,
+  ) async {
+    final cubit = context.read<AssignPlanCubit>();
+    final clients = await _readyClients(context, cubit);
+    if (!context.mounted) return;
+    if (clients == null) return; // Message already shown.
+    if (clients.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('No clients loaded')));
       return;
     }
 
-    // Resolve the intended roster entry by the stable client identifier.
-    // Never fall back to the first client: assigning to the wrong client
-    // would silently corrupt another client's plan.
-    final match = clients
-        .where((c) => c.clientId == clientId || c.relationId == clientId)
-        .firstOrNull;
+    final match = findRosterMatch(clients, clientId);
     if (match == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Client not found in your roster')),
@@ -142,11 +150,55 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
       return;
     }
 
-    context.read<AssignPlanCubit>().assign(
+    cubit.assign(
       templateId: templateId,
       coachClientId: match.relationId,
       title: templateName,
       description: templateDescription,
     );
+  }
+
+  /// Returns the loaded roster, waiting for the in-flight fetch when the user
+  /// taps a template before it finishes. Returns null (after showing the
+  /// relevant message) when the roster failed to load.
+  Future<List<AssignedClient>?> _readyClients(
+    BuildContext context,
+    AssignPlanCubit cubit,
+  ) async {
+    final current = cubit.state;
+    if (current is AssignPlanClientsLoaded) return current.clients;
+    if (current is AssignPlanAssigning) return current.clients;
+    if (current is AssignPlanClientsError) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(current.message)));
+      return null;
+    }
+
+    try {
+      final pending = cubit.stream.firstWhere(
+        (s) => s is AssignPlanClientsLoaded || s is AssignPlanClientsError,
+      );
+      // Safe no-op while a load is already in flight; starts one otherwise.
+      cubit.loadClients();
+      final settled = await pending.timeout(const Duration(seconds: 20));
+      if (settled is AssignPlanClientsLoaded) return settled.clients;
+      if (!context.mounted) return null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text((settled as AssignPlanClientsError).message)),
+      );
+      return null;
+    } on TimeoutException {
+      if (!context.mounted) return null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Still loading clients, please try again'),
+        ),
+      );
+      return null;
+    } on StateError {
+      // Cubit closed before the roster settled.
+      return null;
+    }
   }
 }
