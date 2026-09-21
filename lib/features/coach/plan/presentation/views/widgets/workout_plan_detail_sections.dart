@@ -1,5 +1,4 @@
 import 'workout_plan_overview_tab.dart';
-import 'workout_plan_note_tab.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/plan/domain/entities/workout_program.dart';
@@ -13,10 +12,8 @@ class WorkoutPlanDetailContent extends StatelessWidget {
     super.key,
     required this.template,
     required this.mutating,
-    required this.tabController,
     required this.nameController,
     required this.descriptionController,
-    required this.noteController,
     required this.program,
     required this.onAddDay,
     required this.onRemoveDay,
@@ -33,10 +30,8 @@ class WorkoutPlanDetailContent extends StatelessWidget {
 
   final WorkoutTemplateEntry template;
   final bool mutating;
-  final TabController tabController;
   final TextEditingController nameController;
   final TextEditingController descriptionController;
-  final TextEditingController noteController;
   final WorkoutProgram program;
   final VoidCallback onAddDay;
   final ValueChanged<TemplateDayEntry> onRemoveDay;
@@ -171,40 +166,18 @@ class WorkoutPlanDetailContent extends StatelessWidget {
           ),
         ),
         SizedBox(height: 16.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: TabBar(
-            controller: tabController,
-            indicatorColor: AppColors.buttonColor,
-            indicatorWeight: 2,
-            labelStyle: AppTextStyles.semiBold14(context),
-            unselectedLabelStyle: AppTextStyles.medium14(context),
-            labelColor: AppColors.buttonColor,
-            unselectedLabelColor: AppColors.textSecondary,
-            tabs: const [
-              Tab(text: 'Overview'),
-              Tab(text: 'Note'),
-            ],
-          ),
-        ),
         Expanded(
-          child: TabBarView(
-            controller: tabController,
-            children: [
-              CoachWorkoutPlanOverviewTab(
-                descriptionController: descriptionController,
-                template: template,
-                onAddDay: onAddDay,
-                onRemoveDay: onRemoveDay,
-                onToggleRest: onToggleRest,
-                onRenameDay: onRenameDay,
-                onReorderDays: onReorderDays,
-                onNavigateDay: onOpenDay,
-                onAddExercises: onAddExercises,
-                onSaveTitle: onSaveTitle,
-              ),
-              WorkoutPlanNoteTab(controller: noteController),
-            ],
+          child: CoachWorkoutPlanOverviewTab(
+            descriptionController: descriptionController,
+            template: template,
+            onAddDay: onAddDay,
+            onRemoveDay: onRemoveDay,
+            onToggleRest: onToggleRest,
+            onRenameDay: onRenameDay,
+            onReorderDays: onReorderDays,
+            onNavigateDay: onOpenDay,
+            onAddExercises: onAddExercises,
+            onSaveTitle: onSaveTitle,
           ),
         ),
       ],

@@ -13,16 +13,21 @@ final class NutritionTodayLoading extends NutritionTodayState {}
 /// Meals are loaded; [togglingMealLogId] marks an in-flight complete /
 /// uncomplete request for that meal.
 final class NutritionTodayLoaded extends NutritionTodayState {
-  const NutritionTodayLoaded(this.meals, {this.togglingMealLogId});
+  const NutritionTodayLoaded(
+    this.meals, {
+    this.togglingMealLogIds = const {},
+    this.errorMessage,
+  });
 
   @override
   final TodayMeals meals;
-  final String? togglingMealLogId;
+  final Set<String> togglingMealLogIds;
+  String? get togglingMealLogId => togglingMealLogIds.firstOrNull;
+  final String? errorMessage;
 
   /// True when every meal is completed and there is at least one meal.
   bool get dayCompleted =>
-      meals.meals.isNotEmpty &&
-      meals.meals.every((m) => m.completed);
+      meals.meals.isNotEmpty && meals.meals.every((m) => m.completed);
 }
 
 final class NutritionTodayError extends NutritionTodayState {

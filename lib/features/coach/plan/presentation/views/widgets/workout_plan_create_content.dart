@@ -8,15 +8,11 @@ class CoachWorkoutPlanCreateContent extends StatelessWidget {
     super.key,
     required this.header,
     required this.overview,
-    required this.note,
-    required this.tabController,
     required this.onExit,
     required this.onSave,
   });
   final Widget header;
   final Widget overview;
-  final Widget note;
-  final TabController tabController;
   final VoidCallback onExit;
   final VoidCallback onSave;
   @override
@@ -60,28 +56,7 @@ class CoachWorkoutPlanCreateContent extends StatelessWidget {
           ),
         ),
         SizedBox(height: 16.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: TabBar(
-            controller: tabController,
-            indicatorColor: AppColors.buttonColor,
-            indicatorWeight: 2,
-            labelStyle: AppTextStyles.semiBold14(context),
-            unselectedLabelStyle: AppTextStyles.medium14(context),
-            labelColor: AppColors.buttonColor,
-            unselectedLabelColor: AppColors.textSecondary,
-            tabs: const [
-              Tab(text: 'Overview'),
-              Tab(text: 'Note'),
-            ],
-          ),
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: tabController,
-            children: [overview, note],
-          ),
-        ),
+        Expanded(child: overview),
       ],
     );
   }

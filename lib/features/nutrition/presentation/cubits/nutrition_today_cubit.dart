@@ -1,5 +1,4 @@
 import 'package:athletica/core/utils/api_result.dart';
-import 'package:athletica/features/nutrition/domain/entities/today_meals.dart';
 import 'package:athletica/features/nutrition/domain/usecases/complete_meal_log_usecase.dart';
 import 'package:athletica/features/nutrition/domain/usecases/get_today_meals_usecase.dart';
 import 'package:athletica/features/nutrition/domain/usecases/uncomplete_meal_log_usecase.dart';
@@ -33,55 +32,52 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
     }
   }
 
-  /// Optimistically flips the meal, then confirms with the API. Reverts on
-  /// failure.
+  /// Keep confirmed data visible while only the affected control is busy.
   Future<void> toggleComplete(String mealLogId, bool targetCompleted) async {
     final current = state;
-    if (current is! NutritionTodayLoaded) return;
-    if (current.togglingMealLogId != null) return;
-
-    emit(NutritionTodayLoaded(
-      _withCompletion(current.meals, mealLogId, targetCompleted),
-      togglingMealLogId: mealLogId,
-    ));
-
+    if (current is! NutritionTodayLoaded ||
+        current.togglingMealLogIds.contains(mealLogId)) {
+      return;
+    }
+    final meal = current.meals.meals
+        .where((m) => m.mealLogId == mealLogId)
+        .firstOrNull;
+    if (meal == null || meal.completed == targetCompleted) return;
+    emit(
+      NutritionTodayLoaded(
+        current.meals,
+        togglingMealLogIds: {...current.togglingMealLogIds, mealLogId},
+      ),
+    );
     final result = targetCompleted
         ? await _completeMeal(mealLogId)
         : await _uncompleteMeal(mealLogId);
-
+    if (isClosed) return;
+    final latest = state;
+    if (latest is! NutritionTodayLoaded) return;
+    final pending = {...latest.togglingMealLogIds}..remove(mealLogId);
     switch (result) {
       case ApiSuccess(:final data):
-        if (isClosed) return;
-        emit(NutritionTodayLoaded(data));
+        final updated = data.meals
+            .where((m) => m.mealLogId == mealLogId)
+            .firstOrNull;
+        emit(
+          NutritionTodayLoaded(
+            updated == null ? latest.meals : latest.meals.replaceMeal(updated),
+            togglingMealLogIds: pending,
+            errorMessage: updated == null
+                ? 'Could not confirm meal status. Please try again.'
+                : null,
+          ),
+        );
       case ApiError(:final failure):
-        if (isClosed) return;
-        emit(NutritionTodayLoaded(
-          _withCompletion(current.meals, mealLogId, !targetCompleted),
-        ));
-        if (isClosed) return;
-        emit(NutritionTodayError(failure.message));
+        emit(
+          NutritionTodayLoaded(
+            latest.meals,
+            togglingMealLogIds: pending,
+            errorMessage: failure.message,
+          ),
+        );
     }
-  }
-
-  TodayMeals _withCompletion(
-    TodayMeals meals,
-    String mealLogId,
-    bool completed,
-  ) {
-    final updated = meals.meals
-        .map((m) => m.mealLogId == mealLogId
-            ? TodayMeal(
-                mealLogId: m.mealLogId,
-                mealId: m.mealId,
-                mealType: m.mealType,
-                mealOrder: m.mealOrder,
-                notes: m.notes,
-                completed: completed,
-                completedAt: completed ? DateTime.now() : null,
-                foods: m.foods,
-              )
-            : m)
-        .toList();
-    return TodayMeals(meals: updated, dayCompleted: meals.dayCompleted);
   }
 }

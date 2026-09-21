@@ -31,7 +31,10 @@ class MealFood {
 
   /// Both API-provided languages joined, e.g. "دجاج / Chicken".
   String get displayName => buildBilingualLabel(
-        primary: name,
+        primary: (nameAr?.trim().isNotEmpty ?? false) ||
+                (nameEn?.trim().isNotEmpty ?? false)
+            ? ''
+            : name,
         arabic: nameAr,
         english: nameEn,
       );

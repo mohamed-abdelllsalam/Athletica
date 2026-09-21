@@ -1,141 +1,107 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/meal_type_labels.dart';
+import 'package:athletica/core/utils/nutrition_display_format.dart';
+import 'package:athletica/core/widgets/nutrition/meal_completion_control.dart';
+import 'package:athletica/core/widgets/nutrition/nutrition_food_list.dart';
+import 'package:athletica/core/widgets/nutrition/nutrition_macros.dart';
+import 'package:athletica/features/nutrition/domain/entities/today_meals.dart';
+import 'package:athletica/features/nutrition/presentation/cubits/nutrition_today_cubit.dart';
+import 'package:athletica/features/nutrition/presentation/views/today_meal_details_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class MealCard extends StatelessWidget {
-  const MealCard({
-    super.key,
-    required this.mealType,
-    required this.name,
-    required this.calories,
-    required this.carbs,
-    required this.protein,
-    required this.fat,
-    required this.completed,
-    this.busy = false,
-    this.onToggle,
-  });
-
-  final String mealType;
-  final String name;
-  final num calories;
-  final num carbs;
-  final num protein;
-  final num fat;
-  final bool completed;
-  final bool busy;
-  final VoidCallback? onToggle;
-
-  static const _emojiByType = {
-    'breakfast': '🥣',
-    'lunch': '🥩',
-    'snack': '🥜',
-    'snacks': '🥜',
-    'dinner': '🍳',
-  };
-
-  static const _grayscaleMatrix = <double>[
-    0.2126, 0.7152, 0.0722, 0, 0, //
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0, 0, 0, 1, 0,
-  ];
-
-  String get _emoji => _emojiByType[mealType.toLowerCase()] ?? '🍽️';
-
-  String _format(num value) =>
-      value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
-
+  const MealCard({super.key, required this.meal});
+  final TodayMeal meal;
   @override
   Widget build(BuildContext context) {
-    final Color cardBg = completed
-        ? const Color(0xFF2E2E2E)
-        : AppColors.cardBackground;
-    final Color borderColor = completed
-        ? const Color(0xFF3A3A3A)
-        : AppColors.cardBackgroundLight;
-    final Color nameColor =
-        completed ? AppColors.textTertiary : AppColors.textPrimary;
-    final Color detailColor =
-        completed ? AppColors.textTertiary : AppColors.textSecondary;
-    final Color iconColor =
-        completed ? AppColors.streakGreen : AppColors.primaryPurple;
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.all(14.r),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: borderColor, width: 0.5),
+    final type = labelForMealType(meal.mealType);
+    final title = meal.notes.trim().isEmpty ? type : meal.notes.trim();
+    void open() => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BlocProvider.value(
+          value: context.read<NutritionTodayCubit>(),
+          child: TodayMealDetailsView(mealLogId: meal.mealLogId),
+        ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ColorFiltered(
-            colorFilter: completed
-                ? const ColorFilter.matrix(_grayscaleMatrix)
-                : const ColorFilter.mode(Colors.transparent, BlendMode.color),
-            child: Text(_emoji, style: TextStyle(fontSize: 32.sp)),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: AppTextStyles.semiBold14(
-                    context,
-                  ).copyWith(color: nameColor),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  'Calories: ${_format(calories)} kcal',
-                  style: AppTextStyles.meduim12(
-                    context,
-                  ).copyWith(color: detailColor),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Carbohydrates: ${_format(carbs)} g',
-                  style: AppTextStyles.meduim12(
-                    context,
-                  ).copyWith(color: detailColor),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Protein: ${_format(protein)} g',
-                  style: AppTextStyles.meduim12(
-                    context,
-                  ).copyWith(color: detailColor),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Fat: ${_format(fat)} g',
-                  style: AppTextStyles.meduim12(
-                    context,
-                  ).copyWith(color: detailColor),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: busy ? null : onToggle,
-            child: busy
-                ? SizedBox(
-                    width: 24.r,
-                    height: 24.r,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    Icons.fingerprint,
-                    size: 32.sp,
-                    color: iconColor,
+    );
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Material(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(14.r),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: open,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(12.w, 12.h, 0, 12.h),
+                  child: Row(
+                    children: [
+                      Text(
+                        meal.mealOrder.toString().padLeft(2, '0'),
+                        style: AppTextStyles.medium13(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
+                      ),
+                      SizedBox(width: 10.w),
+                      const NutritionFoodIcon(),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: AppTextStyles.semiBold15(
+                                context,
+                              ).copyWith(color: AppColors.textPrimary),
+                            ),
+                            if (meal.notes.trim().isNotEmpty)
+                              Text(
+                                type,
+                                style: AppTextStyles.meduim12(
+                                  context,
+                                ).copyWith(color: AppColors.textSecondary),
+                              ),
+                            SizedBox(height: 3.h),
+                            Text(
+                              '${meal.foods.length} foods · ${formatNutrition(meal.totalCalories)} kcal',
+                              style: AppTextStyles.meduim12(
+                                context,
+                              ).copyWith(color: AppColors.textSecondary),
+                            ),
+                            SizedBox(height: 6.h),
+                            NutritionMacros(
+                              protein: meal.totalProtein,
+                              carbs: meal.totalCarbs,
+                              fat: meal.totalFat,
+                              compact: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-          ),
-        ],
+                ),
+              ),
+            ),
+            MealCompletionControl(mealLogId: meal.mealLogId),
+            IconButton(
+              tooltip: 'Open $title',
+              onPressed: open,
+              icon: Icon(
+                Icons.chevron_right,
+                size: 20.sp,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -11,7 +11,6 @@ import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dar
 import 'package:athletica/features/coach/plan/presentation/views/meal_detail_view.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/nutrition_plan_detail_sections.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/nutrition_plan_header_section.dart';
-import 'package:athletica/features/coach/plan/presentation/views/widgets/nutrition_plan_note_tab.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/nutrition_plan_assign_client_sheet.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/nutrition_plan_edit_meta_sheet.dart';
 import 'package:flutter/material.dart';
@@ -34,11 +33,8 @@ class NutritionPlanDetailViewBody extends StatefulWidget {
 }
 
 class _NutritionPlanDetailViewBodyState
-    extends State<NutritionPlanDetailViewBody>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+    extends State<NutritionPlanDetailViewBody> {
   late List<Meal> _meals;
-  final TextEditingController _noteController = TextEditingController();
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _caloriesController;
@@ -59,7 +55,6 @@ class _NutritionPlanDetailViewBodyState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _meals = List.from(widget.plan.meals);
     _nameController = TextEditingController(text: widget.plan.name);
     _nameController.addListener(() {
@@ -110,8 +105,6 @@ class _NutritionPlanDetailViewBodyState
 
   @override
   void dispose() {
-    _tabController.dispose();
-    _noteController.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     _caloriesController.dispose();
@@ -361,68 +354,46 @@ class _NutritionPlanDetailViewBodyState
             onAssign: () => _showAssignSheet(context),
           ),
           SizedBox(height: 16.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: AppColors.primaryBlue,
-              indicatorWeight: 2,
-              labelStyle: AppTextStyles.semiBold14(context),
-              unselectedLabelStyle: AppTextStyles.medium14(context),
-              labelColor: AppColors.primaryBlue,
-              unselectedLabelColor: AppColors.textSecondary,
-              tabs: const [
-                Tab(text: 'Overview'),
-                Tab(text: 'Note'),
-              ],
-            ),
-          ),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                NutritionPlanOverviewTab(
-                  plan: displayPlan,
-                  meals: widget.isCreateMode ? _meals : displayPlan.meals,
-                  isCreateMode: widget.isCreateMode,
-                  descriptionController: _descriptionController,
-                  descriptionHasError: _descriptionHasError,
-                  caloriesController: _caloriesController,
-                  proteinController: _proteinController,
-                  fatController: _fatController,
-                  carbsController: _carbsController,
-                  onMacrosChanged: () => setState(() {}),
-                  onAddMeal: widget.isCreateMode
-                      ? () => setState(
-                          () => _meals.add(
-                            Meal(
-                              id: 'm${DateTime.now().millisecondsSinceEpoch}',
-                              type: 'Meal ${_meals.length + 1}',
-                              name: 'New Meal',
-                              calories: 0,
-                              proteinGrams: 0,
-                              fatGrams: 0,
-                              carbsGrams: 0,
-                              ingredients: [],
-                            ),
-                          ),
-                        )
-                      : () => context.read<TemplateDetailCubit>().addMeal(),
-                  onReorder: widget.isCreateMode
-                      ? (oldIndex, newIndex) => setState(() {
-                          if (newIndex > oldIndex) newIndex -= 1;
-                          final meal = _meals.removeAt(oldIndex);
-                          _meals.insert(newIndex, meal);
-                        })
-                      : (oldIndex, newIndex) => context
-                            .read<TemplateDetailCubit>()
-                            .reorderMeals(oldIndex, newIndex),
-                  onMealTap: (meal) {
-                    _handleMealTap(meal);
-                  },
-                ),
-                NutritionPlanNoteTab(controller: _noteController),
-              ],
+            child: NutritionPlanOverviewTab(
+              plan: displayPlan,
+              meals: widget.isCreateMode ? _meals : displayPlan.meals,
+              isCreateMode: widget.isCreateMode,
+              descriptionController: _descriptionController,
+              descriptionHasError: _descriptionHasError,
+              caloriesController: _caloriesController,
+              proteinController: _proteinController,
+              fatController: _fatController,
+              carbsController: _carbsController,
+              onMacrosChanged: () => setState(() {}),
+              onAddMeal: widget.isCreateMode
+                  ? () => setState(
+                      () => _meals.add(
+                        Meal(
+                          id: 'm${DateTime.now().millisecondsSinceEpoch}',
+                          type: 'Meal ${_meals.length + 1}',
+                          name: 'New Meal',
+                          calories: 0,
+                          proteinGrams: 0,
+                          fatGrams: 0,
+                          carbsGrams: 0,
+                          ingredients: [],
+                        ),
+                      ),
+                    )
+                  : () => context.read<TemplateDetailCubit>().addMeal(),
+              onReorder: widget.isCreateMode
+                  ? (oldIndex, newIndex) => setState(() {
+                      if (newIndex > oldIndex) newIndex -= 1;
+                      final meal = _meals.removeAt(oldIndex);
+                      _meals.insert(newIndex, meal);
+                    })
+                  : (oldIndex, newIndex) => context
+                        .read<TemplateDetailCubit>()
+                        .reorderMeals(oldIndex, newIndex),
+              onMealTap: (meal) {
+                _handleMealTap(meal);
+              },
             ),
           ),
         ],

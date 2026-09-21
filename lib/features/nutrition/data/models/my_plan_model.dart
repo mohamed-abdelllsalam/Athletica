@@ -40,7 +40,8 @@ class MyPlanModel {
       description: json['description'] as String? ?? '',
       isActive: json['is_active'] as bool? ?? false,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
-      mealCount: (json['meal_count'] as num?)?.toInt() ?? 0,
+      mealCount: (json['meal_count'] as num?)?.toInt() ??
+          (json['meals'] as List<dynamic>? ?? []).length,
       meals: (json['meals'] as List<dynamic>? ?? [])
           .whereType<Map<String, dynamic>>()
           .map(_mealFromJson)
@@ -67,7 +68,7 @@ class MyPlanModel {
         description: description,
         isActive: isActive,
         createdAt: createdAt,
-        mealCount: meals.isEmpty ? mealCount : meals.length,
+        mealCount: mealCount,
         meals: meals,
       );
 }

@@ -47,8 +47,11 @@ class MyPlan {
   /// Only populated by the plan-details endpoint.
   final List<MyPlanMeal> meals;
 
-  num get totalCalories =>
-      meals.fold(0, (sum, m) => sum + m.totalCalories);
+  List<MyPlanMeal> get sortedMeals =>
+      [...meals]..sort((a, b) => a.mealOrder.compareTo(b.mealOrder));
+  bool get hasCompleteMealData => meals.length == mealCount;
+
+  num get totalCalories => meals.fold(0, (sum, m) => sum + m.totalCalories);
   num get totalProtein => meals.fold(0, (sum, m) => sum + m.totalProtein);
   num get totalCarbs => meals.fold(0, (sum, m) => sum + m.totalCarbs);
   num get totalFat => meals.fold(0, (sum, m) => sum + m.totalFat);

@@ -37,8 +37,6 @@ class WorkoutSessionViewBody extends StatelessWidget {
                   children: [
                     SizedBox(height: 12.h),
                     _DateRow(),
-                    SizedBox(height: 8.h),
-                    _NotesRow(),
                     SizedBox(height: 16.h),
                     Divider(
                         color: AppColors.textTertiary.withValues(alpha: 0.4),
@@ -204,23 +202,6 @@ class _DateRow extends StatelessWidget {
         SizedBox(width: 6.w),
         Icon(Icons.edit_outlined,
             color: AppColors.textSecondary, size: 16.sp),
-      ],
-    );
-  }
-}
-
-class _NotesRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(Icons.edit_outlined, color: AppColors.primaryBlue, size: 16.sp),
-        SizedBox(width: 6.w),
-        Text(
-          'Add notes here',
-          style: AppTextStyles.medium14(context)
-              .copyWith(color: AppColors.textPrimary),
-        ),
       ],
     );
   }

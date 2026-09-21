@@ -22,8 +22,7 @@ class TodayMeal {
   final DateTime? completedAt;
   final List<MealFood> foods;
 
-  num get totalCalories =>
-      foods.fold(0, (sum, f) => sum + f.calories);
+  num get totalCalories => foods.fold(0, (sum, f) => sum + f.calories);
   num get totalProtein => foods.fold(0, (sum, f) => sum + f.protein);
   num get totalCarbs => foods.fold(0, (sum, f) => sum + f.carbs);
   num get totalFat => foods.fold(0, (sum, f) => sum + f.fat);
@@ -39,8 +38,28 @@ class TodayMeals {
 
   static const TodayMeals empty = TodayMeals(meals: [], dayCompleted: null);
 
-  num get totalCalories =>
-      meals.fold(0, (sum, m) => sum + m.totalCalories);
+  List<TodayMeal> get sortedMeals =>
+      [...meals]..sort((a, b) => a.mealOrder.compareTo(b.mealOrder));
+  int get completedMealCount => meals.where((meal) => meal.completed).length;
+  double get completionProgress =>
+      meals.isEmpty ? 0 : completedMealCount / meals.length;
+
+  TodayMeals replaceMeal(TodayMeal replacement) {
+    final updated = meals
+        .map(
+          (meal) =>
+              meal.mealLogId == replacement.mealLogId ? replacement : meal,
+        )
+        .toList();
+    return TodayMeals(
+      meals: updated,
+      dayCompleted: updated.isEmpty
+          ? null
+          : updated.every((meal) => meal.completed),
+    );
+  }
+
+  num get totalCalories => meals.fold(0, (sum, m) => sum + m.totalCalories);
   num get totalProtein => meals.fold(0, (sum, m) => sum + m.totalProtein);
   num get totalCarbs => meals.fold(0, (sum, m) => sum + m.totalCarbs);
   num get totalFat => meals.fold(0, (sum, m) => sum + m.totalFat);

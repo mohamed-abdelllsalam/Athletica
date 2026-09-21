@@ -1,6 +1,5 @@
 import 'workout_plan_detail_states.dart';
 import 'workout_plan_create_content.dart';
-import 'workout_plan_note_tab.dart';
 import 'workout_plan_dialogs.dart';
 import 'workout_plan_add_day_dialog.dart';
 import 'workout_plan_create_overview_tab.dart';
@@ -44,12 +43,9 @@ class WorkoutPlanDetailViewBody extends StatefulWidget {
       _WorkoutPlanDetailViewBodyState();
 }
 
-class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
-  late TextEditingController _noteController;
   late List<ProgramDay> _days;
   bool _nameHasError = false;
   bool _descriptionHasError = false;
@@ -69,7 +65,6 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
     _selectedCategory = widget.program.category.isEmpty
         ? 'Custom'
         : widget.program.category;
-    _tabController = TabController(length: 2, vsync: this);
     _nameController = TextEditingController(text: widget.program.name);
     _nameController.addListener(() {
       if (_nameHasError && _nameController.text.trim().isNotEmpty) {
@@ -85,16 +80,13 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
         setState(() => _descriptionHasError = false);
       }
     });
-    _noteController = TextEditingController();
     _days = List.from(widget.program.days);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
-    _noteController.dispose();
     super.dispose();
   }
 
@@ -519,8 +511,6 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
           onToggleRest: _toggleRestLocal,
           onReorder: _reorderLocal,
         ),
-        note: WorkoutPlanNoteTab(controller: _noteController),
-        tabController: _tabController,
         onExit: _exitWithResolution,
         onSave: _trySavePlan,
       ),
@@ -568,10 +558,8 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody>
                 WorkoutPlanDetailContent(
                   template: template,
                   mutating: mutating,
-                  tabController: _tabController,
                   nameController: _nameController,
                   descriptionController: _descriptionController,
-                  noteController: _noteController,
                   program: widget.program,
                   onAddDay: _addDay,
                   onRemoveDay: _removeDay,

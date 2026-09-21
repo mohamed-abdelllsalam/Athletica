@@ -120,19 +120,6 @@ class WorkoutDayHeader extends StatelessWidget {
                   context,
                 ).copyWith(color: AppColors.textSecondary),
               ),
-              SizedBox(width: 12.w),
-              Icon(
-                Icons.timer_outlined,
-                color: AppColors.textSecondary,
-                size: 14.sp,
-              ),
-              SizedBox(width: 4.w),
-              Text(
-                '• ${day.durationMinutes} min',
-                style: AppTextStyles.meduim12(
-                  context,
-                ).copyWith(color: AppColors.textSecondary),
-              ),
             ],
           ),
         ),
