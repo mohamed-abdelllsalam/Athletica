@@ -40,7 +40,8 @@ class MyPlanModel {
       description: json['description'] as String? ?? '',
       isActive: json['is_active'] as bool? ?? false,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
-      mealCount: (json['meal_count'] as num?)?.toInt() ??
+      mealCount:
+          (json['meal_count'] as num?)?.toInt() ??
           (json['meals'] as List<dynamic>? ?? []).length,
       meals: (json['meals'] as List<dynamic>? ?? [])
           .whereType<Map<String, dynamic>>()
@@ -63,12 +64,12 @@ class MyPlanModel {
   }
 
   MyPlan toEntity() => MyPlan(
-        id: id,
-        title: title,
-        description: description,
-        isActive: isActive,
-        createdAt: createdAt,
-        mealCount: mealCount,
-        meals: meals,
-      );
+    id: id,
+    title: title,
+    description: description,
+    isActive: isActive,
+    createdAt: createdAt,
+    mealCount: mealCount,
+    meals: meals,
+  );
 }

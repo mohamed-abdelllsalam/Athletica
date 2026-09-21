@@ -61,9 +61,8 @@ class NutritionSummaryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(6.r),
           backgroundColor: AppColors.surfaceDark,
           color: AppColors.primaryPurple,
-          semanticsLabel: 'Meals completed',
-          semanticsValue:
-              '${meals.completedMealCount} of ${meals.meals.length}',
+          semanticsLabel:
+              '${meals.completedMealCount} of ${meals.meals.length} meals completed',
         ),
         SizedBox(height: 18.h),
         NutritionMacros(
