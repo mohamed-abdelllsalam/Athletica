@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android's icon canvas is 288dp; keep the logo inside its 192dp safe circle. -->
+    <item android:width="288dp" android:height="288dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+    <item android:width="152dp" android:height="110dp" android:gravity="center">
+        <bitmap android:src="@drawable/splash_logo" android:gravity="fill" android:filter="true" />
+    </item>
+</layer-list>
