@@ -1,6 +1,5 @@
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
-import 'package:athletica/features/check_ins/presentation/views/widgets/check_in_metric.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -16,7 +15,6 @@ class CheckInClientCard extends StatelessWidget {
   final VoidCallback onSend;
   @override
   Widget build(BuildContext context) {
-    final completed = entry.status == CheckInStatus.completed;
     return Container(
       padding: EdgeInsets.all(8.r),
       decoration: BoxDecoration(
@@ -42,18 +40,31 @@ class CheckInClientCard extends StatelessWidget {
                         vertical: 2.h,
                       ),
                       decoration: BoxDecoration(
-                        color: completed
-                            ? const Color(0xFF1E3B24)
-                            : const Color(0xFF40300F),
+                        color: switch (entry.status) {
+                          CheckInStatus.completed => const Color(0xFF1E3B24),
+                          CheckInStatus.pending => const Color(0xFF40300F),
+                          CheckInStatus.unknown => const Color(0xFF2A2E35),
+                        },
                         borderRadius: BorderRadius.circular(7.r),
                       ),
                       child: Text(
-                        completed ? '● Completed' : '● Pending',
+                        switch (entry.status) {
+                          CheckInStatus.completed => '● Completed',
+                          CheckInStatus.pending => '● Pending',
+                          // The backend exposes no coach-side pending status;
+                          // never infer it from submission history.
+                          CheckInStatus.unknown => '● Unknown',
+                        },
                         style: CheckInUi.text(
                           8,
-                          color: completed
-                              ? const Color(0xFF38D855)
-                              : const Color(0xFFE4A724),
+                          color: switch (entry.status) {
+                            CheckInStatus.completed =>
+                              const Color(0xFF38D855),
+                            CheckInStatus.pending =>
+                              const Color(0xFFE4A724),
+                            CheckInStatus.unknown =>
+                              const Color(0xFF9AA0A6),
+                          },
                         ),
                       ),
                     ),
@@ -88,20 +99,10 @@ class CheckInClientCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: completed ? 28.h : 20.h),
+          SizedBox(height: 20.h),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (completed) ...[
-                CheckInMetric('Mood', entry.mood, 'mood'),
-                CheckInMetric('Sleep', entry.sleep, 'sleep'),
-                CheckInMetric('Soreness', entry.soreness, 'soreness'),
-                CheckInMetric('Energy', entry.energy, 'energy'),
-              ] else
-                Expanded(
-                  child: Text('No Check-in Yet', style: CheckInUi.text(10)),
-                ),
-              SizedBox(width: 8.w),
               SizedBox(
                 width: 48.w,
                 child: FilledButton(

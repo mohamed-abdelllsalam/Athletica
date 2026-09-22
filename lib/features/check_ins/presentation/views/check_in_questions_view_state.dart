@@ -8,21 +8,43 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
   late final TextEditingController _newQuestion;
+  late final TextEditingController _newOptions;
+  late final TextEditingController _editQuestion;
   late final List<CheckInQuestion> _questions;
   final Set<String> _selected = {};
+  CheckInQuestionType _newType = CheckInQuestionType.TEXT;
   int _nextId = 0;
   String? _draftError;
+  String? _editingId;
+  String? _editError;
+
+  static String _typeLabel(CheckInQuestionType type) => switch (type) {
+        CheckInQuestionType.NUMBER => 'Number',
+        CheckInQuestionType.TEXT => 'Text',
+        CheckInQuestionType.SINGLE_CHOICE => 'Choice',
+        CheckInQuestionType.YES_NO => 'Yes / No',
+        CheckInQuestionType.RATING => 'Rating',
+        CheckInQuestionType.IMAGE => 'Photo',
+      };
+
+  static bool _needsOptions(CheckInQuestionType type) =>
+      type == CheckInQuestionType.SINGLE_CHOICE ||
+      type == CheckInQuestionType.YES_NO;
 
   @override
   void initState() {
     super.initState();
     _newQuestion = TextEditingController();
+    _newOptions = TextEditingController();
+    _editQuestion = TextEditingController();
     _questions = List.of(widget.questions);
   }
 
   @override
   void dispose() {
     _newQuestion.dispose();
+    _newOptions.dispose();
+    _editQuestion.dispose();
     super.dispose();
   }
 
@@ -32,6 +54,28 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
       setState(() => _draftError = 'Write a question first.');
       return;
     }
+    if (label.length > 500) {
+      setState(
+        () => _draftError = 'Keep questions within 500 characters.',
+      );
+      return;
+    }
+    var options = const <String>[];
+    if (_needsOptions(_newType)) {
+      final parsed = _newOptions.text
+          .split(',')
+          .map((option) => option.trim())
+          .where((option) => option.isNotEmpty)
+          .toList();
+      if (_newType == CheckInQuestionType.SINGLE_CHOICE && parsed.length < 2) {
+        setState(
+          () => _draftError =
+              'Add at least two options separated by commas.',
+        );
+        return;
+      }
+      options = parsed.isEmpty ? const ['Yes', 'No'] : parsed;
+    }
     // Local form draft only; the use case validates the saved template.
     String id;
     do {
@@ -39,22 +83,97 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
     } while (_questions.any((question) => question.id == id));
     setState(() {
       _questions.add(
-        CheckInQuestion(id: id, label: label, type: CheckInQuestionType.text),
+        CheckInQuestion(
+          id: id,
+          label: label,
+          type: _newType,
+          options: options,
+        ),
       );
       _draftError = null;
       _newQuestion.clear();
+      _newOptions.clear();
+    });
+  }
+
+  void _startEdit(CheckInQuestion question) {
+    _editQuestion.text = question.label;
+    setState(() {
+      _editingId = question.id;
+      _editError = null;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editingId = null;
+      _editError = null;
+    });
+  }
+
+  void _applyEdit(String id) {
+    final label = _editQuestion.text.trim();
+    if (label.isEmpty) {
+      setState(() => _editError = 'Write a question first.');
+      return;
+    }
+    if (label.length > 500) {
+      setState(
+        () => _editError = 'Keep questions within 500 characters.',
+      );
+      return;
+    }
+    final index = _questions.indexWhere((question) => question.id == id);
+    if (index < 0) {
+      _cancelEdit();
+      return;
+    }
+    final current = _questions[index];
+    setState(() {
+      _questions[index] = CheckInQuestion(
+        id: current.id,
+        label: label,
+        type: current.type,
+        coachId: current.coachId,
+        options: current.options,
+        required: current.required,
+        order: current.order,
+      );
+      _editingId = null;
+      _editError = null;
+    });
+  }
+
+  void _move(int index, int delta) {
+    final target = index + delta;
+    if (target < 0 || target >= _questions.length) return;
+    setState(() {
+      final item = _questions.removeAt(index);
+      _questions.insert(target, item);
     });
   }
 
   Future<void> _save() async {
-    final success = await context.read<CheckInsCubit>().saveQuestions(
-          List.of(_questions),
-        );
+    final cubit = context.read<CheckInsCubit>();
+    final success = await cubit.saveQuestions(
+      current: widget.questions,
+      updated: List.of(_questions),
+    );
     if (!mounted || !success) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Template saved.')));
     Navigator.pop(context);
+  }
+
+  Future<void> _send() async {
+    final sent = await context
+        .read<CheckInsCubit>()
+        .assignCheckins(_selected.toList());
+    if (!mounted || !sent) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Check-in assigned.')));
   }
 
   @override
@@ -143,6 +262,20 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
                   },
                 ),
               ),
+              if (_selected.isNotEmpty) ...[
+                SizedBox(height: 12.h),
+                BlocBuilder<CheckInsCubit, CheckInsState>(
+                  builder: (context, state) {
+                    final ready = state is CheckInsReady ? state : null;
+                    return CheckInButton(
+                      label: ready?.saving == true ? 'Sending…' : 'Send',
+                      color: CheckInUi.violet,
+                      onPressed:
+                          ready == null || ready.saving ? null : _send,
+                    );
+                  },
+                ),
+              ],
               const Divider(
                 color: CheckInUi.violet,
                 indent: 50,
@@ -156,44 +289,176 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
                   padding: EdgeInsets.only(bottom: 12.h),
                   child: CheckInQuestionRow(
                     index: index + 1,
-                    label: question.label,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            switch (question.type) {
-                              CheckInQuestionType.number => 'Number',
-                              CheckInQuestionType.yesNo => 'Yes / No',
-                              CheckInQuestionType.sessions => 'Sessions',
-                              CheckInQuestionType.text => 'Text',
-                            },
-                            style: CheckInUi.text(9, color: CheckInUi.violet),
+                    label: _editingId == question.id
+                        ? 'Editing question ${index + 1}'
+                        : question.label,
+                    child: _editingId == question.id
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  key: ValueKey('edit-${question.id}'),
+                                  controller: _editQuestion,
+                                  maxLength: 500,
+                                  style: CheckInUi.text(11),
+                                  decoration: CheckInUi.input(
+                                    'Question text',
+                                  ).copyWith(errorText: _editError),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Save edit',
+                                onPressed: () => _applyEdit(question.id),
+                                style: IconButton.styleFrom(
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(28, 28),
+                                ),
+                                icon: const Icon(
+                                  Icons.check,
+                                  color: CheckInUi.violet,
+                                  size: 18,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Cancel edit',
+                                onPressed: _cancelEdit,
+                                style: IconButton.styleFrom(
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(28, 28),
+                                ),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                  size: 18,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _typeLabel(question.type),
+                                  style: CheckInUi.text(
+                                    9,
+                                    color: CheckInUi.violet,
+                                  ),
+                                ),
+                              ),
+                              // Single menu button: four direct action buttons
+                              // overflow the row's narrow action slot, so the
+                              // same edit/reorder/remove actions live here.
+                              PopupMenuButton<String>(
+                                tooltip: 'Actions for ${question.label}',
+                                icon: const Icon(
+                                  Icons.more_vert,
+                                  color: CheckInUi.violet,
+                                  size: 20,
+                                ),
+                                color: CheckInUi.note,
+                                onSelected: (value) {
+                                  switch (value) {
+                                    case 'up':
+                                      _move(index, -1);
+                                    case 'down':
+                                      _move(index, 1);
+                                    case 'edit':
+                                      _startEdit(question);
+                                    case 'remove':
+                                      setState(
+                                        () => _questions.removeAt(index),
+                                      );
+                                  }
+                                },
+                                itemBuilder: (_) => [
+                                  PopupMenuItem(
+                                    value: 'up',
+                                    enabled: index > 0,
+                                    child: Text(
+                                      'Move up',
+                                      style: CheckInUi.text(11),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'down',
+                                    enabled:
+                                        index < _questions.length - 1,
+                                    child: Text(
+                                      'Move down',
+                                      style: CheckInUi.text(11),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text(
+                                      'Edit',
+                                      style: CheckInUi.text(11),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'remove',
+                                    enabled: _questions.length > 1,
+                                    child: Text(
+                                      'Remove',
+                                      style: CheckInUi.text(11),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ),
-                        IconButton(
-                          tooltip: 'Remove ${question.label}',
-                          onPressed: () =>
-                              setState(() => _questions.removeAt(index)),
-                          icon: const CheckInAsset('delete', size: 16),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               TextField(
                 key: const ValueKey('new-question'),
                 controller: _newQuestion,
-                maxLength: 160,
+                maxLength: 500,
                 decoration: CheckInUi.input(
                   'Write another question',
                 ).copyWith(errorText: _draftError),
                 style: CheckInUi.text(12),
               ),
+              SizedBox(height: 12.h),
+              DropdownButtonFormField<CheckInQuestionType>(
+                key: const ValueKey('new-question-type'),
+                initialValue: _newType,
+                decoration: CheckInUi.input('Type'),
+                dropdownColor: CheckInUi.note,
+                style: CheckInUi.text(12),
+                isExpanded: true,
+                items: [
+                  for (final type in CheckInQuestionType.values)
+                    DropdownMenuItem(
+                      value: type,
+                      child: Text(_typeLabel(type)),
+                    ),
+                ],
+                onChanged: (value) => setState(
+                  () => _newType = value ?? CheckInQuestionType.TEXT,
+                ),
+              ),
+              if (_needsOptions(_newType)) ...[
+                SizedBox(height: 12.h),
+                TextField(
+                  key: const ValueKey('new-question-options'),
+                  controller: _newOptions,
+                  style: CheckInUi.text(12),
+                  decoration: CheckInUi.input(
+                    'Options separated by commas',
+                  ).copyWith(errorText: _draftError),
+                ),
+              ],
+              SizedBox(height: 12.h),
               CheckInButton(
                 label: 'Add Another Question',
                 color: CheckInUi.question,
-                onPressed: _questions.length < 20 ? _addQuestion : null,
+                onPressed: _addQuestion,
               ),
               SizedBox(height: 16.h),
               BlocBuilder<CheckInsCubit, CheckInsState>(

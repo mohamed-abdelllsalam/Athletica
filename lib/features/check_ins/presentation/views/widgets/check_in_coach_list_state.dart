@@ -1,3 +1,4 @@
+import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
@@ -44,21 +45,97 @@ class CheckInCoachListState extends State<CheckInCoachList> {
     );
   }
 
-  void _openResponse(CheckIn entry, List<CheckInQuestion> questions) {
+  CheckInQuestionType _snapshotType(String raw) {
+    try {
+      return CheckInQuestionType.values.byName(raw);
+    } catch (_) {
+      return CheckInQuestionType.TEXT;
+    }
+  }
+
+  Future<void> _openResponse(
+    CheckIn entry,
+    List<CheckInQuestion> templateQuestions,
+  ) async {
     final cubit = context.read<CheckInsCubit>();
-    Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: cubit,
-          child: CheckInResponseView(
-            entry: entry,
-            questions: questions,
-            coachResponse: true,
-          ),
-        ),
-      ),
-    );
+    final submissions = await cubit.coachSubmissions(entry.id);
+    if (!mounted) return;
+    switch (submissions) {
+      case ApiError(:final failure):
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(failure.message)));
+        return;
+      case ApiSuccess(data: final items):
+        if (items.isEmpty) {
+          Navigator.push<void>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BlocProvider.value(
+                value: cubit,
+                child: CheckInResponseView(
+                  entry: entry,
+                  questions: templateQuestions,
+                  coachResponse: true,
+                ),
+              ),
+            ),
+          );
+          return;
+        }
+        final detail = await cubit.coachSubmissionDetail(
+          coachClientId: entry.id,
+          submissionId: items.first.id,
+        );
+        if (!mounted) return;
+        switch (detail) {
+          case ApiError(:final failure):
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(failure.message)));
+          case ApiSuccess(data: final submission):
+            final questions = [
+              for (final answer in submission.answers)
+                CheckInQuestion(
+                  id: answer.questionId ??
+                      'snapshot-${answer.id}',
+                  label: answer.snapshotQuestion.isEmpty
+                      ? 'Question'
+                      : answer.snapshotQuestion,
+                  type: _snapshotType(answer.snapshotType),
+                  options: answer.snapshotOptions,
+                  required: answer.snapshotRequired,
+                  order: answer.snapshotOrder,
+                ),
+            ];
+            Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: cubit,
+                  child: CheckInResponseView(
+                    entry: CheckIn(
+                      id: submission.id,
+                      clientName: submission.clientName.isEmpty
+                          ? entry.clientName
+                          : submission.clientName,
+                      status: CheckInStatus.completed,
+                      timeLabel: submission.submittedAt?.toIso8601String() ??
+                          entry.timeLabel,
+                      answers: {
+                        for (final answer in submission.answers)
+                          if (answer.questionId != null)
+                            answer.questionId!: answer.answerValue,
+                      },
+                    ),
+                    questions: questions,
+                    coachResponse: true,
+                  ),
+                ),
+              ),
+            );
+        }
+    }
   }
 
   @override
@@ -129,8 +206,10 @@ class CheckInCoachListState extends State<CheckInCoachList> {
                             itemBuilder: (context, index) =>
                                 CheckInClientCard(
                               entry: entries[index],
-                              onView: () =>
-                                  _openResponse(entries[index], questions),
+                              onView: () => _openResponse(
+                                entries[index],
+                                questions,
+                              ),
                               onSend: () => _openQuestions(state),
                             ),
                           ),

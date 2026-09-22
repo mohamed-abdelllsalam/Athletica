@@ -5,5 +5,9 @@ import 'package:athletica/features/check_ins/domain/repositories/check_ins_repos
 class GetCheckInQuestionsUseCase {
   const GetCheckInQuestionsUseCase(this._repository);
   final CheckInsRepository _repository;
-  Future<ApiResult<List<CheckInQuestion>>> call() => _repository.getQuestions();
+
+  /// Coach form (`C1`) by default; client pending form (`L2`, `[]` when no
+  /// pending) when [coachView] is false.
+  Future<ApiResult<List<CheckInQuestion>>> call({bool coachView = true}) =>
+      _repository.getQuestions(coachView: coachView);
 }

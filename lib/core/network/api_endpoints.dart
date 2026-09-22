@@ -172,6 +172,32 @@ class ApiEndpoints {
   ) =>
       'workout/plans/$planId/days/$dayId/exercises/$exerciseId';
 
+  // ── Check-In (documented contract: CHECK_IN.md) ─────────────────────
+  // Coach prefix /coach/checkin, client prefix /client/checkin.
+  // Dio baseUrl already ends with /api/v1/, so relative paths resolve
+  // to /api/v1/coach/checkin/... and /api/v1/client/checkin/...
+  static const String coachCheckinQuestions = 'coach/checkin/questions';
+  static String coachCheckinQuestion(String questionId) =>
+      'coach/checkin/questions/$questionId';
+  static const String coachCheckinQuestionsReorder =
+      'coach/checkin/questions/reorder';
+  static const String coachCheckinAssign = 'coach/checkin/assign';
+  static String coachCheckinSubmissions(String coachClientId) =>
+      'coach/checkin/clients/$coachClientId/submissions';
+  static String coachCheckinSubmission(
+    String coachClientId,
+    String submissionId,
+  ) =>
+      'coach/checkin/clients/$coachClientId/submissions/$submissionId';
+
+  // Note the backend spelling: hasassign (no 'd').
+  static const String clientCheckinHasAssign = 'client/checkin/hasassign';
+  static const String clientCheckinQuestions = 'client/checkin/questions';
+  static const String clientCheckinSubmit = 'client/checkin/submit';
+  static const String clientCheckinSubmissions = 'client/checkin/submissions';
+  static String clientCheckinSubmission(String submissionId) =>
+      'client/checkin/submissions/$submissionId';
+
   // Client daily tracking
   static const String workoutToday = 'workout/today';
   static const String workoutMyPlans = 'workout/my/plans';

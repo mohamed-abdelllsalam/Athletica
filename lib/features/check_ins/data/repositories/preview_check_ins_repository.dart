@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
@@ -10,27 +12,35 @@ class PreviewCheckInsRepository implements CheckInsRepository {
     CheckInQuestion(
       id: 'weight',
       label: 'Current Weight?',
-      type: CheckInQuestionType.number,
+      type: CheckInQuestionType.NUMBER,
+      required: true,
+      order: 1,
     ),
     CheckInQuestion(
       id: 'average',
       label: 'Weekly Average Weight',
-      type: CheckInQuestionType.number,
+      type: CheckInQuestionType.NUMBER,
+      required: true,
+      order: 2,
     ),
     CheckInQuestion(
       id: 'waist',
       label: 'Waist Measurement',
-      type: CheckInQuestionType.number,
+      type: CheckInQuestionType.NUMBER,
+      order: 3,
     ),
     CheckInQuestion(
       id: 'photo',
       label: 'Progress Photo Uploaded?',
-      type: CheckInQuestionType.yesNo,
+      type: CheckInQuestionType.YES_NO,
+      options: ['Yes', 'No'],
+      order: 4,
     ),
     CheckInQuestion(
-      id: 'sessions',
-      label: 'How many training sessions did you complete this week?',
-      type: CheckInQuestionType.sessions,
+      id: 'energy',
+      label: 'Energy (1-10)',
+      type: CheckInQuestionType.RATING,
+      order: 5,
     ),
   ];
 
@@ -45,10 +55,8 @@ class PreviewCheckInsRepository implements CheckInsRepository {
         'average': '78.5',
         'waist': '82',
         'photo': 'Yes',
-        'sessions': '4',
+        'energy': '7',
       },
-      additionalNotes:
-          'Legs are a bit sore from yesterday’s workout, but overall feeling good and ready to train.',
     ),
     CheckIn(
       id: 'sample-2',
@@ -60,16 +68,13 @@ class PreviewCheckInsRepository implements CheckInsRepository {
       clientName: 'Jamal Ali',
       status: CheckInStatus.completed,
       timeLabel: 'Today, 9:30 AM',
-      sleep: 'Normal',
-      energy: '6/10',
       answers: const {
         'weight': '85',
         'average': '85.2',
         'waist': '88',
         'photo': 'No',
-        'sessions': '3',
+        'energy': '6',
       },
-      additionalNotes: 'Ready for the next session.',
     ),
   ];
 
@@ -78,24 +83,176 @@ class PreviewCheckInsRepository implements CheckInsRepository {
       ApiSuccess(List.unmodifiable(_entries));
 
   @override
-  Future<ApiResult<List<CheckInQuestion>>> getQuestions() async =>
+  Future<ApiResult<List<CheckInQuestion>>> getQuestions({
+    bool coachView = true,
+  }) async =>
       ApiSuccess(List.unmodifiable(_questions));
 
   @override
-  Future<ApiResult<void>> saveResponse(CheckIn response) async {
-    final index = _entries.indexWhere((entry) => entry.id == response.id);
+  Future<ApiResult<CheckInSubmitResult>> saveResponse({
+    required List<CheckInQuestion> questions,
+    required Map<String, String> answers,
+    required Map<String, File> imageFiles,
+  }) async {
+    return ApiSuccess(
+      CheckInSubmitResult(
+        submissionId: 'preview-${DateTime.now().millisecondsSinceEpoch}',
+        submittedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Future<ApiResult<CheckInQuestion>> createQuestion({
+    required String question,
+    required CheckInQuestionType type,
+    List<String>? options,
+  }) async {
+    final created = CheckInQuestion(
+      id: 'custom-${DateTime.now().millisecondsSinceEpoch}',
+      label: question,
+      type: type,
+      options: options ?? const [],
+      order: _questions.length + 1,
+    );
+    _questions = List.unmodifiable([..._questions, created]);
+    return ApiSuccess(created);
+  }
+
+  @override
+  Future<ApiResult<CheckInQuestion>> updateQuestion({
+    required String questionId,
+    String? question,
+  }) async {
+    final index = _questions.indexWhere((q) => q.id == questionId);
     if (index < 0) {
+      return const ApiError(UnknownFailure('Question not found.'));
+    }
+    final updated = CheckInQuestion(
+      id: _questions[index].id,
+      label: question ?? _questions[index].label,
+      type: _questions[index].type,
+      coachId: _questions[index].coachId,
+      options: _questions[index].options,
+      required: _questions[index].required,
+      order: _questions[index].order,
+    );
+    _questions = List.unmodifiable([
+      ..._questions.sublist(0, index),
+      updated,
+      ..._questions.sublist(index + 1),
+    ]);
+    return ApiSuccess(updated);
+  }
+
+  @override
+  Future<ApiResult<void>> deleteQuestion(String questionId) async {
+    if (_questions.length <= 1) {
       return const ApiError(
-        UnknownFailure('This check-in is no longer available.'),
+        UnknownFailure('A form needs at least one question.'),
       );
     }
-    _entries[index] = response;
+    _questions = List.unmodifiable(
+      _questions.where((q) => q.id != questionId),
+    );
     return const ApiSuccess(null);
   }
 
   @override
-  Future<ApiResult<void>> saveQuestions(List<CheckInQuestion> questions) async {
-    _questions = List.unmodifiable(questions);
-    return const ApiSuccess(null);
+  Future<ApiResult<List<CheckInQuestion>>> reorderQuestions(
+    List<String> questionIds,
+  ) async {
+    final byId = {for (final q in _questions) q.id: q};
+    if (questionIds.length != _questions.length ||
+        !questionIds.every(byId.containsKey)) {
+      return const ApiError(
+        UnknownFailure('Question order must include all questions.'),
+      );
+    }
+    _questions = List.unmodifiable([
+      for (var i = 0; i < questionIds.length; i++)
+        CheckInQuestion(
+          id: byId[questionIds[i]]!.id,
+          label: byId[questionIds[i]]!.label,
+          type: byId[questionIds[i]]!.type,
+          coachId: byId[questionIds[i]]!.coachId,
+          options: byId[questionIds[i]]!.options,
+          required: byId[questionIds[i]]!.required,
+          order: i + 1,
+        ),
+    ]);
+    return ApiSuccess(List.unmodifiable(_questions));
   }
+
+  @override
+  Future<ApiResult<void>> assignCheckin({
+    required String coachClientId,
+  }) async =>
+      const ApiSuccess(null);
+
+  @override
+  Future<ApiResult<List<CheckInSubmission>>> getCoachSubmissions(
+    String coachClientId,
+  ) async {
+    final entry = _entries
+        .where((e) => e.id == coachClientId)
+        .cast<CheckIn?>();
+    final match = entry.isEmpty ? null : entry.first;
+    if (match == null || match.status != CheckInStatus.completed) {
+      return const ApiSuccess([]);
+    }
+    return ApiSuccess([_submissionFor(match)]);
+  }
+
+  @override
+  Future<ApiResult<CheckInSubmission>> getCoachSubmissionDetail(
+    String coachClientId,
+    String submissionId,
+  ) async {
+    final submissions = await getCoachSubmissions(coachClientId);
+    return switch (submissions) {
+      ApiError(:final failure) => ApiError(failure),
+      ApiSuccess(:final data) => data
+          .where((s) => s.id == submissionId)
+          .cast<CheckInSubmission?>()
+          .firstOrNull == null
+          ? const ApiError(UnknownFailure('Check-in not found.'))
+          : ApiSuccess(
+              data.firstWhere((s) => s.id == submissionId),
+            ),
+    };
+  }
+
+  @override
+  Future<ApiResult<bool>> hasPendingAssignment() async => const ApiSuccess(true);
+
+  @override
+  Future<ApiResult<List<CheckInSubmission>>> getClientSubmissions() async {
+    return ApiSuccess(
+      _entries
+          .where((e) => e.status == CheckInStatus.completed)
+          .map(_submissionFor)
+          .toList(),
+    );
+  }
+
+  CheckInSubmission _submissionFor(CheckIn entry) => CheckInSubmission(
+        id: entry.id,
+        submittedAt: DateTime.now(),
+        clientName: entry.clientName,
+        answers: [
+          for (final question in _questions)
+            if (entry.answers[question.id] != null)
+              CheckInAnswer(
+                id: '${entry.id}-${question.id}',
+                questionId: question.id,
+                answerValue: entry.answers[question.id]!,
+                snapshotQuestion: question.label,
+                snapshotType: question.type.name,
+                snapshotOptions: question.options,
+                snapshotRequired: question.required,
+                snapshotOrder: question.order,
+              ),
+        ],
+      );
 }

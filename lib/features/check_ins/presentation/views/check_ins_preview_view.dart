@@ -13,7 +13,7 @@ class CheckInsPreviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-        create: (_) => sl<CheckInsCubit>()..load(),
+        create: (_) => sl<CheckInsCubit>()..load(role: role),
         child: role == CheckInPreviewRole.coach
             ? const CheckInCoachList()
             : const ClientPreview(),

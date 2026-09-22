@@ -120,6 +120,24 @@ String? _messageForKey(String key) => switch (key) {
       'file_too_large' => 'Image must be 5 MB or smaller.',
       'no_profile_image' => 'No profile image to delete.',
       'no_active_plan_found' => 'No active plan found.',
+      'checkin_no_pending_assignment' =>
+        'Already submitted — waiting for your coach to assign a new check-in.',
+      'checkin_missing_required_answers' =>
+        'Some required answers are missing.',
+      'checkin_answers_invalid_json' =>
+        'Something went wrong preparing your answers. Please try again.',
+      'checkin_invalid_question_id' =>
+        'This form is outdated. Refresh and try again.',
+      'checkin_invalid_number' => 'Enter a valid number.',
+      'checkin_invalid_rating' => 'Choose a rating from 1 to 10.',
+      'checkin_invalid_choice' => 'Choose one of the available options.',
+      'checkin_text_empty' => 'This field cannot be empty.',
+      'checkin_cannot_delete_last_question' =>
+        'A form needs at least one question.',
+      'checkin_reorder_ids_mismatch' => 'Question order must include all questions.',
+      'checkin_submission_not_found' => 'Check-in not found.',
+      'checkin_question_not_found' => 'Question not found.',
+      'invalid_upload' => 'Could not upload this file.',
       'no_active_invite' => 'No active invite link to revoke.',
       'request_not_found' => 'Request not found.',
       'no_coach_assigned' => 'No coach assigned.',

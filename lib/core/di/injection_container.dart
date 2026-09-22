@@ -19,10 +19,16 @@ import 'package:athletica/features/auth/domain/usecases/request_password_reset_u
 import 'package:athletica/features/auth/domain/usecases/resend_verification_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/verify_email_usecase.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
-import 'package:athletica/features/check_ins/data/repositories/preview_check_ins_repository.dart';
+import 'package:athletica/features/check_ins/data/datasources/check_ins_remote_data_source.dart';
+import 'package:athletica/features/check_ins/data/repositories/check_ins_repository_impl.dart';
 import 'package:athletica/features/check_ins/domain/repositories/check_ins_repository.dart';
+import 'package:athletica/features/check_ins/domain/usecases/assign_check_in_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/get_check_in_questions_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/get_check_ins_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/get_checkin_pending_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/get_client_submissions_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/get_coach_submission_detail_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/get_coach_submissions_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/save_check_in_questions_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/save_check_in_response_usecase.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
@@ -184,19 +190,31 @@ import 'package:get_it/get_it.dart';
 
 final GetIt sl = GetIt.instance;
 
-/// Local UI preview only: no API, environment file, or authentication needed.
+/// Check-in integration (CHECK_IN.md): real API via [ApiClient]'s Dio.
+/// Registered after the network + coach-clients data source below.
 void setupCheckInsPreviewDependencies() {
   if (sl.isRegistered<CheckInsRepository>()) return;
-  sl.registerLazySingleton<CheckInsRepository>(PreviewCheckInsRepository.new);
+  sl.registerLazySingleton<CheckInsRemoteDataSource>(
+    () => CheckInsRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<CheckInsRepository>(
+    () => CheckInsRepositoryImpl(sl(), sl()),
+  );
   sl.registerLazySingleton(() => GetCheckInsUseCase(sl()));
   sl.registerLazySingleton(() => GetCheckInQuestionsUseCase(sl()));
   sl.registerLazySingleton(() => SaveCheckInResponseUseCase(sl()));
   sl.registerLazySingleton(() => SaveCheckInQuestionsUseCase(sl()));
-  sl.registerFactory(() => CheckInsCubit(sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => GetCheckinPendingUseCase(sl()));
+  sl.registerLazySingleton(() => AssignCheckInUseCase(sl()));
+  sl.registerLazySingleton(() => GetCoachSubmissionsUseCase(sl()));
+  sl.registerLazySingleton(() => GetCoachSubmissionDetailUseCase(sl()));
+  sl.registerLazySingleton(() => GetClientSubmissionsUseCase(sl()));
+  sl.registerFactory(
+    () => CheckInsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
+  );
 }
 
 void setupDependencies() {
-  setupCheckInsPreviewDependencies();
   // Network
   ApiClient.instance.init();
   sl.registerLazySingleton(() => ApiClient.instance.dio);
@@ -214,6 +232,7 @@ void setupDependencies() {
   sl.registerLazySingleton<CoachClientsRemoteDataSource>(
     () => CoachClientsRemoteDataSourceImpl(sl()),
   );
+  setupCheckInsPreviewDependencies();
   sl.registerLazySingleton<CoachInviteRemoteDataSource>(
     () => CoachInviteRemoteDataSourceImpl(sl()),
   );
