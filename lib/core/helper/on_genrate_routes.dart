@@ -1,5 +1,6 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
+import 'package:athletica/features/check_ins/presentation/models/check_in_preview_role.dart';
 import 'package:athletica/features/check_ins/presentation/views/check_ins_preview_view.dart';
 import 'package:flutter/foundation.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';

@@ -1,0 +1,1 @@
+enum CheckInPreviewRole { coach, client }
