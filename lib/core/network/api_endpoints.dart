@@ -26,7 +26,9 @@ class ApiEndpoints {
     final path = Uri.parse(uriPath).path;
     return publicAuthPaths.any(
       (endpoint) =>
-          path == endpoint || path == '/$endpoint' || path.endsWith('/$endpoint'),
+          path == endpoint ||
+          path == '/$endpoint' ||
+          path.endsWith('/$endpoint'),
     );
   }
 
@@ -73,8 +75,10 @@ class ApiEndpoints {
   static String nutritionTemplateMealFoods(String templateId, String mealId) =>
       'nutrition/templates/$templateId/meals/$mealId/foods';
   static String nutritionTemplateMealFood(
-          String templateId, String mealId, String foodId) =>
-      'nutrition/templates/$templateId/meals/$mealId/foods/$foodId';
+    String templateId,
+    String mealId,
+    String foodId,
+  ) => 'nutrition/templates/$templateId/meals/$mealId/foods/$foodId';
   static String assignNutritionTemplate(String templateId) =>
       'nutrition/templates/$templateId/assign';
 
@@ -90,8 +94,10 @@ class ApiEndpoints {
   static String nutritionPlanMealFoods(String planId, String mealId) =>
       'nutrition/plans/$planId/meals/$mealId/foods';
   static String nutritionPlanMealFood(
-          String planId, String mealId, String foodId) =>
-      'nutrition/plans/$planId/meals/$mealId/foods/$foodId';
+    String planId,
+    String mealId,
+    String foodId,
+  ) => 'nutrition/plans/$planId/meals/$mealId/foods/$foodId';
 
   // Coach-client assignment (documented contract: NUTRITION_API_FOR_FLUTTER.md)
   static const String coachClients = 'coach/clients';
@@ -150,8 +156,7 @@ class ApiEndpoints {
     String templateId,
     String dayId,
     String exerciseId,
-  ) =>
-      'workout/templates/$templateId/days/$dayId/exercises/$exerciseId';
+  ) => 'workout/templates/$templateId/days/$dayId/exercises/$exerciseId';
   static String assignWorkoutTemplateV1(String templateId) =>
       'workout/templates/$templateId/assign';
 
@@ -169,8 +174,7 @@ class ApiEndpoints {
     String planId,
     String dayId,
     String exerciseId,
-  ) =>
-      'workout/plans/$planId/days/$dayId/exercises/$exerciseId';
+  ) => 'workout/plans/$planId/days/$dayId/exercises/$exerciseId';
 
   // ── Check-In (documented contract: CHECK_IN.md) ─────────────────────
   // Coach prefix /coach/checkin, client prefix /client/checkin.
@@ -187,8 +191,10 @@ class ApiEndpoints {
   static String coachCheckinSubmission(
     String coachClientId,
     String submissionId,
-  ) =>
-      'coach/checkin/clients/$coachClientId/submissions/$submissionId';
+  ) => 'coach/checkin/clients/$coachClientId/submissions/$submissionId';
+
+  static String coachCheckinStatus(String coachClientId) =>
+      'coach/checkin/clients/$coachClientId/status';
 
   // Note the backend spelling: hasassign (no 'd').
   static const String clientCheckinHasAssign = 'client/checkin/hasassign';

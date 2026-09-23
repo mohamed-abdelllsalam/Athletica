@@ -11,6 +11,9 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
   late final TextEditingController _newOptions;
   late final TextEditingController _editQuestion;
   late final List<CheckInQuestion> _questions;
+  late List<CheckInQuestion> _baseline;
+  bool _popAllowed = false;
+  bool _hasDraftText = false;
   final Set<String> _selected = {};
   CheckInQuestionType _newType = CheckInQuestionType.TEXT;
   int _nextId = 0;
@@ -35,30 +38,38 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
   void initState() {
     super.initState();
     _newQuestion = TextEditingController();
+    _newQuestion.addListener(_onDraftChanged);
     _newOptions = TextEditingController();
     _editQuestion = TextEditingController();
     _questions = List.of(widget.questions);
+    _baseline = List.of(widget.questions);
   }
 
   @override
   void dispose() {
+    _newQuestion.removeListener(_onDraftChanged);
     _newQuestion.dispose();
     _newOptions.dispose();
     _editQuestion.dispose();
     super.dispose();
   }
 
-  void _addQuestion() {
+  void _onDraftChanged() {
+    final hasText = _newQuestion.text.trim().isNotEmpty;
+    if (hasText != _hasDraftText) setState(() => _hasDraftText = hasText);
+  }
+
+  bool _addQuestion() {
     final label = _newQuestion.text.trim();
     if (label.isEmpty) {
       setState(() => _draftError = 'Write a question first.');
-      return;
+      return false;
     }
     if (label.length > 500) {
       setState(
         () => _draftError = 'Keep questions within 500 characters.',
       );
-      return;
+      return false;
     }
     var options = const <String>[];
     if (_needsOptions(_newType)) {
@@ -72,7 +83,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
           () => _draftError =
               'Add at least two options separated by commas.',
         );
-        return;
+        return false;
       }
       options = parsed.isEmpty ? const ['Yes', 'No'] : parsed;
     }
@@ -94,6 +105,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
       _newQuestion.clear();
       _newOptions.clear();
     });
+    return true;
   }
 
   void _startEdit(CheckInQuestion question) {
@@ -153,32 +165,213 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
     });
   }
 
+  Future<bool> _persistTemplate() => context
+      .read<CheckInsCubit>()
+      .saveQuestions(current: _baseline, updated: List.of(_questions));
+
+  /// The guard below vetoes every pop while [_popAllowed] is false, so
+  /// leaving the screen must go through here — a plain Navigator.pop
+  /// would be vetoed and reopen the guard dialog in a loop.
+  Future<void> _popPage() async {
+    if (!mounted) return;
+    setState(() => _popAllowed = true);
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    Navigator.pop(context);
+  }
+
+  /// Rebase local edits onto the saved server questions (real UUIDs for
+  /// newly created rows) so the dirty-check and a second save/send don't
+  /// treat already-saved rows as new.
+  void _rebaseToServer(CheckInsCubit cubit) {
+    final refreshed = cubit.state;
+    if (refreshed is CheckInsReady) {
+      setState(() {
+        _baseline = List.of(refreshed.questions);
+        _questions
+          ..clear()
+          ..addAll(refreshed.questions);
+      });
+    }
+  }
+
+  void _showCubitMessage(CheckInsCubit cubit, String fallback) {
+    final state = cubit.state;
+    final message = state is CheckInsReady && state.message != null
+        ? state.message!
+        : fallback;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _save() async {
-    final cubit = context.read<CheckInsCubit>();
-    final success = await cubit.saveQuestions(
-      current: widget.questions,
-      updated: List.of(_questions),
-    );
+    final success = await _persistTemplate();
     if (!mounted || !success) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Template saved.')));
-    Navigator.pop(context);
+    await _popPage();
   }
 
-  Future<void> _send() async {
-    final sent = await context
-        .read<CheckInsCubit>()
-        .assignCheckins(_selected.toList());
-    if (!mounted || !sent) return;
+  /// Appears while typing a new question: adds the draft AND persists it
+  /// to the server immediately, so it survives logout/login without
+  /// scrolling down to Save Template first.
+  Future<void> _saveDraftQuestion() async {
+    if (!_addQuestion()) return;
+    FocusScope.of(context).unfocus();
+    final cubit = context.read<CheckInsCubit>();
+    final saved = await _persistTemplate();
+    if (!mounted) return;
+    if (!saved) {
+      _showCubitMessage(cubit, 'Could not save the new question.');
+      return;
+    }
+    _rebaseToServer(cubit);
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Check-in assigned.')));
+    ).showSnackBar(const SnackBar(content: Text('Question saved.')));
+  }
+
+  /// Local draft (unsaved) differs from the last server baseline, or text
+  /// is typed but not yet added as a question.
+  bool get _isDirty {
+    if (_editingId != null || _newQuestion.text.trim().isNotEmpty) return true;
+    if (_questions.length != _baseline.length) return true;
+    for (var i = 0; i < _questions.length; i++) {
+      final local = _questions[i];
+      final saved = _baseline[i];
+      if (local.id != saved.id ||
+          local.label.trim() != saved.label.trim() ||
+          local.type != saved.type ||
+          !_sameOptions(local.options, saved.options)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static bool _sameOptions(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].trim() != b[i].trim()) return false;
+    }
+    return true;
+  }
+
+  /// Back/system-pop guard: never drop a typed question silently. Offers
+  /// Save & exit so the question is server-persisted and survives
+  /// logout/login.
+  Future<void> _exitWithResolution() async {
+    if (!mounted || _popAllowed) return;
+    final cubit = context.read<CheckInsCubit>();
+    final saving =
+        cubit.state is CheckInsReady && (cubit.state as CheckInsReady).saving;
+    if (saving) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saving… please wait.')),
+      );
+      return;
+    }
+    if (!_isDirty) {
+      await _popPage();
+      return;
+    }
+    final action = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: CheckInUi.note,
+        title: Text('Unsaved changes', style: CheckInUi.text(14)),
+        content: Text(
+          'You have questions that are not saved yet. They will be lost '
+          'if you leave now.',
+          style: CheckInUi.text(12, weight: FontWeight.w400),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 'discard'),
+            child: Text(
+              'Discard',
+              style: CheckInUi.text(12, color: Colors.redAccent),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: CheckInUi.violet,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, 'save'),
+            child: Text('Save & exit', style: CheckInUi.text(12)),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'discard') {
+      await _popPage();
+    } else if (action == 'save') {
+      final cubit = context.read<CheckInsCubit>();
+      final success = await _persistTemplate();
+      if (!mounted || !success) return;
+      _rebaseToServer(cubit);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Template saved.')));
+      await _popPage();
+    }
+  }
+
+  /// Save-then-send: persists template edits first so recipients receive
+  /// the NEW questions, then (re-)assigns even to already-pending clients
+  /// (backend `C6` upserts and refreshes `pending`).
+  Future<void> _send() async {
+    if (_selected.isEmpty) return;
+    final cubit = context.read<CheckInsCubit>();
+    final saved = await cubit.saveQuestions(
+      current: _baseline,
+      updated: List.of(_questions),
+    );
+    if (!mounted) return;
+    if (!saved) {
+      final state = cubit.state;
+      final message = state is CheckInsReady && state.message != null
+          ? state.message!
+          : 'Could not save the updated template.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
+    // Rebase local edits onto the saved server questions (real UUIDs for
+    // newly created rows) so a second Send doesn't re-create them.
+    _rebaseToServer(cubit);
+    final sent = await cubit.assignCheckins(_selected.toList());
+    if (!mounted) return;
+    if (!sent) {
+      final state = cubit.state;
+      final message = state is CheckInsReady && state.message != null
+          ? state.message!
+          : 'Could not send check-in.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Updated check-in sent.')),
+    );
   }
 
   @override
-  Widget build(BuildContext context) => CheckInPage(
+  Widget build(BuildContext context) => PopScope(
+    canPop: _popAllowed,
+    onPopInvokedWithResult: (didPop, _) async {
+      if (didPop) return;
+      await _exitWithResolution();
+    },
+    child: CheckInPage(
         title: 'Send Questions',
+        onBack: _exitWithResolution,
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16.r),
           child: Column(
@@ -245,7 +438,9 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
                                     width: 2,
                                   ),
                                 ),
-                                child: const CheckInAvatar(),
+                                child: CheckInAvatar(
+                                  imageUrl: client.clientPhotoUrl,
+                                ),
                               ),
                               SizedBox(height: 6.h),
                               Text(
@@ -455,10 +650,23 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
                 ),
               ],
               SizedBox(height: 12.h),
+              if (_hasDraftText) ...[
+                BlocBuilder<CheckInsCubit, CheckInsState>(
+                  builder: (context, state) {
+                    final saving = state is CheckInsReady && state.saving;
+                    return CheckInButton(
+                      label: saving ? 'Saving…' : 'Save Question',
+                      color: CheckInUi.violet,
+                      onPressed: saving ? null : _saveDraftQuestion,
+                    );
+                  },
+                ),
+                SizedBox(height: 12.h),
+              ],
               CheckInButton(
                 label: 'Add Another Question',
                 color: CheckInUi.question,
-                onPressed: _addQuestion,
+                onPressed: () => _addQuestion(),
               ),
               SizedBox(height: 16.h),
               BlocBuilder<CheckInsCubit, CheckInsState>(
@@ -488,5 +696,6 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
             ],
           ),
         ),
-      );
+      ),
+    );
 }

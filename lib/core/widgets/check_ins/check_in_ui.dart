@@ -60,10 +60,28 @@ class CheckInAsset extends StatelessWidget {
 }
 
 class CheckInAvatar extends StatelessWidget {
-  const CheckInAvatar({super.key, this.size = 45});
+  const CheckInAvatar({super.key, this.size = 45, this.imageUrl});
   final double size;
+  final String? imageUrl;
   @override
-  Widget build(BuildContext context) => ClipOval(
+  Widget build(BuildContext context) {
+    final url = imageUrl?.trim() ?? '';
+    if (url.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          url,
+          width: size.w,
+          height: size.w,
+          fit: BoxFit.cover,
+          semanticLabel: 'Client photo',
+          errorBuilder: (_, _, _) => _fallback(),
+        ),
+      );
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() => ClipOval(
     child: Image.asset(
       'assets/icons/check_in_avatar.png',
       width: size.w,
@@ -198,11 +216,16 @@ class CheckInPage extends StatelessWidget {
     required this.child,
     this.actions,
     this.bottomNavigationBar,
+    this.onBack,
   });
   final String title;
   final Widget child;
   final List<Widget>? actions;
   final Widget? bottomNavigationBar;
+
+  /// Intercepts the AppBar back button (imperative pops bypass PopScope,
+  /// so a screen-level guard must be wired here explicitly).
+  final Future<void> Function()? onBack;
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.black,
@@ -213,7 +236,14 @@ class CheckInPage extends StatelessWidget {
       leading: Navigator.canPop(context)
           ? IconButton(
               tooltip: 'Back',
-              onPressed: () => Navigator.pop(context),
+              onPressed: () async {
+                final back = onBack;
+                if (back != null) {
+                  await back();
+                } else {
+                  Navigator.pop(context);
+                }
+              },
               icon: const CheckInAsset('back', size: 20),
             )
           : null,

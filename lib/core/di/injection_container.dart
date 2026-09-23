@@ -26,11 +26,14 @@ import 'package:athletica/features/check_ins/domain/usecases/assign_check_in_use
 import 'package:athletica/features/check_ins/domain/usecases/get_check_in_questions_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/get_check_ins_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/get_checkin_pending_usecase.dart';
+import 'package:athletica/features/check_ins/domain/usecases/get_client_submission_detail_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/get_client_submissions_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/get_coach_submission_detail_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/get_coach_submissions_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/save_check_in_questions_usecase.dart';
 import 'package:athletica/features/check_ins/domain/usecases/save_check_in_response_usecase.dart';
+import 'package:athletica/features/check_ins/presentation/cubits/check_in_history_cubit.dart';
+import 'package:athletica/features/check_ins/presentation/cubits/check_in_submission_cubit.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
 import 'package:athletica/features/client_coach/data/datasources/client_coach_remote_data_source.dart';
 import 'package:athletica/features/client_coach/data/repositories/client_coach_repository_impl.dart';
@@ -209,6 +212,9 @@ void setupCheckInsPreviewDependencies() {
   sl.registerLazySingleton(() => GetCoachSubmissionsUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachSubmissionDetailUseCase(sl()));
   sl.registerLazySingleton(() => GetClientSubmissionsUseCase(sl()));
+  sl.registerLazySingleton(() => GetClientSubmissionDetailUseCase(sl()));
+  sl.registerFactory(() => CheckInHistoryCubit(sl()));
+  sl.registerFactory(() => CheckInSubmissionCubit(sl(), sl()));
   sl.registerFactory(
     () => CheckInsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
   );

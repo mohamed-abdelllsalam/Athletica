@@ -2,11 +2,27 @@
 /// Check-in domain entities (documented contract: CHECK_IN.md §3).
 /// Enum values intentionally match the backend's uppercase question types.
 ///
-/// [CheckIn] is the coach roster row (a client that can receive an
-/// assignment) or a client submission-history row. The backend exposes no
-/// coach-side pending status, so roster rows use [CheckInStatus.unknown`.
-/// Never infer pending/completed from submission history.
-enum CheckInStatus { completed, pending, unknown }
+/// Current assignment takes priority over earlier completed submissions.
+enum CheckInStatus { completed, pending, notAssigned }
+
+class CheckInClientStatus {
+  const CheckInClientStatus({
+    required this.hasPending,
+    required this.answered,
+    required this.submissionsCount,
+    this.lastSubmittedAt,
+  });
+  final bool hasPending;
+  final bool answered;
+  final int submissionsCount;
+  final DateTime? lastSubmittedAt;
+
+  CheckInStatus get status => hasPending
+      ? CheckInStatus.pending
+      : answered
+      ? CheckInStatus.completed
+      : CheckInStatus.notAssigned;
+}
 
 /// Backend question types (CHECK_IN.md §3.1). Serialized uppercase.
 enum CheckInQuestionType { NUMBER, TEXT, SINGLE_CHOICE, YES_NO, RATING, IMAGE }
@@ -47,7 +63,8 @@ class CheckIn {
     required this.id,
     required this.clientName,
     required this.status,
-    this.timeLabel = '—',
+    this.submittedAt,
+    this.clientPhotoUrl,
     Map<String, String> answers = const {},
   }) : answers = Map.unmodifiable(answers);
 
@@ -57,19 +74,25 @@ class CheckIn {
   final String clientName;
   final CheckInStatus status;
 
-  /// Display only; no backend time exists for roster rows.
-  final String timeLabel;
+  /// Client profile photo (`client.profile_image` from `GET /coach/clients`).
+  /// Null/empty when the client has no photo — callers must fall back to a
+  /// placeholder avatar.
+  final String? clientPhotoUrl;
+
+  /// Latest submission time, never an assignment timestamp.
+  final DateTime? submittedAt;
 
   /// Answers keyed by question UUID (form state / detail values).
   final Map<String, String> answers;
 
   CheckIn withResponse({required Map<String, String> answers}) => CheckIn(
-        id: id,
-        clientName: clientName,
-        status: CheckInStatus.completed,
-        timeLabel: 'Preview response',
-        answers: answers,
-      );
+    id: id,
+    clientName: clientName,
+    status: CheckInStatus.completed,
+    submittedAt: DateTime.now(),
+    clientPhotoUrl: clientPhotoUrl,
+    answers: answers,
+  );
 }
 
 /// A submitted check-in with historical answers (CHECK_IN.md §3.2).

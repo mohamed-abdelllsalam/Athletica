@@ -29,28 +29,40 @@ class CheckInsRepositoryImpl implements CheckInsRepository {
 
   @override
   Future<ApiResult<List<CheckIn>>> getCheckIns() => _guard(() async {
-        final clients = await _clientsDataSource.getAssignedClients();
-        return clients
-            .map(
-              (c) => CheckIn(
-                id: c.relationId,
-                clientName: c.name,
-                status: CheckInStatus.unknown,
-              ),
-            )
-            .toList();
-      });
+    final clients = await _clientsDataSource.getAssignedClients();
+    final entries = <CheckIn>[];
+    // Bound concurrent requests while enriching the roster with authoritative status.
+    for (var start = 0; start < clients.length; start += 6) {
+      final batch = clients.skip(start).take(6);
+      entries.addAll(
+        await Future.wait(
+          batch.map((client) async {
+            final status = await _dataSource.getCoachClientStatus(
+              client.relationId,
+            );
+            return CheckIn(
+              id: client.relationId,
+              clientName: client.name,
+              status: status.status,
+              submittedAt: status.lastSubmittedAt,
+              clientPhotoUrl: client.profileImage,
+            );
+          }),
+        ),
+      );
+    }
+    return entries;
+  });
 
   @override
   Future<ApiResult<List<CheckInQuestion>>> getQuestions({
     bool coachView = true,
-  }) =>
-      _guard(() async {
-        final models = coachView
-            ? await _dataSource.getCoachQuestions()
-            : await _dataSource.getClientQuestions();
-        return models.map((m) => m.toEntity()).toList();
-      });
+  }) => _guard(() async {
+    final models = coachView
+        ? await _dataSource.getCoachQuestions()
+        : await _dataSource.getClientQuestions();
+    return models.map((m) => m.toEntity()).toList();
+  });
 
   @override
   Future<ApiResult<CheckInSubmitResult>> saveResponse({
@@ -64,10 +76,7 @@ class CheckInsRepositoryImpl implements CheckInsRepository {
         if (question.type == CheckInQuestionType.IMAGE) continue;
         final value = answers[question.id]?.trim() ?? '';
         if (value.isEmpty) continue;
-        textAnswers.add({
-          'question_id': question.id,
-          'answer_value': value,
-        });
+        textAnswers.add({'question_id': question.id, 'answer_value': value});
       }
       final result = await _dataSource.submitCheckin(
         textAnswers: textAnswers,
@@ -92,78 +101,80 @@ class CheckInsRepositoryImpl implements CheckInsRepository {
     required String question,
     required CheckInQuestionType type,
     List<String>? options,
-  }) =>
-      _guard(
-        () async => (await _dataSource.createCoachQuestion(
-          question: question,
-          type: type.name,
-          options: options,
-        ))
-            .toEntity(),
-      );
+  }) => _guard(
+    () async => (await _dataSource.createCoachQuestion(
+      question: question,
+      type: type.name,
+      options: options,
+    )).toEntity(),
+  );
 
   @override
   Future<ApiResult<CheckInQuestion>> updateQuestion({
     required String questionId,
     String? question,
-  }) =>
-      _guard(
-        () async => (await _dataSource.updateCoachQuestion(
-          questionId,
-          question: question,
-        ))
-            .toEntity(),
-      );
+  }) => _guard(
+    () async => (await _dataSource.updateCoachQuestion(
+      questionId,
+      question: question,
+    )).toEntity(),
+  );
 
   @override
-  Future<ApiResult<void>> deleteQuestion(String questionId) => _guard(
-        () async => _dataSource.deleteCoachQuestion(questionId),
-      );
+  Future<ApiResult<void>> deleteQuestion(String questionId) =>
+      _guard(() async => _dataSource.deleteCoachQuestion(questionId));
 
   @override
   Future<ApiResult<List<CheckInQuestion>>> reorderQuestions(
     List<String> questionIds,
-  ) =>
-      _guard(() async => (await _dataSource.reorderCoachQuestions(questionIds))
-          .map((m) => m.toEntity())
-          .toList());
+  ) => _guard(
+    () async => (await _dataSource.reorderCoachQuestions(
+      questionIds,
+    )).map((m) => m.toEntity()).toList(),
+  );
 
   @override
   Future<ApiResult<void>> assignCheckin({required String coachClientId}) =>
       _guard(
-        () async =>
-            _dataSource.assignCheckin(coachClientId: coachClientId),
+        () async => _dataSource.assignCheckin(coachClientId: coachClientId),
       );
 
   @override
   Future<ApiResult<List<CheckInSubmission>>> getCoachSubmissions(
     String coachClientId,
-  ) =>
-      _guard(() async => (await _dataSource.getCoachSubmissions(coachClientId))
-          .map((m) => m.toEntity())
-          .toList());
+  ) => _guard(
+    () async => (await _dataSource.getCoachSubmissions(
+      coachClientId,
+    )).map((m) => m.toEntity()).toList(),
+  );
 
   @override
   Future<ApiResult<CheckInSubmission>> getCoachSubmissionDetail(
     String coachClientId,
     String submissionId,
-  ) =>
-      _guard(
-        () async => (await _dataSource.getCoachSubmissionDetail(
-          coachClientId,
-          submissionId,
-        ))
-            .toEntity(),
-      );
+  ) => _guard(
+    () async => (await _dataSource.getCoachSubmissionDetail(
+      coachClientId,
+      submissionId,
+    )).toEntity(),
+  );
 
   @override
-  Future<ApiResult<bool>> hasPendingAssignment() => _guard(
-        () async => _dataSource.hasPendingAssignment(),
-      );
+  Future<ApiResult<bool>> hasPendingAssignment() =>
+      _guard(() async => _dataSource.hasPendingAssignment());
 
   @override
-  Future<ApiResult<List<CheckInSubmission>>> getClientSubmissions() =>
-      _guard(() async => (await _dataSource.getClientSubmissions())
-          .map((m) => m.toEntity())
-          .toList());
+  Future<ApiResult<List<CheckInSubmission>>> getClientSubmissions() => _guard(
+    () async => (await _dataSource.getClientSubmissions())
+        .map((m) => m.toEntity())
+        .toList(),
+  );
+
+  @override
+  Future<ApiResult<CheckInSubmission>> getClientSubmissionDetail(
+    String submissionId,
+  ) => _guard(
+    () async =>
+        (await _dataSource.getClientSubmissionDetail(submissionId)).toEntity(),
+  );
 }

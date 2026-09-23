@@ -1,3 +1,4 @@
+import 'package:athletica/core/utils/check_in_date_format.dart';
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +10,12 @@ class CheckInClientCard extends StatelessWidget {
     required this.entry,
     required this.onView,
     required this.onSend,
+    this.sending = false,
   });
   final CheckIn entry;
   final VoidCallback onView;
   final VoidCallback onSend;
+  final bool sending;
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -26,7 +29,7 @@ class CheckInClientCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CheckInAvatar(),
+              CheckInAvatar(imageUrl: entry.clientPhotoUrl),
               SizedBox(width: 8.w),
               Expanded(
                 child: Column(
@@ -43,7 +46,7 @@ class CheckInClientCard extends StatelessWidget {
                         color: switch (entry.status) {
                           CheckInStatus.completed => const Color(0xFF1E3B24),
                           CheckInStatus.pending => const Color(0xFF40300F),
-                          CheckInStatus.unknown => const Color(0xFF2A2E35),
+                          CheckInStatus.notAssigned => const Color(0xFF2A2E35),
                         },
                         borderRadius: BorderRadius.circular(7.r),
                       ),
@@ -51,19 +54,16 @@ class CheckInClientCard extends StatelessWidget {
                         switch (entry.status) {
                           CheckInStatus.completed => '● Completed',
                           CheckInStatus.pending => '● Pending',
-                          // The backend exposes no coach-side pending status;
-                          // never infer it from submission history.
-                          CheckInStatus.unknown => '● Unknown',
+                          CheckInStatus.notAssigned => '● Not assigned',
                         },
                         style: CheckInUi.text(
                           8,
                           color: switch (entry.status) {
-                            CheckInStatus.completed =>
-                              const Color(0xFF38D855),
-                            CheckInStatus.pending =>
-                              const Color(0xFFE4A724),
-                            CheckInStatus.unknown =>
-                              const Color(0xFF9AA0A6),
+                            CheckInStatus.completed => const Color(0xFF38D855),
+                            CheckInStatus.pending => const Color(0xFFE4A724),
+                            CheckInStatus.notAssigned => const Color(
+                              0xFF9AA0A6,
+                            ),
                           },
                         ),
                       ),
@@ -75,12 +75,18 @@ class CheckInClientCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(entry.timeLabel, style: CheckInUi.text(9)),
+                  if (entry.submittedAt != null) ...[
+                    Text('Last submitted', style: CheckInUi.text(9)),
+                    Text(
+                      formatCheckInDate(entry.submittedAt),
+                      style: CheckInUi.text(9),
+                    ),
+                  ],
                   SizedBox(height: 8.h),
                   SizedBox(
                     width: 76.w,
                     child: FilledButton(
-                      onPressed: onSend,
+                      onPressed: sending ? null : onSend,
                       style: FilledButton.styleFrom(
                         backgroundColor: CheckInUi.violet,
                         minimumSize: const Size(0, 30),
@@ -90,7 +96,7 @@ class CheckInClientCard extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'Send',
+                        sending ? 'Sending…' : 'Send',
                         style: CheckInUi.text(11, weight: FontWeight.w400),
                       ),
                     ),
@@ -104,7 +110,7 @@ class CheckInClientCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               SizedBox(
-                width: 48.w,
+                width: 72.w,
                 child: FilledButton(
                   onPressed: onView,
                   style: FilledButton.styleFrom(
@@ -115,7 +121,7 @@ class CheckInClientCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(5.r),
                     ),
                   ),
-                  child: Text('View', style: CheckInUi.text(10)),
+                  child: Text('History', style: CheckInUi.text(10)),
                 ),
               ),
             ],

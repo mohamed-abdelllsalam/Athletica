@@ -33,17 +33,32 @@ final class CheckInsReady extends CheckInsState {
     required this.entries,
     required this.questions,
     this.hasPending = false,
+    this.history,
     this.saving = false,
     this.message,
   });
   final List<CheckIn> entries;
   final List<CheckInQuestion> questions;
 
-  /// Client pending flag (`L1`). Always false for the coach roster: the
-  /// backend exposes no coach-side pending status.
   final bool hasPending;
+
+  /// Null while history loads; failures stay local to the history section.
+  final ApiResult<List<CheckInSubmission>>? history;
   final bool saving;
   final String? message;
+
+  CheckInStatus? get clientStatus {
+    final submissions = switch (history) {
+      ApiSuccess(:final data) => data,
+      _ => null,
+    };
+    if (!hasPending && submissions == null) return null;
+    return CheckInClientStatus(
+      hasPending: hasPending,
+      answered: submissions?.isNotEmpty ?? false,
+      submissionsCount: submissions?.length ?? 0,
+    ).status;
+  }
 }
 
 class CheckInsCubit extends Cubit<CheckInsState> {
@@ -100,39 +115,68 @@ class CheckInsCubit extends Cubit<CheckInsState> {
 
   Future<void> _loadClient(int request) async {
     final pending = await _getPending();
-    final questions = await _getQuestions(coachView: false);
-    final history = await _getClientSubmissions();
     if (isClosed || request != _request) return;
-    final hasPending = switch (pending) {
-      ApiSuccess(:final data) => data,
-      ApiError() => false,
-    };
-    switch ((questions, history)) {
-      case (ApiSuccess(data: final fields), ApiSuccess(data: final items)):
+    if (pending case ApiError(:final failure)) {
+      emit(CheckInsError(failure.message));
+      return;
+    }
+    final hasPending = (pending as ApiSuccess<bool>).data;
+    final questions = hasPending
+        ? await _getQuestions(coachView: false)
+        : const ApiSuccess<List<CheckInQuestion>>([]);
+    if (isClosed || request != _request) return;
+    switch (questions) {
+      case ApiError(:final failure):
+        emit(CheckInsError(failure.message));
+      case ApiSuccess(:final data):
         emit(
           CheckInsReady(
-            entries: [
-              for (final s in items)
-                CheckIn(
-                  id: s.id,
-                  clientName: '',
-                  status: CheckInStatus.completed,
-                  timeLabel: s.submittedAt?.toIso8601String() ?? '—',
-                  answers: {
-                    for (final a in s.answers)
-                      if (a.questionId != null) a.questionId!: a.answerValue,
-                  },
-                ),
-            ],
-            questions: fields,
+            entries: const [],
+            questions: data,
             hasPending: hasPending,
           ),
         );
-      case (ApiError(:final failure), _):
-        emit(CheckInsError(failure.message));
-      case (_, ApiError(:final failure)):
-        emit(CheckInsError(failure.message));
+        await reloadClientHistory();
     }
+  }
+
+  int _historyRequest = 0;
+  Future<void> reloadClientHistory() async {
+    final current = state;
+    if (current is! CheckInsReady || _role != CheckInPreviewRole.client) return;
+    final request = ++_historyRequest;
+    final loadRequest = _request;
+    emit(
+      CheckInsReady(
+        entries: current.entries,
+        questions: current.questions,
+        hasPending: current.hasPending,
+        saving: current.saving,
+        message: current.message,
+      ),
+    );
+    final result = await _getClientSubmissions();
+    if (isClosed || request != _historyRequest || loadRequest != _request) {
+      return;
+    }
+    final ready = state;
+    if (ready is! CheckInsReady) return;
+    emit(
+      CheckInsReady(
+        entries: ready.entries,
+        questions: ready.questions,
+        hasPending: ready.hasPending,
+        saving: ready.saving,
+        message: ready.message,
+        history: result,
+      ),
+    );
+  }
+
+  Future<void> refresh() async {
+    // A pull-to-refresh must not clear the submit guard during an active write.
+    if (state case CheckInsReady(saving: true)) return;
+    await load(query: _query, filter: _filter, role: _role);
   }
 
   /// Client submit (`L3`). The `saving` flag guards double-taps; entered
@@ -151,6 +195,7 @@ class CheckInsCubit extends Cubit<CheckInsState> {
         entries: current.entries,
         questions: current.questions,
         hasPending: current.hasPending,
+        history: current.history,
         saving: true,
       ),
     );
@@ -174,6 +219,7 @@ class CheckInsCubit extends Cubit<CheckInsState> {
             entries: current.entries,
             questions: current.questions,
             hasPending: current.hasPending,
+            history: current.history,
             message: failure.message,
           ),
         );
@@ -192,6 +238,7 @@ class CheckInsCubit extends Cubit<CheckInsState> {
         entries: ready.entries,
         questions: ready.questions,
         hasPending: ready.hasPending,
+        history: ready.history,
         saving: true,
       ),
     );
@@ -201,10 +248,7 @@ class CheckInsCubit extends Cubit<CheckInsState> {
     );
   }
 
-  /// Assigns a pending check-in to each selected client (`C6`,
-  /// `coach_clients.id`). Returns false with the first error message on
-  /// failure; successes refresh nothing coach-side (no pending status is
-  /// exposed) — the client's next refresh shows the banner.
+  /// Refresh even after partial success so already-assigned clients show Pending.
   Future<bool> assignCheckins(List<String> coachClientIds) async {
     final ready = state;
     if (ready is! CheckInsReady || ready.saving) return false;
@@ -213,48 +257,49 @@ class CheckInsCubit extends Cubit<CheckInsState> {
         entries: ready.entries,
         questions: ready.questions,
         hasPending: ready.hasPending,
+        history: ready.history,
         saving: true,
       ),
     );
+    String? error;
     for (final id in coachClientIds) {
       final result = await _assign(coachClientId: id);
-      if (result is ApiError) {
-        if (isClosed) return false;
-        emit(
-          CheckInsReady(
-            entries: ready.entries,
-            questions: ready.questions,
-            hasPending: ready.hasPending,
-            message: result.failure.message,
-          ),
-        );
-        return false;
+      if (isClosed) return false;
+      if (result case ApiError(:final failure)) {
+        error = failure.message;
+        break;
       }
     }
+    await load(query: _query, filter: _filter, role: _role);
     if (isClosed) return false;
-    emit(
-      CheckInsReady(
-        entries: ready.entries,
-        questions: ready.questions,
-        hasPending: ready.hasPending,
-      ),
-    );
-    return true;
+    final refreshed = state;
+    if (error != null && refreshed is CheckInsReady) {
+      emit(
+        CheckInsReady(
+          entries: refreshed.entries,
+          questions: refreshed.questions,
+          hasPending: refreshed.hasPending,
+          history: refreshed.history,
+          message: error,
+        ),
+      );
+    } else if (error != null && refreshed is CheckInsError) {
+      emit(CheckInsError('$error ${refreshed.message}'));
+    }
+    return error == null;
   }
 
   Future<ApiResult<List<CheckInSubmission>>> coachSubmissions(
     String coachClientId,
-  ) =>
-      _getCoachSubmissions(coachClientId);
+  ) => _getCoachSubmissions(coachClientId);
 
   Future<ApiResult<CheckInSubmission>> coachSubmissionDetail({
     required String coachClientId,
     required String submissionId,
-  }) =>
-      _getCoachSubmissionDetail(
-        coachClientId: coachClientId,
-        submissionId: submissionId,
-      );
+  }) => _getCoachSubmissionDetail(
+    coachClientId: coachClientId,
+    submissionId: submissionId,
+  );
 
   Future<bool> _finishSave(
     ApiResult<void> result,
@@ -271,6 +316,7 @@ class CheckInsCubit extends Cubit<CheckInsState> {
             entries: previous.entries,
             questions: previous.questions,
             hasPending: previous.hasPending,
+            history: previous.history,
             message: failure.message,
           ),
         );

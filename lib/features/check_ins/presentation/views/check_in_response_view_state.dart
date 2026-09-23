@@ -36,12 +36,10 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
 
   Future<void> _save() async {
     final saved = await context.read<CheckInsCubit>().saveResponse(
-          questions: widget.questions,
-          answers: {
-            for (final item in _answers.entries) item.key: item.value.text
-          },
-          imageFiles: Map.of(_images),
-        );
+      questions: widget.questions,
+      answers: {for (final item in _answers.entries) item.key: item.value.text},
+      imageFiles: Map.of(_images),
+    );
     if (!mounted) return;
     if (saved) {
       ScaffoldMessenger.of(
@@ -55,6 +53,43 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showFullPhoto(BuildContext context, String url) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.all(16.r),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    Padding(
+                      padding: EdgeInsets.all(24.r),
+                      child: Text(url, style: CheckInUi.text(11)),
+                    ),
+              ),
+            ),
+            Positioned(
+              top: 8.h,
+              right: 8.w,
+              child: IconButton(
+                tooltip: 'Close',
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                onPressed: () => Navigator.pop(dialogContext),
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _pickImage(String questionId, ImageSource source) async {
@@ -92,7 +127,8 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
     final controller = _answers[question.id]!;
     if (widget.coachResponse) {
       final text = controller.text;
-      final isPhoto = question.type == CheckInQuestionType.IMAGE &&
+      final isPhoto =
+          question.type == CheckInQuestionType.IMAGE &&
           (text.startsWith('http://') || text.startsWith('https://'));
       return Container(
         width: double.infinity,
@@ -102,22 +138,24 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
           borderRadius: BorderRadius.circular(5.r),
         ),
         child: isPhoto
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(5.r),
-                child: Image.network(
-                  text,
-                  height: 120.h,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Text(
-                    text,
-                    style: CheckInUi.text(11),
+            ? GestureDetector(
+                onTap: () => _showFullPhoto(context, text),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(5.r),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(maxHeight: 400.h),
+                    color: Colors.black,
+                    child: Image.network(
+                      text,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Text(text, style: CheckInUi.text(11)),
+                    ),
                   ),
                 ),
               )
-            : Text(
-                text.isEmpty ? '—' : text,
-                style: CheckInUi.text(11),
-              ),
+            : Text(text.isEmpty ? '—' : text, style: CheckInUi.text(11)),
       );
     }
     switch (question.type) {
@@ -128,8 +166,9 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
             : const ['Yes', 'No'];
         return DropdownButtonFormField<String>(
           key: ValueKey(question.id),
-          initialValue:
-              options.contains(controller.text) ? controller.text : null,
+          initialValue: options.contains(controller.text)
+              ? controller.text
+              : null,
           decoration: CheckInUi.input('Choose'),
           dropdownColor: CheckInUi.note,
           style: CheckInUi.text(11),
@@ -144,8 +183,9 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
         final options = List.generate(10, (i) => '${i + 1}');
         return DropdownButtonFormField<String>(
           key: ValueKey(question.id),
-          initialValue:
-              options.contains(controller.text) ? controller.text : null,
+          initialValue: options.contains(controller.text)
+              ? controller.text
+              : null,
           decoration: CheckInUi.input('Choose'),
           dropdownColor: CheckInUi.note,
           style: CheckInUi.text(11),
@@ -194,8 +234,7 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
                 IconButton(
                   key: ValueKey('pick-gallery-${question.id}'),
                   tooltip: 'Choose from gallery',
-                  onPressed: () =>
-                      _pickImage(question.id, ImageSource.gallery),
+                  onPressed: () => _pickImage(question.id, ImageSource.gallery),
                   style: IconButton.styleFrom(
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     padding: EdgeInsets.zero,
@@ -210,8 +249,7 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
                 IconButton(
                   key: ValueKey('pick-camera-${question.id}'),
                   tooltip: 'Take a photo',
-                  onPressed: () =>
-                      _pickImage(question.id, ImageSource.camera),
+                  onPressed: () => _pickImage(question.id, ImageSource.camera),
                   style: IconButton.styleFrom(
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     padding: EdgeInsets.zero,
@@ -234,11 +272,7 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
                       padding: EdgeInsets.zero,
                       minimumSize: const Size(28, 28),
                     ),
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.grey,
-                      size: 18,
-                    ),
+                    icon: const Icon(Icons.close, color: Colors.grey, size: 18),
                   ),
               ],
             ),
@@ -257,13 +291,13 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
             'Answer',
           ).copyWith(semanticCounterText: question.label),
           maxLength: 160,
-          buildCounter: (
-            _, {
-            required currentLength,
-            required isFocused,
-            required maxLength,
-          }) =>
-              null,
+          buildCounter:
+              (
+                _, {
+                required currentLength,
+                required isFocused,
+                required maxLength,
+              }) => null,
         );
     }
   }
@@ -271,23 +305,27 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
   @override
   Widget build(BuildContext context) {
     final content = SingleChildScrollView(
+      primary: !widget.embedded,
+      physics: widget.embedded ? const NeverScrollableScrollPhysics() : null,
       padding: EdgeInsets.fromLTRB(16.w, 18.h, 16.w, 30.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const CheckInAvatar(size: 65),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: Text(
-                  widget.entry.clientName,
-                  style: CheckInUi.text(14),
+          if (widget.coachResponse) ...[
+            Row(
+              children: [
+                CheckInAvatar(size: 65, imageUrl: widget.entry.clientPhotoUrl),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Text(
+                    widget.entry.clientName,
+                    style: CheckInUi.text(14),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 24.h),
+              ],
+            ),
+            SizedBox(height: 24.h),
+          ],
           Text(
             widget.coachResponse ? 'Client Responses' : 'Your Responses',
             style: CheckInUi.text(12),
@@ -336,8 +374,7 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
                       label: ready?.saving == true
                           ? 'Saving…'
                           : 'Save Response',
-                      onPressed:
-                          ready == null || ready.saving ? null : _save,
+                      onPressed: ready == null || ready.saving ? null : _save,
                     ),
                   ],
                 );

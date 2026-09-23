@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/utils/check_in_media.dart';
+import 'package:athletica/features/check_ins/data/models/check_in_client_status_model.dart';
 import 'package:athletica/features/check_ins/data/models/check_in_question_model.dart';
 import 'package:athletica/features/check_ins/data/models/check_in_submission_model.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
@@ -39,6 +40,7 @@ Map<String, dynamic> _mapFor(dynamic body, String key) {
 }
 
 abstract class CheckInsRemoteDataSource {
+  Future<CheckInClientStatusModel> getCoachClientStatus(String coachClientId);
   // ── Coach (prefix /coach/checkin) ──
   Future<List<CheckInQuestionModel>> getCoachQuestions();
   Future<CheckInQuestionModel> createCoachQuestion({
@@ -77,9 +79,7 @@ abstract class CheckInsRemoteDataSource {
     required Map<String, File> imageFiles,
   });
   Future<List<CheckInSubmissionModel>> getClientSubmissions();
-  Future<CheckInSubmissionModel> getClientSubmissionDetail(
-    String submissionId,
-  );
+  Future<CheckInSubmissionModel> getClientSubmissionDetail(String submissionId);
 }
 
 class CheckInsRemoteDataSourceImpl implements CheckInsRemoteDataSource {
@@ -89,9 +89,8 @@ class CheckInsRemoteDataSourceImpl implements CheckInsRemoteDataSource {
 
   List<CheckInQuestionModel> _parseQuestions(dynamic body) {
     final items = _listFor(body, 'questions');
-    final models =
-        items.map(CheckInQuestionModel.fromJson).toList()
-          ..sort((a, b) => a.order.compareTo(b.order));
+    final models = items.map(CheckInQuestionModel.fromJson).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
     return models;
   }
 
@@ -102,6 +101,24 @@ class CheckInsRemoteDataSourceImpl implements CheckInsRemoteDataSource {
       return CheckInQuestionModel.fromJson(body);
     }
     throw const FormatException('Unexpected question response format');
+  }
+
+  @override
+  Future<CheckInClientStatusModel> getCoachClientStatus(
+    String coachClientId,
+  ) async {
+    final response = await _dio.get(
+      ApiEndpoints.coachCheckinStatus(coachClientId),
+    );
+    final body = response.data;
+    if (body is! Map<String, dynamic>) {
+      throw const FormatException('Unexpected check-in status response');
+    }
+    return CheckInClientStatusModel.fromJson(
+      body['data'] is Map<String, dynamic>
+          ? body['data'] as Map<String, dynamic>
+          : body,
+    );
   }
 
   @override
@@ -184,9 +201,10 @@ class CheckInsRemoteDataSourceImpl implements CheckInsRemoteDataSource {
     final response = await _dio.get(
       ApiEndpoints.coachCheckinSubmissions(coachClientId),
     );
-    return _listFor(response.data, 'submissions')
-        .map(CheckInSubmissionModel.fromListJson)
-        .toList();
+    return _listFor(
+      response.data,
+      'submissions',
+    ).map(CheckInSubmissionModel.fromListJson).toList();
   }
 
   @override
@@ -269,9 +287,10 @@ class CheckInsRemoteDataSourceImpl implements CheckInsRemoteDataSource {
   @override
   Future<List<CheckInSubmissionModel>> getClientSubmissions() async {
     final response = await _dio.get(ApiEndpoints.clientCheckinSubmissions);
-    return _listFor(response.data, 'submissions')
-        .map(CheckInSubmissionModel.fromListJson)
-        .toList();
+    return _listFor(
+      response.data,
+      'submissions',
+    ).map(CheckInSubmissionModel.fromListJson).toList();
   }
 
   @override

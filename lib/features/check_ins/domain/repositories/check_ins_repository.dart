@@ -4,9 +4,8 @@ import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 
 abstract class CheckInsRepository {
-  /// Coach roster from `GET /coach/clients`, mapped to [CheckIn] rows with
-  /// [CheckInStatus.unknown]. `id` is `coach_clients.id` (the
-  /// `coach_client_id` for assignment).
+  /// Coach roster enriched with current assignment status and latest submission.
+  /// Row IDs are `coach_clients.id`, used for assignment and history.
   Future<ApiResult<List<CheckIn>>> getCheckIns();
 
   /// Coach form (`C1`) when [coachView] is true, client pending form (`L2`)
@@ -59,4 +58,9 @@ abstract class CheckInsRepository {
 
   /// Own history (`L4`), newest first.
   Future<ApiResult<List<CheckInSubmission>>> getClientSubmissions();
+
+  /// Own submission detail (`L5`), preserving historical question snapshots.
+  Future<ApiResult<CheckInSubmission>> getClientSubmissionDetail(
+    String submissionId,
+  );
 }

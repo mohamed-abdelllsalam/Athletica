@@ -8,6 +8,16 @@ import 'package:athletica/features/check_ins/domain/repositories/check_ins_repos
 /// Sample data for the explicitly labelled UI preview. Never calls an API,
 /// reads real profiles, or persists responses to disk.
 class PreviewCheckInsRepository implements CheckInsRepository {
+  PreviewCheckInsRepository() {
+    for (final entry in _entries) {
+      if (entry.answers.isNotEmpty) {
+        _coachHistory[entry.id] = [_submissionFor(entry)];
+      }
+    }
+  }
+
+  final Map<String, List<CheckInSubmission>> _coachHistory = {};
+
   List<CheckInQuestion> _questions = const [
     CheckInQuestion(
       id: 'weight',
@@ -49,7 +59,7 @@ class PreviewCheckInsRepository implements CheckInsRepository {
       id: 'sample-1',
       clientName: 'Ali Ahmed',
       status: CheckInStatus.completed,
-      timeLabel: 'Today, 9:30 AM',
+      submittedAt: DateTime(2026, 9, 23, 9, 30),
       answers: const {
         'weight': '78',
         'average': '78.5',
@@ -67,7 +77,7 @@ class PreviewCheckInsRepository implements CheckInsRepository {
       id: 'sample-3',
       clientName: 'Jamal Ali',
       status: CheckInStatus.completed,
-      timeLabel: 'Today, 9:30 AM',
+      submittedAt: DateTime(2026, 9, 23, 9, 30),
       answers: const {
         'weight': '85',
         'average': '85.2',
@@ -78,6 +88,9 @@ class PreviewCheckInsRepository implements CheckInsRepository {
     ),
   ];
 
+  bool _hasPending = true;
+  final List<CheckInSubmission> _clientHistory = [];
+
   @override
   Future<ApiResult<List<CheckIn>>> getCheckIns() async =>
       ApiSuccess(List.unmodifiable(_entries));
@@ -85,8 +98,11 @@ class PreviewCheckInsRepository implements CheckInsRepository {
   @override
   Future<ApiResult<List<CheckInQuestion>>> getQuestions({
     bool coachView = true,
-  }) async =>
-      ApiSuccess(List.unmodifiable(_questions));
+  }) async => ApiSuccess(
+    List.unmodifiable(
+      coachView || _hasPending ? _questions : <CheckInQuestion>[],
+    ),
+  );
 
   @override
   Future<ApiResult<CheckInSubmitResult>> saveResponse({
@@ -94,12 +110,45 @@ class PreviewCheckInsRepository implements CheckInsRepository {
     required Map<String, String> answers,
     required Map<String, File> imageFiles,
   }) async {
-    return ApiSuccess(
-      CheckInSubmitResult(
-        submissionId: 'preview-${DateTime.now().millisecondsSinceEpoch}',
-        submittedAt: DateTime.now(),
+    final at = DateTime.now();
+    final id = 'preview-${at.microsecondsSinceEpoch}';
+    _clientHistory.insert(
+      0,
+      CheckInSubmission(
+        id: id,
+        submittedAt: at,
+        answers: [
+          for (final q in questions)
+            if (answers[q.id] != null)
+              CheckInAnswer(
+                id: '$id-${q.id}',
+                questionId: q.id,
+                answerValue: answers[q.id]!,
+                snapshotQuestion: q.label,
+                snapshotType: q.type.name,
+                snapshotOptions: q.options,
+                snapshotRequired: q.required,
+                snapshotOrder: q.order,
+              ),
+        ],
       ),
     );
+    _hasPending = false;
+    // The preview client is the initially pending sample recipient.
+    final index = _entries.indexWhere((entry) => entry.id == 'sample-2');
+    final client = _entries[index];
+    _entries[index] = CheckIn(
+      id: client.id,
+      clientName: client.clientName,
+      status: CheckInStatus.completed,
+      submittedAt: at,
+      clientPhotoUrl: client.clientPhotoUrl,
+      answers: answers,
+    );
+    _coachHistory
+        .putIfAbsent(client.id, () => [])
+        .insert(0, _clientHistory.first);
+    return ApiSuccess(CheckInSubmitResult(submissionId: id, submittedAt: at));
   }
 
   @override
@@ -152,9 +201,7 @@ class PreviewCheckInsRepository implements CheckInsRepository {
         UnknownFailure('A form needs at least one question.'),
       );
     }
-    _questions = List.unmodifiable(
-      _questions.where((q) => q.id != questionId),
-    );
+    _questions = List.unmodifiable(_questions.where((q) => q.id != questionId));
     return const ApiSuccess(null);
   }
 
@@ -185,23 +232,27 @@ class PreviewCheckInsRepository implements CheckInsRepository {
   }
 
   @override
-  Future<ApiResult<void>> assignCheckin({
-    required String coachClientId,
-  }) async =>
-      const ApiSuccess(null);
+  Future<ApiResult<void>> assignCheckin({required String coachClientId}) async {
+    final index = _entries.indexWhere((entry) => entry.id == coachClientId);
+    if (index < 0) return const ApiError(UnknownFailure('Client not found.'));
+    final entry = _entries[index];
+    _entries[index] = CheckIn(
+      id: entry.id,
+      clientName: entry.clientName,
+      status: CheckInStatus.pending,
+      submittedAt: entry.submittedAt,
+      clientPhotoUrl: entry.clientPhotoUrl,
+      answers: entry.answers,
+    );
+    if (coachClientId == 'sample-2') _hasPending = true;
+    return const ApiSuccess(null);
+  }
 
   @override
   Future<ApiResult<List<CheckInSubmission>>> getCoachSubmissions(
     String coachClientId,
   ) async {
-    final entry = _entries
-        .where((e) => e.id == coachClientId)
-        .cast<CheckIn?>();
-    final match = entry.isEmpty ? null : entry.first;
-    if (match == null || match.status != CheckInStatus.completed) {
-      return const ApiSuccess([]);
-    }
-    return ApiSuccess([_submissionFor(match)]);
+    return ApiSuccess(List.unmodifiable(_coachHistory[coachClientId] ?? []));
   }
 
   @override
@@ -212,47 +263,53 @@ class PreviewCheckInsRepository implements CheckInsRepository {
     final submissions = await getCoachSubmissions(coachClientId);
     return switch (submissions) {
       ApiError(:final failure) => ApiError(failure),
-      ApiSuccess(:final data) => data
-          .where((s) => s.id == submissionId)
-          .cast<CheckInSubmission?>()
-          .firstOrNull == null
-          ? const ApiError(UnknownFailure('Check-in not found.'))
-          : ApiSuccess(
-              data.firstWhere((s) => s.id == submissionId),
-            ),
+      ApiSuccess(:final data) =>
+        data
+                    .where((s) => s.id == submissionId)
+                    .cast<CheckInSubmission?>()
+                    .firstOrNull ==
+                null
+            ? const ApiError(UnknownFailure('Check-in not found.'))
+            : ApiSuccess(data.firstWhere((s) => s.id == submissionId)),
     };
   }
 
   @override
-  Future<ApiResult<bool>> hasPendingAssignment() async => const ApiSuccess(true);
+  Future<ApiResult<bool>> hasPendingAssignment() async =>
+      ApiSuccess(_hasPending);
 
   @override
   Future<ApiResult<List<CheckInSubmission>>> getClientSubmissions() async {
-    return ApiSuccess(
-      _entries
-          .where((e) => e.status == CheckInStatus.completed)
-          .map(_submissionFor)
-          .toList(),
-    );
+    return ApiSuccess(List.unmodifiable(_clientHistory));
+  }
+
+  @override
+  Future<ApiResult<CheckInSubmission>> getClientSubmissionDetail(
+    String submissionId,
+  ) async {
+    final match = _clientHistory.where((s) => s.id == submissionId).firstOrNull;
+    return match == null
+        ? const ApiError(UnknownFailure('Check-in not found.'))
+        : ApiSuccess(match);
   }
 
   CheckInSubmission _submissionFor(CheckIn entry) => CheckInSubmission(
-        id: entry.id,
-        submittedAt: DateTime.now(),
-        clientName: entry.clientName,
-        answers: [
-          for (final question in _questions)
-            if (entry.answers[question.id] != null)
-              CheckInAnswer(
-                id: '${entry.id}-${question.id}',
-                questionId: question.id,
-                answerValue: entry.answers[question.id]!,
-                snapshotQuestion: question.label,
-                snapshotType: question.type.name,
-                snapshotOptions: question.options,
-                snapshotRequired: question.required,
-                snapshotOrder: question.order,
-              ),
-        ],
-      );
+    id: entry.id,
+    submittedAt: entry.submittedAt,
+    clientName: entry.clientName,
+    answers: [
+      for (final question in _questions)
+        if (entry.answers[question.id] != null)
+          CheckInAnswer(
+            id: '${entry.id}-${question.id}',
+            questionId: question.id,
+            answerValue: entry.answers[question.id]!,
+            snapshotQuestion: question.label,
+            snapshotType: question.type.name,
+            snapshotOptions: question.options,
+            snapshotRequired: question.required,
+            snapshotOrder: question.order,
+          ),
+    ],
+  );
 }
