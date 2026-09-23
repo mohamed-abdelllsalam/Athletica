@@ -2,7 +2,6 @@ import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
 import 'package:athletica/features/check_ins/presentation/models/check_in_preview_role.dart';
 import 'package:athletica/features/check_ins/presentation/views/check_ins_preview_view.dart';
-import 'package:flutter/foundation.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:athletica/features/auth/presentation/views/reset_otp_view.dart';
@@ -61,9 +60,6 @@ import 'package:flutter/material.dart';
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
   switch (settings.name) {
     case CheckInsPreviewView.routeName:
-      if (!kDebugMode) {
-        return MaterialPageRoute(builder: (_) => const SplashView());
-      }
       final role = settings.arguments;
       return MaterialPageRoute(
         builder: (_) => CheckInsPreviewView(

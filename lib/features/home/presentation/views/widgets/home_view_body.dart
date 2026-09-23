@@ -7,7 +7,6 @@ import 'package:athletica/features/home/presentation/views/widgets/nutritions_se
 import 'package:athletica/features/home/presentation/views/widgets/streak_section.dart';
 import 'package:athletica/features/home/presentation/views/widgets/summary_section.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workouts_section.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -34,16 +33,14 @@ class _HomeViewBodyState extends State<HomeViewBody> {
               const HomeAppBar(),
               SizedBox(height: 24.h),
               const StreakSection(),
-              if (kDebugMode) ...[
-                SizedBox(height: 16.h),
-                CheckInEntryCard(
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    CheckInsPreviewView.routeName,
-                    arguments: CheckInPreviewRole.client,
-                  ),
+              SizedBox(height: 16.h),
+              CheckInEntryCard(
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  CheckInsPreviewView.routeName,
+                  arguments: CheckInPreviewRole.client,
                 ),
-              ],
+              ),
               SizedBox(height: 28.h),
               SummarySection(
                 selectedTab: _selectedTab,
