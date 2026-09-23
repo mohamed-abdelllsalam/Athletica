@@ -3,9 +3,11 @@ import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/clients/domain/entities/client_detail.dart';
+import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/features/coach/clients/domain/usecases/get_coach_assigned_clients_usecase.dart';
+import 'package:athletica/features/coach/messages/presentation/models/coach_chat_route_args.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/client_detail_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/views/coach_client_info_view.dart';
-import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_templates_cubit.dart';
@@ -23,10 +25,12 @@ class CoachClientDetailViewBody extends StatefulWidget {
     super.key,
     required this.clientId,
     required this.clientName,
+    this.coachClientId,
   });
 
   final String clientId;
   final String clientName;
+  final String? coachClientId;
 
   @override
   State<CoachClientDetailViewBody> createState() =>
@@ -163,20 +167,45 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
   Widget _buildMessageButton(BuildContext context, ClientProfile client) {
     return CoachClientMessageButton(
       clientName: client.displayName,
-      onPressed: () {
-        final contact = ChatContact(
-          id: client.id,
-          name: client.displayName,
-          goals: client.goal != null ? [client.goal!] : [],
-          heightCm: client.heightCm?.toInt(),
-          weightKg: client.weightKg?.toInt(),
-        );
-        Navigator.pushNamed(
-          context,
-          CoachChatView.routeName,
-          arguments: contact,
-        );
-      },
+      onPressed: () => _openChat(context, client),
+    );
+  }
+
+  Future<void> _openChat(BuildContext context, ClientProfile client) async {
+    var assignmentId = widget.coachClientId;
+    if (assignmentId == null || assignmentId.isEmpty) {
+      final result = await sl<GetCoachAssignedClientsUseCase>()();
+      if (!context.mounted) return;
+      switch (result) {
+        case ApiSuccess(:final data):
+          for (final assignedClient in data) {
+            if (assignedClient.clientId == client.id) {
+              assignmentId = assignedClient.relationId;
+              break;
+            }
+          }
+        case ApiError(:final failure):
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(failure.message)));
+          return;
+      }
+    }
+    if (assignmentId == null || assignmentId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Client assignment is unavailable.')),
+      );
+      return;
+    }
+    Navigator.pushNamed(
+      context,
+      CoachChatView.routeName,
+      arguments: CoachChatRouteArgs(
+        clientId: client.id,
+        clientName: client.displayName,
+        clientImageUrl: client.profileImage,
+        coachClientId: assignmentId,
+      ),
     );
   }
 

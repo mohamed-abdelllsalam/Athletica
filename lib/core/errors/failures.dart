@@ -29,3 +29,8 @@ final class UnknownFailure extends AppFailure {
 final class CheckinNoPendingFailure extends AppFailure {
   const CheckinNoPendingFailure(super.message);
 }
+
+final class ChatFailure extends AppFailure {
+  const ChatFailure(super.message, {this.statusCode});
+  final int? statusCode;
+}

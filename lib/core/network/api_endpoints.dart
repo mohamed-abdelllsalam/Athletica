@@ -13,6 +13,16 @@ class ApiEndpoints {
   static const String confirmPasswordReset = 'auth/reset-password/confirm';
   static const String logout = 'auth/logout';
 
+  // Realtime messaging contract (CHAT_DOC.md).
+  static const String messagingConversations = 'messaging/conversations';
+  static String messagingConversation(String id) =>
+      'messaging/conversations/$id';
+  static String messagingMessages(String id) =>
+      '${messagingConversation(id)}/messages';
+  static String messagingFirstMessage(String coachClientId) =>
+      '$messagingConversations/by-coach-client/$coachClientId/messages';
+  static const String ablyToken = 'realtime/ably-token';
+
   static const List<String> publicAuthPaths = [
     signup,
     verifyEmail,

@@ -25,6 +25,7 @@ import 'package:athletica/features/coach/complete_profile/presentation/views/coa
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
+import 'package:athletica/features/coach/messages/presentation/models/coach_chat_route_args.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_contact_profile_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_message_requests_view.dart';
@@ -120,9 +121,13 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       final args = settings.arguments! as Map<String, dynamic>;
       final clientId = args['clientId'] as String;
       final clientName = args['clientName'] as String;
+      final coachClientId = args['coachClientId'] as String?;
       return MaterialPageRoute(
-        builder: (context) =>
-            CoachClientDetailView(clientId: clientId, clientName: clientName),
+        builder: (context) => CoachClientDetailView(
+          clientId: clientId,
+          clientName: clientName,
+          coachClientId: coachClientId,
+        ),
       );
     case CoachClientInfoView.routeName:
       final detail = settings.arguments! as ClientDetail;
@@ -132,9 +137,15 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case CoachMessagesView.routeName:
       return MaterialPageRoute(builder: (context) => const CoachMessagesView());
     case CoachChatView.routeName:
-      final contact = settings.arguments! as ChatContact;
+      final args = settings.arguments!;
+      if (args is CoachChatRouteArgs) {
+        final contact = ChatContact(id: args.clientId, name: args.clientName);
+        return MaterialPageRoute(
+          builder: (context) => CoachChatView(contact: contact, chatArgs: args),
+        );
+      }
       return MaterialPageRoute(
-        builder: (context) => CoachChatView(contact: contact),
+        builder: (context) => CoachChatView(contact: args as ChatContact),
       );
     case CoachContactProfileView.routeName:
       final contact = settings.arguments! as ChatContact;
@@ -233,9 +244,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           ? args
           : const TodaysWorkoutRouteArgs();
       return MaterialPageRoute(
-        builder: (context) => TodaysWorkoutView(
-          userGender: typedArgs.userGender,
-        ),
+        builder: (context) =>
+            TodaysWorkoutView(userGender: typedArgs.userGender),
       );
     case ClientCoachView.routeName:
       return MaterialPageRoute(builder: (context) => const ClientCoachView());

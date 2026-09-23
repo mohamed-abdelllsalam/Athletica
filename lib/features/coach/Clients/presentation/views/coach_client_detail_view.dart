@@ -9,12 +9,14 @@ class CoachClientDetailView extends StatelessWidget {
     super.key,
     required this.clientId,
     required this.clientName,
+    this.coachClientId,
   });
 
   static const String routeName = 'coach-client-detail';
 
   final String clientId;
   final String clientName;
+  final String? coachClientId;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,7 @@ class CoachClientDetailView extends StatelessWidget {
         body: CoachClientDetailViewBody(
           clientId: clientId,
           clientName: clientName,
+          coachClientId: coachClientId,
         ),
       ),
     );

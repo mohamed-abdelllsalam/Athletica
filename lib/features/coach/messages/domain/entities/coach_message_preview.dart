@@ -6,6 +6,10 @@ class CoachMessagePreview {
     required this.timeAgo,
     this.unreadCount = 0,
     this.imageAsset,
+    this.imageUrl,
+    this.conversationId,
+    this.coachClientId,
+    this.clientId,
   });
 
   final String id;
@@ -14,6 +18,10 @@ class CoachMessagePreview {
   final String timeAgo;
   final int unreadCount;
   final String? imageAsset;
+  final String? imageUrl;
+  final String? conversationId;
+  final String? coachClientId;
+  final String? clientId;
 }
 
 abstract class CoachMessagesData {

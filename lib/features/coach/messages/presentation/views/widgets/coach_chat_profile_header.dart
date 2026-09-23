@@ -9,51 +9,52 @@ class CoachChatProfileHeader extends StatelessWidget {
     super.key,
     required this.contact,
     required this.onOpenProfile,
+    this.imageUrl,
   });
   final ChatContact contact;
   final VoidCallback onOpenProfile;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         SizedBox(height: 8.h),
-        CircleAvatar(
-          radius: 56.r,
-          backgroundColor: AppColors.surfaceDark,
-          child: contact.imageAsset != null
-              ? ClipOval(
-                  child: Image.asset(
-                    contact.imageAsset!,
-                    fit: BoxFit.cover,
-                    width: 112.r,
-                    height: 112.r,
-                  ),
-                )
-              : Icon(Icons.person, color: AppColors.textSecondary, size: 48.sp),
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          contact.name,
-          style: AppTextStyles.bold20(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        SizedBox(height: 10.h),
         GestureDetector(
           onTap: onOpenProfile,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(20.r),
-            ),
-            child: Text(
-              'View Profile',
-              style: AppTextStyles.medium14(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 56.r,
+                backgroundColor: AppColors.surfaceDark,
+                backgroundImage: imageUrl?.trim().isNotEmpty == true
+                    ? NetworkImage(imageUrl!.trim())
+                    : null,
+                child: imageUrl?.trim().isNotEmpty == true
+                    ? null
+                    : contact.imageAsset != null
+                    ? ClipOval(
+                        child: Image.asset(
+                          contact.imageAsset!,
+                          fit: BoxFit.cover,
+                          width: 112.r,
+                          height: 112.r,
+                        ),
+                      )
+                    : Icon(
+                        Icons.person,
+                        color: AppColors.textSecondary,
+                        size: 48.sp,
+                      ),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                contact.name,
+                style: AppTextStyles.bold20(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
+              ),
+            ],
           ),
         ),
         SizedBox(height: 16.h),

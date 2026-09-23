@@ -1,12 +1,13 @@
 import 'coach_messages_controls.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
 import 'package:athletica/features/coach/messages/domain/entities/coach_message_preview.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
-import 'package:athletica/features/coach/messages/presentation/views/coach_message_requests_view.dart';
 import 'package:athletica/features/coach/messages/presentation/views/widgets/coach_message_item.dart';
+import 'package:athletica/features/coach/messages/presentation/models/coach_chat_route_args.dart';
+import 'package:athletica/features/coach/messages/presentation/cubits/coach_messages_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachMessagesViewBody extends StatefulWidget {
@@ -18,7 +19,6 @@ class CoachMessagesViewBody extends StatefulWidget {
 
 class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedTab = 0; // 0 = Messages, 1 = Requests
   String _query = '';
 
   @override
@@ -27,12 +27,10 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
     super.dispose();
   }
 
-  List<CoachMessagePreview> get _filtered {
-    if (_query.isEmpty) return CoachMessagesData.messages;
+  List<CoachMessagePreview> _filtered(List<CoachMessagePreview> messages) {
+    if (_query.isEmpty) return messages;
     final lower = _query.toLowerCase();
-    return CoachMessagesData.messages
-        .where((m) => m.name.toLowerCase().contains(lower))
-        .toList();
+    return messages.where((m) => m.name.toLowerCase().contains(lower)).toList();
   }
 
   @override
@@ -52,15 +50,25 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
               ),
             ),
             SizedBox(height: 16.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: _buildTabRow(context),
-            ),
-            SizedBox(height: 8.h),
+            SizedBox(height: 16.h),
             Expanded(
-              child: _selectedTab == 0
-                  ? _buildMessagesList()
-                  : _buildRequestsEmpty(context),
+              child: BlocBuilder<CoachMessagesCubit, CoachMessagesState>(
+                builder: (context, state) => switch (state) {
+                  CoachMessagesLoading() => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  CoachMessagesFailure(:final message) => Center(
+                    child: TextButton(
+                      onPressed: () =>
+                          context.read<CoachMessagesCubit>().load(),
+                      child: Text(message),
+                    ),
+                  ),
+                  CoachMessagesLoaded(:final messages) => _buildMessagesList(
+                    _filtered(messages),
+                  ),
+                },
+              ),
             ),
           ],
         ),
@@ -93,27 +101,17 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
     );
   }
 
-  Widget _buildTabRow(BuildContext context) {
-    return Row(
-      children: [
-        CoachMessagesTab(
-          label: 'Messages',
-          isActive: _selectedTab == 0,
-          onTap: () => setState(() => _selectedTab = 0),
+  Widget _buildMessagesList(List<CoachMessagePreview> items) {
+    if (items.isEmpty) {
+      return Center(
+        child: Text(
+          'No messages yet.',
+          style: AppTextStyles.medium15(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
         ),
-        SizedBox(width: 20.w),
-        CoachMessagesTab(
-          label: 'Requests',
-          isActive: _selectedTab == 1,
-          onTap: () =>
-              Navigator.pushNamed(context, CoachMessageRequestsView.routeName),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMessagesList() {
-    final items = _filtered;
+      );
+    }
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -124,34 +122,24 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
         final preview = items[index];
         return CoachMessageItem(
           message: preview,
-          onTap: () {
-            final contact = ChatContactsData.contacts.firstWhere(
-              (c) => c.id == preview.id,
-              orElse: () => ChatContact(
-                id: preview.id,
-                name: preview.name,
-                imageAsset: preview.imageAsset,
-              ),
-            );
-            Navigator.pushNamed(
+          onTap: () async {
+            await Navigator.pushNamed(
               context,
               CoachChatView.routeName,
-              arguments: contact,
+              arguments: CoachChatRouteArgs(
+                clientId: preview.clientId ?? preview.id,
+                clientName: preview.name,
+                clientImageUrl: preview.imageUrl,
+                conversationId: preview.conversationId,
+                coachClientId: preview.coachClientId,
+              ),
             );
+            if (context.mounted) {
+              context.read<CoachMessagesCubit>().load();
+            }
           },
         );
       },
-    );
-  }
-
-  Widget _buildRequestsEmpty(BuildContext context) {
-    return Center(
-      child: Text(
-        'No requests',
-        style: AppTextStyles.medium15(
-          context,
-        ).copyWith(color: AppColors.textSecondary),
-      ),
     );
   }
 }

@@ -1,18 +1,14 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/utils/chat_date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:athletica/features/coach/messages/domain/entities/chat_contact.dart';
 
 class CoachChatBubble extends StatelessWidget {
-  const CoachChatBubble({
-    super.key,
-    required this.message,
-    required this.contact,
-  });
+  const CoachChatBubble({super.key, required this.message});
 
   final ChatMessage message;
-  final ChatContact contact;
 
   @override
   Widget build(BuildContext context) {
@@ -22,29 +18,8 @@ class CoachChatBubble extends StatelessWidget {
         mainAxisAlignment: message.isMe
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!message.isMe) ...[
-            CircleAvatar(
-              radius: 16.r,
-              backgroundColor: AppColors.surfaceDark,
-              child: contact.imageAsset != null
-                  ? ClipOval(
-                      child: Image.asset(
-                        contact.imageAsset!,
-                        fit: BoxFit.cover,
-                        width: 32.r,
-                        height: 32.r,
-                      ),
-                    )
-                  : Icon(
-                      Icons.person,
-                      color: AppColors.textSecondary,
-                      size: 16.sp,
-                    ),
-            ),
-            SizedBox(width: 8.w),
-          ],
           Flexible(
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
@@ -63,26 +38,26 @@ class CoachChatBubble extends StatelessWidget {
                       : Radius.circular(16.r),
                 ),
               ),
-              child: Text(
-                message.text,
-                style: AppTextStyles.medium14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    message.text,
+                    style: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(color: AppColors.textPrimary),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    formatChatTimeText(message.time),
+                    style: AppTextStyles.meduim12(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
               ),
             ),
           ),
-          if (message.isMe) ...[
-            SizedBox(width: 8.w),
-            CircleAvatar(
-              radius: 16.r,
-              backgroundColor: AppColors.surfaceDark,
-              child: Icon(
-                Icons.person,
-                color: AppColors.textSecondary,
-                size: 16.sp,
-              ),
-            ),
-          ],
         ],
       ),
     );

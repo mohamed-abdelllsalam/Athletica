@@ -5,11 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CoachMessageItem extends StatelessWidget {
-  const CoachMessageItem({
-    super.key,
-    required this.message,
-    this.onTap,
-  });
+  const CoachMessageItem({super.key, required this.message, this.onTap});
 
   final CoachMessagePreview message;
   final VoidCallback? onTap;
@@ -26,7 +22,12 @@ class CoachMessageItem extends StatelessWidget {
             CircleAvatar(
               radius: 26.r,
               backgroundColor: AppColors.surfaceDark,
-              child: message.imageAsset != null
+              backgroundImage: message.imageUrl?.trim().isNotEmpty == true
+                  ? NetworkImage(message.imageUrl!.trim())
+                  : null,
+              child: message.imageUrl?.trim().isNotEmpty == true
+                  ? null
+                  : message.imageAsset != null
                   ? ClipOval(
                       child: Image.asset(
                         message.imageAsset!,
@@ -48,16 +49,16 @@ class CoachMessageItem extends StatelessWidget {
                 children: [
                   Text(
                     message.name,
-                    style: AppTextStyles.semiBold15(context).copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.semiBold15(
+                      context,
+                    ).copyWith(color: AppColors.textPrimary),
                   ),
                   SizedBox(height: 3.h),
                   Text(
                     message.preview,
-                    style: AppTextStyles.meduim12(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: AppTextStyles.meduim12(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -70,9 +71,9 @@ class CoachMessageItem extends StatelessWidget {
               children: [
                 Text(
                   message.timeAgo,
-                  style: AppTextStyles.meduim12(context).copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppTextStyles.meduim12(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                 ),
                 if (message.unreadCount > 0) ...[
                   SizedBox(height: 4.h),
@@ -86,9 +87,9 @@ class CoachMessageItem extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Text(
                       '${message.unreadCount}',
-                      style: AppTextStyles.semiBold10(context).copyWith(
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTextStyles.semiBold10(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
                     ),
                   ),
                 ],

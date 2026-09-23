@@ -84,6 +84,8 @@ class ApiClient {
           responseHeader: false,
           error: true,
           compact: true,
+          filter: (options, args) =>
+              !options.path.endsWith(ApiEndpoints.ablyToken),
           logPrint: (object) => debugPrint(object.toString()),
         ),
       );

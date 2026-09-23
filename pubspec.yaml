@@ -47,6 +47,7 @@ dependencies:
   video_player: ^2.11.1
   chewie: ^1.15.0
   intl: ^0.20.3
+  ably_flutter: ^1.2.44
 
 dev_dependencies:
   flutter_lints: ^6.0.0

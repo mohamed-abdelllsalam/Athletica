@@ -220,6 +220,7 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
                 arguments: {
                   'clientId': client.clientId,
                   'clientName': client.name,
+                  'coachClientId': client.relationId,
                 },
               );
             },

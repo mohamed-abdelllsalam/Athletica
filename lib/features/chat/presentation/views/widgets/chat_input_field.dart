@@ -4,20 +4,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ChatInputField extends StatefulWidget {
-  const ChatInputField({super.key, required this.onSendMessage});
+  const ChatInputField({
+    super.key,
+    required this.onSendMessage,
+    this.enabled = true,
+  });
 
   final Function(String) onSendMessage;
+  final bool enabled;
 
   @override
   State<ChatInputField> createState() => _ChatInputFieldState();
 }
 
 class _ChatInputFieldState extends State<ChatInputField> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
 
   void _handleSend() {
     final text = _controller.text;
-    if (text.trim().isNotEmpty) {
+    if (widget.enabled && text.trim().isNotEmpty) {
       widget.onSendMessage(text);
       _controller.clear();
     }
@@ -47,15 +58,16 @@ class _ChatInputFieldState extends State<ChatInputField> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
+                      enabled: widget.enabled,
                       onSubmitted: (_) => _handleSend(),
-                      style: AppTextStyles.medium14(context).copyWith(
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTextStyles.medium14(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Hi! 😊 Thank you so much',
-                        hintStyle: AppTextStyles.medium14(context).copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        hintStyle: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 12.h),
                       ),
@@ -74,7 +86,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
           ),
           SizedBox(width: 8.w),
           GestureDetector(
-            onTap: _handleSend,
+            onTap: widget.enabled ? _handleSend : null,
             child: Container(
               padding: EdgeInsets.all(12.r),
               decoration: const BoxDecoration(
@@ -93,4 +105,3 @@ class _ChatInputFieldState extends State<ChatInputField> {
     );
   }
 }
-

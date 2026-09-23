@@ -35,6 +35,17 @@ import 'package:athletica/features/check_ins/domain/usecases/save_check_in_respo
 import 'package:athletica/features/check_ins/presentation/cubits/check_in_history_cubit.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_in_submission_cubit.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
+import 'package:athletica/features/chat/data/datasources/chat_remote_data_source.dart';
+import 'package:athletica/features/chat/data/realtime/ably_chat_realtime_gateway.dart';
+import 'package:athletica/features/chat/data/repositories/chat_repository_impl.dart';
+import 'package:athletica/features/chat/domain/realtime/chat_realtime_gateway.dart';
+import 'package:athletica/features/chat/domain/repositories/chat_repository.dart';
+import 'package:athletica/features/chat/domain/usecases/get_chat_conversations_usecase.dart';
+import 'package:athletica/features/chat/domain/usecases/get_chat_history_usecase.dart';
+import 'package:athletica/features/chat/domain/usecases/send_chat_message_usecase.dart';
+import 'package:athletica/features/chat/domain/usecases/send_first_chat_message_usecase.dart';
+import 'package:athletica/features/chat/presentation/cubits/chat_cubit.dart';
+import 'package:athletica/features/chat/presentation/models/chat_route_args.dart';
 import 'package:athletica/features/client_coach/data/datasources/client_coach_remote_data_source.dart';
 import 'package:athletica/features/client_coach/data/repositories/client_coach_repository_impl.dart';
 import 'package:athletica/features/client_coach/domain/repositories/client_coach_repository.dart';
@@ -60,6 +71,7 @@ import 'package:athletica/features/coach/clients/domain/usecases/remove_coach_as
 import 'package:athletica/features/coach/clients/presentation/cubits/client_detail_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_cubit.dart';
+import 'package:athletica/features/coach/messages/presentation/cubits/coach_messages_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/coach_subscription_cubit.dart';
 import 'package:athletica/features/coach/home/data/datasources/coach_invite_remote_data_source.dart';
 import 'package:athletica/features/coach/home/data/repositories/coach_invite_repository_impl.dart';
@@ -238,6 +250,12 @@ void setupDependencies() {
   sl.registerLazySingleton<CoachClientsRemoteDataSource>(
     () => CoachClientsRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(sl()),
+  );
+  sl.registerFactory<AblyChatRealtimeGateway>(
+    () => AblyChatRealtimeGateway(sl()),
+  );
   setupCheckInsPreviewDependencies();
   sl.registerLazySingleton<CoachInviteRemoteDataSource>(
     () => CoachInviteRemoteDataSourceImpl(sl()),
@@ -278,6 +296,8 @@ void setupDependencies() {
   sl.registerLazySingleton<CoachClientsRepository>(
     () => CoachClientsRepositoryImpl(sl()),
   );
+  sl.registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(sl()));
+  sl.registerFactory<ChatRealtimeGateway>(() => sl<AblyChatRealtimeGateway>());
   sl.registerLazySingleton<CoachJoinRequestsRepository>(
     () => CoachJoinRequestsRepositoryImpl(sl()),
   );
@@ -328,6 +348,10 @@ void setupDependencies() {
   sl.registerLazySingleton(() => DeleteProfileImageUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachAssignedClientsUseCase(sl()));
+  sl.registerLazySingleton(() => GetChatConversationsUseCase(sl()));
+  sl.registerLazySingleton(() => GetChatHistoryUseCase(sl()));
+  sl.registerLazySingleton(() => SendChatMessageUseCase(sl()));
+  sl.registerLazySingleton(() => SendFirstChatMessageUseCase(sl()));
   sl.registerLazySingleton(() => GetClientDetailUseCase(sl()));
   sl.registerLazySingleton(() => RemoveCoachAssignedClientUseCase(sl()));
   sl.registerLazySingleton(() => CreateCoachInviteCodeUseCase(sl()));
@@ -448,6 +472,19 @@ void setupDependencies() {
   sl.registerLazySingleton(() => ProfileCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => CoachProfileCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => CoachClientsCubit(sl(), sl()));
+  sl.registerFactoryParam<ChatCubit, ChatRouteArgs, void>(
+    (args, _) => ChatCubit(
+      getConversations: sl(),
+      getHistory: sl(),
+      sendMessage: sl(),
+      sendFirstMessage: sl(),
+      realtimeGateway: sl(),
+      conversationId: args.conversationId,
+      coachClientId: args.coachClientId,
+      canStartConversation: args.canStartConversation,
+    ),
+  );
+  sl.registerFactory(() => CoachMessagesCubit(sl(), sl(), sl()));
   sl.registerFactory(() => ClientDetailCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachInviteCubit(sl(), sl()));
