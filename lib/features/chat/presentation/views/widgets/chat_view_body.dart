@@ -26,6 +26,7 @@ class ChatViewBody extends StatefulWidget {
 class _ChatViewBodyState extends State<ChatViewBody>
     with WidgetsBindingObserver {
   late final ScrollController _scrollController;
+  final GlobalKey _latestMessageKey = GlobalKey();
   String _myUserId = '';
   String? _latestMessageId;
   bool _followLatest = true;
@@ -59,12 +60,68 @@ class _ChatViewBodyState extends State<ChatViewBody>
   @override
   void didChangeMetrics() {
     if (!_followLatest) return;
+    _scrollToLatest();
+  }
+
+  void _scrollToLatest({Duration duration = Duration.zero}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _scrollController.hasClients) {
-        _scrollController.jumpTo(
-          _scrollController.position.maxScrollExtent,
+      if (!mounted || !_scrollController.hasClients) return;
+
+      final latestContext = _latestMessageKey.currentContext;
+      if (latestContext != null) {
+        unawaited(
+          Scrollable.ensureVisible(
+            latestContext,
+            alignment: 1,
+            duration: duration,
+            curve: Curves.easeOut,
+          ),
         );
+        return;
       }
+
+      final position = _scrollController.position;
+      if (duration == Duration.zero) {
+        _scrollController.jumpTo(position.maxScrollExtent);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final messageContext = _latestMessageKey.currentContext;
+          if (messageContext != null) {
+            unawaited(
+              Scrollable.ensureVisible(
+                messageContext,
+                alignment: 1,
+                duration: Duration.zero,
+              ),
+            );
+          }
+        });
+        return;
+      }
+
+      unawaited(
+        _scrollController
+            .animateTo(
+              position.maxScrollExtent,
+              duration: duration,
+              curve: Curves.easeOut,
+            )
+            .then((_) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                final messageContext = _latestMessageKey.currentContext;
+                if (messageContext != null) {
+                  unawaited(
+                    Scrollable.ensureVisible(
+                      messageContext,
+                      alignment: 1,
+                      duration: Duration.zero,
+                    ),
+                  );
+                }
+              });
+            }),
+      );
     });
   }
 
@@ -175,15 +232,9 @@ class _ChatViewBodyState extends State<ChatViewBody>
                     _latestMessageId = messages.last.id;
                     _forceFollowLatest = false;
                     if (shouldFollow) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted && _scrollController.hasClients) {
-                          _scrollController.animateTo(
-                            _scrollController.position.maxScrollExtent,
-                            duration: const Duration(milliseconds: 180),
-                            curve: Curves.easeOut,
-                          );
-                        }
-                      });
+                      _scrollToLatest(
+                        duration: const Duration(milliseconds: 180),
+                      );
                     }
                   }
                 },
@@ -224,7 +275,10 @@ class _ChatViewBodyState extends State<ChatViewBody>
                       return Column(
                         children: [
                           if (isFirst) _dateDivider(message.createdAt),
-                          _messageBubble(message),
+                          _messageBubble(
+                            message,
+                            isLatest: messageIndex == messages.length - 1,
+                          ),
                         ],
                       );
                     },
@@ -250,9 +304,10 @@ class _ChatViewBodyState extends State<ChatViewBody>
     );
   }
 
-  Widget _messageBubble(ChatMessage msg) {
+  Widget _messageBubble(ChatMessage msg, {required bool isLatest}) {
     final isMe = msg.isMine(_myUserId);
     return ChatBubble(
+      key: isLatest ? _latestMessageKey : null,
       message: msg.content,
       isMe: isMe,
       time: formatChatTime(msg.createdAt),

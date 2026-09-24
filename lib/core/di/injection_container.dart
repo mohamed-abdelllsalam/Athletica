@@ -484,7 +484,7 @@ void setupDependencies() {
       canStartConversation: args.canStartConversation,
     ),
   );
-  sl.registerFactory(() => CoachMessagesCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => CoachMessagesCubit(sl()));
   sl.registerFactory(() => ClientDetailCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachInviteCubit(sl(), sl()));
