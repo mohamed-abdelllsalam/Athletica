@@ -8,82 +8,149 @@ import 'coach_dashed_upload_box.dart';
 class CoachCertificateForm extends StatelessWidget {
   const CoachCertificateForm({
     super.key,
-    required this.nameController,
-    required this.descriptionController,
+    required this.titleController,
     required this.onUpload,
+    this.selectedFileName,
+    this.selectedFileSize,
+    this.titleError,
+    this.fileError,
   });
-  final TextEditingController nameController;
-  final TextEditingController descriptionController;
+
+  final TextEditingController titleController;
   final VoidCallback onUpload;
+  final String? selectedFileName;
+  final int? selectedFileSize;
+  final String? titleError;
+  final String? fileError;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Certificates',
+          'Certificate',
           style: AppTextStyles.bold20(
             context,
           ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 6.h),
         Text(
-          'Add certificate details to highlight your expertise to potential clients',
+          'Add a certificate to highlight your expertise to potential clients.',
           style: AppTextStyles.regular13(
             context,
           ).copyWith(color: AppColors.textSecondary),
         ),
         SizedBox(height: 20.h),
         CoachDashedUploadBox(
-          title: 'Upload your certificates',
-          subtitle: 'Upload your certificates to verify your expertise.',
+          title: 'Upload your certificate',
+          subtitle: 'Select a PDF certificate to upload.',
           onUploadTap: onUpload,
         ),
+        SizedBox(height: 8.h),
+        Text(
+          'PDF only • Max 50 PDFs • Max 10 MB each',
+          style: AppTextStyles.regular13(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
+        ),
+        if (selectedFileName != null) ...[
+          SizedBox(height: 12.h),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.picture_as_pdf,
+                  color: AppColors.textSecondary,
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    selectedFileName!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.medium14(
+                      context,
+                    ).copyWith(color: AppColors.textPrimary),
+                  ),
+                ),
+                if (selectedFileSize != null)
+                  Text(
+                    _formatBytes(selectedFileSize!),
+                    style: AppTextStyles.meduim12(
+                      context,
+                    ).copyWith(color: AppColors.textSecondary),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        if (fileError != null) ...[
+          SizedBox(height: 8.h),
+          Text(
+            fileError!,
+            style: AppTextStyles.regular13(
+              context,
+            ).copyWith(color: Colors.redAccent),
+          ),
+        ],
         SizedBox(height: 24.h),
         Text(
-          'Certificate Name',
+          'Certificate title',
           style: AppTextStyles.semiBold14(
             context,
           ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 8.h),
         _InputField(
-          controller: nameController,
+          controller: titleController,
           hint: 'Ex. Certified Strength Coach Level 2',
-        ),
-        SizedBox(height: 20.h),
-        Text(
-          'Description',
-          style: AppTextStyles.semiBold14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        SizedBox(height: 8.h),
-        _InputField(
-          controller: descriptionController,
-          hint: 'Brief description or organization name',
+          errorText: titleError,
+          maxLength: 200,
         ),
         SizedBox(height: 32.h),
       ],
     );
   }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    final kilobytes = bytes / 1024;
+    if (kilobytes < 1024) return '${kilobytes.toStringAsFixed(1)} KB';
+    return '${(kilobytes / 1024).toStringAsFixed(1)} MB';
+  }
 }
 
 class _InputField extends StatelessWidget {
-  const _InputField({required this.controller, required this.hint});
+  const _InputField({
+    required this.controller,
+    required this.hint,
+    this.errorText,
+    this.maxLength,
+  });
 
   final TextEditingController controller;
   final String hint;
+  final String? errorText;
+  final int? maxLength;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      maxLength: maxLength,
       style: AppTextStyles.medium14(
         context,
       ).copyWith(color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hint,
+        errorText: errorText,
         hintStyle: AppTextStyles.regular13(
           context,
         ).copyWith(color: AppColors.textTertiary),

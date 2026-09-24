@@ -1,4 +1,5 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/features/achievements/presentation/cubits/client_coach_achievements_cubit.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_cubit.dart';
 import 'package:athletica/features/client_coach/presentation/views/widgets/client_coach_view_body.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +12,11 @@ class ClientCoachView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<ClientCoachCubit>()..loadCoach(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<ClientCoachCubit>()..loadCoach()),
+        BlocProvider(create: (_) => sl<ClientCoachAchievementsCubit>()),
+      ],
       child: const ClientCoachViewBody(),
     );
   }

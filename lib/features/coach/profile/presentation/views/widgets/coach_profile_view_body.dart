@@ -1,7 +1,6 @@
-import 'coach_profile_header.dart';
-import 'coach_profile_personal_info.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/achievements/presentation/views/widgets/coach_achievements_section.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
@@ -11,6 +10,9 @@ import 'package:athletica/features/on_boarding/presentation/views/on_boarding_vi
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import 'coach_profile_header.dart';
+import 'coach_profile_personal_info.dart';
 
 class CoachProfileViewBody extends StatefulWidget {
   const CoachProfileViewBody({super.key});
@@ -100,10 +102,41 @@ class _ProfileBody extends StatelessWidget {
           SizedBox(height: 20.h),
           CoachProfileHeader(profile: profile),
           SizedBox(height: 24.h),
-          CoachProfilePersonalInfo(
-            profile: profile,
-            isLoggingOut: isLoggingOut,
-            onLogout: () => context.read<AuthCubit>().logout(),
+          CoachProfilePersonalInfo(profile: profile),
+          const CoachAchievementsSection(),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 32.h),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: isLoggingOut
+                    ? null
+                    : () => context.read<AuthCubit>().logout(),
+                icon: isLoggingOut
+                    ? SizedBox(
+                        width: 18.sp,
+                        height: 18.sp,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.red,
+                        ),
+                      )
+                    : const Icon(Icons.logout_rounded, color: Colors.red),
+                label: Text(
+                  'Sign Out',
+                  style: AppTextStyles.semiBold15(
+                    context,
+                  ).copyWith(color: Colors.red),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                ),
+              ),
+            ),
           ),
         ],
       ),

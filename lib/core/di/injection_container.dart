@@ -1,6 +1,15 @@
 import 'package:athletica/core/services/completion_changes.dart';
 import 'package:athletica/core/usecases/watch_completion_changes_usecase.dart';
 import 'package:athletica/core/network/api_client.dart';
+import 'package:athletica/features/achievements/data/datasources/achievements_remote_data_source.dart';
+import 'package:athletica/features/achievements/data/repositories/achievements_repository_impl.dart';
+import 'package:athletica/features/achievements/domain/repositories/achievements_repository.dart';
+import 'package:athletica/features/achievements/domain/usecases/delete_coach_achievement_usecase.dart';
+import 'package:athletica/features/achievements/domain/usecases/get_assigned_coach_achievements_usecase.dart';
+import 'package:athletica/features/achievements/domain/usecases/get_coach_achievements_usecase.dart';
+import 'package:athletica/features/achievements/domain/usecases/upload_coach_achievement_usecase.dart';
+import 'package:athletica/features/achievements/presentation/cubits/client_coach_achievements_cubit.dart';
+import 'package:athletica/features/achievements/presentation/cubits/coach_achievements_cubit.dart';
 import 'package:athletica/features/assigned/data/datasources/assigned_remote_data_source.dart';
 import 'package:athletica/features/assigned/data/repositories/assigned_repository_impl.dart';
 import 'package:athletica/features/assigned/domain/repositories/assigned_repository.dart';
@@ -74,6 +83,7 @@ import 'package:athletica/features/coach/clients/presentation/cubits/client_deta
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_join_requests_cubit.dart';
 import 'package:athletica/features/coach/messages/presentation/cubits/coach_messages_cubit.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/cubits/add_certificate_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/coach_subscription_cubit.dart';
 import 'package:athletica/features/coach/home/data/datasources/coach_invite_remote_data_source.dart';
 import 'package:athletica/features/coach/home/data/repositories/coach_invite_repository_impl.dart';
@@ -255,6 +265,9 @@ void setupDependencies() {
   sl.registerLazySingleton<ProfileRemoteDataSource>(
     () => ProfileRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<AchievementsRemoteDataSource>(
+    () => AchievementsRemoteDataSourceImpl(sl()),
+  );
   sl.registerLazySingleton<CoachClientsRemoteDataSource>(
     () => CoachClientsRemoteDataSourceImpl(sl()),
   );
@@ -303,6 +316,9 @@ void setupDependencies() {
   sl.registerLazySingleton<InfoRepository>(() => InfoRepositoryImpl(sl()));
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<AchievementsRepository>(
+    () => AchievementsRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<CoachClientsRepository>(
     () => CoachClientsRepositoryImpl(sl()),
@@ -361,6 +377,10 @@ void setupDependencies() {
   sl.registerLazySingleton(() => GetClientAnswersUseCase(sl()));
   sl.registerLazySingleton(() => GetClientProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachProfileUseCase(sl()));
+  sl.registerLazySingleton(() => GetCoachAchievementsUseCase(sl()));
+  sl.registerLazySingleton(() => GetAssignedCoachAchievementsUseCase(sl()));
+  sl.registerLazySingleton(() => UploadCoachAchievementUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteCoachAchievementUseCase(sl()));
   sl.registerLazySingleton(() => UpdateCoachProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateClientProfileUseCase(sl()));
   sl.registerLazySingleton(() => UploadProfileImageUseCase(sl()));
@@ -488,6 +508,9 @@ void setupDependencies() {
   );
   sl.registerFactory(() => SplashCubit(sl()));
   sl.registerFactory(() => CompleteProfileCubit(sl()));
+  sl.registerFactory(() => AddCertificateCubit(sl()));
+  sl.registerFactory(() => CoachAchievementsCubit(sl(), sl()));
+  sl.registerFactory(() => ClientCoachAchievementsCubit(sl()));
   sl.registerFactory(() => CoachSubscriptionCubit(sl()));
   sl.registerFactory(() => InfoCubit(sl(), sl(), sl(), sl(), sl()));
   sl.registerLazySingleton(() => ProfileCubit(sl(), sl(), sl(), sl()));

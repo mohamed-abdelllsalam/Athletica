@@ -9,6 +9,7 @@ class CompleteProfileCubit extends Cubit<CompleteProfileState> {
       : super(const CompleteProfileInitial());
 
   Future<void> submit() async {
+    if (state is CompleteProfileLoading) return;
     emit(const CompleteProfileLoading());
     try {
       await _markProfileComplete();

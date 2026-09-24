@@ -46,6 +46,10 @@ class ApiEndpoints {
   static const String profile = 'profile';
   static const String profileImage = 'profile/image';
 
+  static const String coachAchievements = 'coach/achievements';
+  static String coachAchievement(String id) => 'coach/achievements/$id';
+  static const String clientCoachAchievements = 'client/coach/achievements';
+
   static const String clientQuestions = 'client/questions';
   static const String clientAnswers = 'client/answers';
   static const String clientProfile = 'client-profiles/me';

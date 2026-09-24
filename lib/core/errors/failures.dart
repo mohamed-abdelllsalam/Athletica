@@ -23,6 +23,10 @@ final class UnknownFailure extends AppFailure {
   const UnknownFailure(super.message);
 }
 
+final class CertificateValidationFailure extends AppFailure {
+  const CertificateValidationFailure(super.message);
+}
+
 /// Client check-in submit answered with 403: the one-shot pending assignment
 /// was already consumed (`checkin_no_pending_assignment`). Presentation
 /// refetches pending state + history on this, instead of message-matching.

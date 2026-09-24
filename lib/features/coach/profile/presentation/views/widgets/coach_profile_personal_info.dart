@@ -9,12 +9,8 @@ class CoachProfilePersonalInfo extends StatelessWidget {
   const CoachProfilePersonalInfo({
     super.key,
     required this.profile,
-    required this.isLoggingOut,
-    required this.onLogout,
   });
   final CoachProfileEntity profile;
-  final bool isLoggingOut;
-  final VoidCallback onLogout;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -78,35 +74,6 @@ class CoachProfilePersonalInfo extends StatelessWidget {
             ),
             SizedBox(height: 24.h),
           ],
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: isLoggingOut ? null : onLogout,
-              icon: isLoggingOut
-                  ? SizedBox(
-                      width: 18.sp,
-                      height: 18.sp,
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.red,
-                      ),
-                    )
-                  : const Icon(Icons.logout_rounded, color: Colors.red),
-              label: Text(
-                'Sign Out',
-                style: AppTextStyles.semiBold15(
-                  context,
-                ).copyWith(color: Colors.red),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-              ),
-            ),
-          ),
           SizedBox(height: 32.h),
         ],
       ),

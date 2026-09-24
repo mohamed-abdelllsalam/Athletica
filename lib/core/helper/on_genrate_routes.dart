@@ -1,4 +1,5 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/features/achievements/domain/entities/coach_achievement.dart';
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
 import 'package:athletica/features/check_ins/presentation/models/check_in_preview_role.dart';
 import 'package:athletica/features/check_ins/presentation/views/check_ins_preview_view.dart';
@@ -21,6 +22,7 @@ import 'package:athletica/features/coach/clients/presentation/views/coach_expiri
 import 'package:athletica/features/coach/clients/presentation/views/coach_join_requests_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_add_certificate_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_certificate_review_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_subscription_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_upload_video_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
@@ -171,8 +173,14 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         builder: (context) => const CoachCompleteProfileView(),
       );
     case CoachAddCertificateView.routeName:
-      return MaterialPageRoute(
+      return MaterialPageRoute<CoachAchievement>(
         builder: (context) => const CoachAddCertificateView(),
+      );
+    case CoachCertificateReviewView.routeName:
+      final certificates = settings.arguments! as List<CoachAchievement>;
+      return MaterialPageRoute(
+        builder: (context) =>
+            CoachCertificateReviewView(certificates: certificates),
       );
     case CoachUploadVideoView.routeName:
       return MaterialPageRoute(

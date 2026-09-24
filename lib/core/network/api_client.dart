@@ -85,7 +85,8 @@ class ApiClient {
           error: true,
           compact: true,
           filter: (options, args) =>
-              !options.path.endsWith(ApiEndpoints.ablyToken),
+              !options.path.endsWith(ApiEndpoints.ablyToken) &&
+              !options.path.endsWith(ApiEndpoints.coachAchievements),
           logPrint: (object) => debugPrint(object.toString()),
         ),
       );

@@ -11,6 +11,7 @@ class CoachDashedUploadBox extends StatelessWidget {
     required this.onUploadTap,
     this.showSkip = false,
     this.onSkipTap,
+    this.enabled = true,
   });
 
   final String title;
@@ -18,6 +19,7 @@ class CoachDashedUploadBox extends StatelessWidget {
   final VoidCallback onUploadTap;
   final bool showSkip;
   final VoidCallback? onSkipTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,7 @@ class CoachDashedUploadBox extends StatelessWidget {
                 ),
                 SizedBox(height: 16.h),
                 ElevatedButton(
-                  onPressed: onUploadTap,
+                  onPressed: enabled ? onUploadTap : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.textPrimary,
                     foregroundColor: AppColors.primaryAppColor,

@@ -27,13 +27,25 @@ class _CoachHomeViewState extends State<CoachHomeView> {
   }
 
   Future<void> _checkProfileAndShowDialog() async {
+    // If the coach has ever tapped "Complete Profile" we never show the
+    // dialog again — even after logout/login (persisted flag survives clearAll).
+    final hasDismissed = await TokenStorageService.instance
+        .hasDismissedCoachCompleteProfilePrompt();
+    if (hasDismissed) return;
+
     final isComplete = await TokenStorageService.instance.isProfileComplete();
     if (isComplete || !mounted || _dialogShown) return;
 
     _dialogShown = true;
     final shouldComplete = await showCompleteProfileDialog(context);
     if (shouldComplete && mounted) {
-      Navigator.pushNamed(context, CoachCompleteProfileView.routeName);
+      // Persist dismissal BEFORE navigating so rotation / re-login never
+      // shows the dialog again, even if the user aborts the flow.
+      await TokenStorageService.instance
+          .setCoachCompleteProfilePromptDismissed();
+      if (!mounted) return;
+      await Navigator.pushNamed(context, CoachCompleteProfileView.routeName);
+      if (mounted) _dialogShown = false;
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/widgets/app_shimmer.dart';
+import 'package:athletica/features/achievements/presentation/views/widgets/client_coach_achievements_section.dart';
 import 'package:athletica/features/client_coach/domain/entities/assigned_coach.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_cubit.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_state.dart';
@@ -315,6 +316,8 @@ class _CoachCard extends StatelessWidget {
               ],
             ),
           ),
+          SizedBox(height: 24.h),
+          const ClientCoachAchievementsSection(),
           SizedBox(height: 24.h),
           SizedBox(
             width: double.infinity,

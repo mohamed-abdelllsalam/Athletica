@@ -1,21 +1,31 @@
+import 'dart:io';
+
+import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/features/achievements/domain/usecases/upload_coach_achievement_usecase.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/add_certificate_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AddCertificateCubit extends Cubit<AddCertificateState> {
-  AddCertificateCubit() : super(AddCertificateInitial());
+  AddCertificateCubit(this._uploadAchievement)
+    : super(const AddCertificateInitial());
+
+  final UploadCoachAchievementUseCase _uploadAchievement;
 
   Future<void> saveCertificate({
-    required String name,
-    required String description,
+    required String title,
+    required File file,
   }) async {
-    if (name.trim().isEmpty) {
-      emit(AddCertificateFailure(message: 'Certificate name is required'));
-      return;
-    }
-    emit(AddCertificateSaving());
-    // Stub — replace with actual use case call.
-    await Future.delayed(const Duration(seconds: 1));
+    if (state is AddCertificateSaving) return;
+
+    emit(const AddCertificateSaving());
+    final result = await _uploadAchievement(title: title, file: file);
     if (isClosed) return;
-    emit(AddCertificateSuccess());
+
+    switch (result) {
+      case ApiSuccess(:final data):
+        emit(AddCertificateSuccess(data));
+      case ApiError(:final failure):
+        emit(AddCertificateFailure(failure.message));
+    }
   }
 }

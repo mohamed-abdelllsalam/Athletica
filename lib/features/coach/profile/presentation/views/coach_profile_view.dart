@@ -1,4 +1,5 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/features/achievements/presentation/cubits/coach_achievements_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/profile/presentation/views/widgets/coach_profile_view_body.dart';
@@ -16,6 +17,7 @@ class CoachProfileView extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => sl<AuthCubit>()),
         BlocProvider(create: (_) => sl<CoachProfileCubit>()..loadProfile()),
+        BlocProvider(create: (_) => sl<CoachAchievementsCubit>()..load()),
       ],
       child: const CoachProfileViewBody(),
     );

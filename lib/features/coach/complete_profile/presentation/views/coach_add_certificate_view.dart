@@ -1,3 +1,4 @@
+import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/add_certificate_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/widgets/coach_add_certificate_view_body.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +12,7 @@ class CoachAddCertificateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AddCertificateCubit(),
+      create: (_) => sl<AddCertificateCubit>(),
       child: const CoachAddCertificateViewBody(),
     );
   }

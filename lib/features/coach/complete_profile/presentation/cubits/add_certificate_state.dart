@@ -1,12 +1,25 @@
-sealed class AddCertificateState {}
+import 'package:athletica/features/achievements/domain/entities/coach_achievement.dart';
 
-final class AddCertificateInitial extends AddCertificateState {}
+sealed class AddCertificateState {
+  const AddCertificateState();
+}
 
-final class AddCertificateSaving extends AddCertificateState {}
+final class AddCertificateInitial extends AddCertificateState {
+  const AddCertificateInitial();
+}
 
-final class AddCertificateSuccess extends AddCertificateState {}
+final class AddCertificateSaving extends AddCertificateState {
+  const AddCertificateSaving();
+}
+
+final class AddCertificateSuccess extends AddCertificateState {
+  const AddCertificateSuccess(this.achievement);
+
+  final CoachAchievement achievement;
+}
 
 final class AddCertificateFailure extends AddCertificateState {
-  AddCertificateFailure({required this.message});
+  const AddCertificateFailure(this.message);
+
   final String message;
 }

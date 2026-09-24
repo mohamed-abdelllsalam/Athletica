@@ -1,5 +1,6 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/features/achievements/presentation/cubits/coach_achievements_cubit.dart';
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/check_ins/presentation/models/check_in_preview_role.dart';
@@ -162,6 +163,9 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
                     BlocProvider(create: (_) => sl<AuthCubit>()),
                     BlocProvider(
                       create: (_) => sl<CoachProfileCubit>()..loadProfile(),
+                    ),
+                    BlocProvider(
+                      create: (_) => sl<CoachAchievementsCubit>()..load(),
                     ),
                   ],
                   child: const CoachProfileViewBody(),
