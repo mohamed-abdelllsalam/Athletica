@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:athletica/core/usecases/watch_completion_changes_usecase.dart';
+import 'package:athletica/features/nutrition/domain/entities/today_meals.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/nutrition/domain/usecases/complete_meal_log_usecase.dart';
 import 'package:athletica/features/nutrition/domain/usecases/get_today_meals_usecase.dart';
@@ -9,26 +12,63 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
   NutritionTodayCubit(
     this._getTodayMeals,
     this._completeMeal,
-    this._uncompleteMeal,
-  ) : super(NutritionTodayInitial());
+    this._uncompleteMeal, [
+    WatchCompletionChangesUseCase? changes,
+  ]) : super(NutritionTodayInitial()) {
+    _subscription = changes?.call().listen((_) => load());
+  }
 
   final GetTodayMealsUseCase _getTodayMeals;
   final CompleteMealLogUseCase _completeMeal;
   final UncompleteMealLogUseCase _uncompleteMeal;
 
+  StreamSubscription<void>? _subscription;
+  bool _reloadRequested = false;
+  bool _loadInProgress = false;
+
+  @override
+  Future<void> close() async {
+    await _subscription?.cancel();
+    return super.close();
+  }
+
   Future<void> load() async {
-    if (state is NutritionTodayLoading) return;
+    if (isClosed) return;
+    final current = state;
+    if (current is NutritionTodayLoaded &&
+        current.togglingMealLogIds.isNotEmpty) {
+      return;
+    }
+    if (_loadInProgress) {
+      _reloadRequested = true;
+      return;
+    }
 
-    emit(NutritionTodayLoading());
+    _loadInProgress = true;
+    if (current is! NutritionTodayLoaded) emit(NutritionTodayLoading());
 
-    final result = await _getTodayMeals();
-    switch (result) {
-      case ApiSuccess(:final data):
-        if (isClosed) return;
-        emit(NutritionTodayLoaded(data));
-      case ApiError(:final failure):
-        if (isClosed) return;
-        emit(NutritionTodayError(failure.message));
+    try {
+      final result = await _getTodayMeals();
+      if (isClosed) return;
+      switch (result) {
+        case ApiSuccess(:final data):
+          emit(NutritionTodayLoaded(data));
+        case ApiError(:final failure):
+          emit(
+            current is NutritionTodayLoaded
+                ? NutritionTodayLoaded(
+                    current.meals,
+                    errorMessage: failure.message,
+                  )
+                : NutritionTodayError(failure.message),
+          );
+      }
+    } finally {
+      _loadInProgress = false;
+      if (_reloadRequested && !isClosed) {
+        _reloadRequested = false;
+        await load();
+      }
     }
   }
 
@@ -36,13 +76,18 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
   Future<void> toggleComplete(String mealLogId, bool targetCompleted) async {
     final current = state;
     if (current is! NutritionTodayLoaded ||
-        current.togglingMealLogIds.contains(mealLogId)) {
+        _loadInProgress ||
+        current.togglingMealLogIds.isNotEmpty) {
       return;
     }
     final meal = current.meals.meals
         .where((m) => m.mealLogId == mealLogId)
         .firstOrNull;
-    if (meal == null || meal.completed == targetCompleted) return;
+    if (mealLogId.isEmpty ||
+        meal == null ||
+        meal.completed == targetCompleted) {
+      return;
+    }
     emit(
       NutritionTodayLoaded(
         current.meals,
@@ -63,7 +108,12 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
             .firstOrNull;
         emit(
           NutritionTodayLoaded(
-            updated == null ? latest.meals : latest.meals.replaceMeal(updated),
+            updated == null
+                ? latest.meals
+                : TodayMeals(
+                    meals: latest.meals.replaceMeal(updated).meals,
+                    dayCompleted: data.dayCompleted,
+                  ),
             togglingMealLogIds: pending,
             errorMessage: updated == null
                 ? 'Could not confirm meal status. Please try again.'

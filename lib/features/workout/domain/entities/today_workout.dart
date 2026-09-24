@@ -38,7 +38,9 @@ class TodayExerciseEntry {
       TodayExerciseEntry(
         logId: logId,
         completed: completed ?? this.completed,
-        completedAt: completedAt ?? this.completedAt,
+        completedAt: completed == false
+            ? null
+            : completedAt ?? this.completedAt,
         id: id,
         exerciseId: exerciseId,
         orderNumber: orderNumber,

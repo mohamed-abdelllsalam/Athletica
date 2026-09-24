@@ -49,14 +49,24 @@ class NutritionRemoteDataSourceImpl implements NutritionRemoteDataSource {
 
   @override
   Future<TodayMealsModel> completeMeal(String mealLogId) async {
-    await _dio.post(ApiEndpoints.nutritionMealComplete(mealLogId));
-    return getTodayMeals();
+    final response = await _dio.post(
+      ApiEndpoints.nutritionMealComplete(mealLogId),
+    );
+    return TodayMealsModel.fromCompletion(
+      response.data as Map<String, dynamic>,
+      mealLogId,
+    );
   }
 
   @override
   Future<TodayMealsModel> uncompleteMeal(String mealLogId) async {
-    await _dio.post(ApiEndpoints.nutritionMealUncomplete(mealLogId));
-    return getTodayMeals();
+    final response = await _dio.post(
+      ApiEndpoints.nutritionMealUncomplete(mealLogId),
+    );
+    return TodayMealsModel.fromCompletion(
+      response.data as Map<String, dynamic>,
+      mealLogId,
+    );
   }
 
   @override
@@ -101,7 +111,10 @@ class NutritionRemoteDataSourceImpl implements NutritionRemoteDataSource {
   }
 
   @override
-  Future<NutritionHistoryModel> getHistory({DateTime? from, DateTime? to}) async {
+  Future<NutritionHistoryModel> getHistory({
+    DateTime? from,
+    DateTime? to,
+  }) async {
     final response = await _dio.get(
       ApiEndpoints.nutritionHistory,
       queryParameters: {

@@ -115,6 +115,7 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
                         arguments: {
                           'clientId': client.clientId,
                           'clientName': client.name,
+                          'coachClientId': client.relationId,
                         },
                       ),
                     );

@@ -11,6 +11,7 @@ import 'package:athletica/features/coach/clients/presentation/views/coach_client
 import 'package:athletica/features/coach/messages/presentation/views/coach_chat_view.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
 import 'package:athletica/features/workout/presentation/cubits/workout_templates_cubit.dart';
+import 'package:athletica/features/streak/presentation/cubits/streak_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -41,22 +42,6 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
   int _selectedTabIndex = 0;
 
   static const _tabs = ['Daily', 'Weekly', 'Monthly'];
-  static const _dailyData = [0.80, 0.75, 0.45, 0.60, 0.75, 0.85, 0.95];
-  static const _weeklyData = [0.50, 0.60, 0.70, 0.65, 0.80, 0.72, 0.90];
-  static const _monthlyData = [0.30, 0.45, 0.55, 0.60, 0.70, 0.80, 0.85];
-  static const _xLabels = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Today'];
-
-  List<double> get _currentData {
-    switch (_selectedTabIndex) {
-      case 1:
-        return _weeklyData;
-      case 2:
-        return _monthlyData;
-      default:
-        return _dailyData;
-    }
-  }
-
   void _confirmDeactivate(BuildContext context, NutritionPlanSummary plan) {
     showDialog(
       context: context,
@@ -319,10 +304,9 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
   ) {
     return CoachClientProgressSection(
       detail: detail,
+      streakState: context.watch<StreakCubit>().state,
       tabs: _tabs,
       selectedIndex: _selectedTabIndex,
-      dataPoints: _currentData,
-      xLabels: _xLabels,
       onTabSelected: (index) => setState(() => _selectedTabIndex = index),
     );
   }

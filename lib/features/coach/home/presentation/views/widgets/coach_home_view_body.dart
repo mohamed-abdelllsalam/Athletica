@@ -1,6 +1,9 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:athletica/features/check_ins/presentation/models/check_in_preview_role.dart';
+import 'package:athletica/features/check_ins/presentation/views/check_ins_preview_view.dart';
 import 'package:athletica/features/coach/clients/presentation/cubits/coach_clients_cubit.dart';
 import 'package:athletica/features/coach/clients/presentation/views/widgets/coach_clients_view_body.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_home_stats_cubit.dart';
@@ -9,7 +12,6 @@ import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_c
 import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_state.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_bottom_nav_bar.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_home_app_bar.dart';
-import 'package:athletica/features/coach/home/presentation/views/widgets/coach_insights_section.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_stats_grid.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/invite_code_dialog.dart';
 import 'package:athletica/features/coach/plan/presentation/views/widgets/coach_plan_view_body.dart';
@@ -28,7 +30,7 @@ class CoachHomeViewBody extends StatefulWidget {
 
 class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
   // Local UI state — no business logic
-  int _selectedPeriod = 0; // 0 = Daily, 1 = Monthly
+  //final int _selectedPeriod = 0; // 0 = Daily, 1 = Monthly
   int _selectedNavIndex = 0;
   late final CoachHomeStatsCubit _statsCubit;
   late final CoachInviteCubit _inviteCubit;
@@ -88,14 +90,23 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
               );
             },
           ),
-          SizedBox(height: 28.h),
-          CoachInsightsSection(
-            selectedPeriod: _selectedPeriod,
-            onPeriodChanged: (index) {
-              setState(() => _selectedPeriod = index);
-            },
+          SizedBox(height: 12.h),
+          CheckInEntryCard(
+            onTap: () => Navigator.pushNamed(
+              context,
+              CheckInsPreviewView.routeName,
+              arguments: CheckInPreviewRole.coach,
+            ),
           ),
-          SizedBox(height: 32.h),
+          // SizedBox(height: 12.h),
+          //   SizedBox(height: 28.h),
+          //   CoachInsightsSection(
+          //     selectedPeriod: _selectedPeriod,
+          //     onPeriodChanged: (index) {
+          //       setState(() => _selectedPeriod = index);
+          //     },
+          //   ),
+          //   SizedBox(height: 32.h),
         ],
       ),
     );
@@ -149,7 +160,9 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
                 MultiBlocProvider(
                   providers: [
                     BlocProvider(create: (_) => sl<AuthCubit>()),
-                    BlocProvider(create: (_) => sl<CoachProfileCubit>()..loadProfile()),
+                    BlocProvider(
+                      create: (_) => sl<CoachProfileCubit>()..loadProfile(),
+                    ),
                   ],
                   child: const CoachProfileViewBody(),
                 ),

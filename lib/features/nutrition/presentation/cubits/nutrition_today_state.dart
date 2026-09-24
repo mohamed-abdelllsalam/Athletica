@@ -26,8 +26,7 @@ final class NutritionTodayLoaded extends NutritionTodayState {
   final String? errorMessage;
 
   /// True when every meal is completed and there is at least one meal.
-  bool get dayCompleted =>
-      meals.meals.isNotEmpty && meals.meals.every((m) => m.completed);
+  bool get dayCompleted => meals.dayCompleted == true;
 }
 
 final class NutritionTodayError extends NutritionTodayState {

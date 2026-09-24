@@ -1,5 +1,4 @@
 import 'package:athletica/features/coach/clients/presentation/views/coach_active_clients_view.dart';
-import 'package:athletica/features/coach/clients/presentation/views/coach_expiring_subscriptions_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/widgets/coach_stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -58,10 +57,10 @@ class CoachStatsGrid extends StatelessWidget {
                   child: CoachStatCard(
                     label: 'Expiring\nSubscription',
                     value: expiringSubscriptions,
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      CoachExpiringSubscriptionsView.routeName,
-                    ),
+                    // onTap: () => Navigator.pushNamed(
+                    //   context,
+                    //   CoachExpiringSubscriptionsView.routeName,
+                    // ),
                   ),
                 ),
                 SizedBox(width: 12.w),

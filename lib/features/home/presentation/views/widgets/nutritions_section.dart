@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/widgets/nutrition/meal_completion_control.dart';
 import 'package:athletica/core/widgets/nutrition/nutrition_status.dart';
@@ -19,7 +20,12 @@ class NutritionsSection extends StatelessWidget {
       BlocProvider(create: (_) => sl<NutritionTodayCubit>()..load()),
       BlocProvider(create: (_) => sl<MyPlanDetailsCubit>()..load()),
     ],
-    child: const _NutritionBody(),
+    child: Builder(
+      builder: (context) => RefreshOnFocus(
+        onRefresh: () => context.read<NutritionTodayCubit>().load(),
+        child: const _NutritionBody(),
+      ),
+    ),
   );
 }
 
@@ -30,22 +36,22 @@ class _NutritionBody extends StatelessWidget {
     padding: EdgeInsets.symmetric(horizontal: 16.w),
     child: NutritionCompletionFeedback(
       child: BlocBuilder<MyPlanDetailsCubit, MyPlanDetailsState>(
-        builder: (context, planState) => switch (planState) {
-          MyPlanDetailsInitial() ||
-          MyPlanDetailsLoading() => const NutritionLoading(),
-          MyPlanDetailsNoPlan() => NutritionNoPlan(
-            onRefresh: () {
-              context.read<MyPlanDetailsCubit>().load();
-              context.read<NutritionTodayCubit>().load();
-            },
-          ),
-          MyPlanDetailsError(:final message) => NutritionStatus(
-            message: message,
-            action: 'Retry',
-            onAction: () => context.read<MyPlanDetailsCubit>().load(),
-          ),
-          MyPlanDetailsLoaded() => const _TodayContent(),
-        },
+          builder: (context, planState) => switch (planState) {
+            MyPlanDetailsInitial() ||
+            MyPlanDetailsLoading() => const NutritionLoading(),
+            MyPlanDetailsNoPlan() => NutritionNoPlan(
+              onRefresh: () {
+                context.read<MyPlanDetailsCubit>().load();
+                context.read<NutritionTodayCubit>().load();
+              },
+            ),
+            MyPlanDetailsError(:final message) => NutritionStatus(
+              message: message,
+              action: 'Retry',
+              onAction: () => context.read<MyPlanDetailsCubit>().load(),
+            ),
+            MyPlanDetailsLoaded() => const _TodayContent(),
+          },
       ),
     ),
   );
@@ -57,7 +63,11 @@ class _TodayContent extends StatelessWidget {
   Widget build(
     BuildContext context,
   ) => BlocBuilder<NutritionTodayCubit, NutritionTodayState>(
-    buildWhen: (previous, next) => previous.runtimeType != next.runtimeType,
+    buildWhen: (previous, current) =>
+        previous.runtimeType != current.runtimeType ||
+        (previous is NutritionTodayLoaded &&
+            current is NutritionTodayLoaded &&
+            !_sameMealPresentation(previous.meals, current.meals)),
     builder: (context, state) => switch (state) {
       NutritionTodayInitial() ||
       NutritionTodayLoading() => const NutritionLoading(),
@@ -68,17 +78,32 @@ class _TodayContent extends StatelessWidget {
       ),
       NutritionTodayLoaded() => Column(
         children: [
-          BlocSelector<NutritionTodayCubit, NutritionTodayState, TodayMeals>(
-            selector: (state) => state.meals,
-            builder: (context, meals) => NutritionSummaryCard(meals: meals),
-          ),
+          NutritionSummaryCard(meals: state.meals),
           SizedBox(height: 16.h),
-          BlocSelector<NutritionTodayCubit, NutritionTodayState, TodayMeals>(
-            selector: (state) => state.meals,
-            builder: (context, meals) => MealSection(meals: meals),
-          ),
+          MealSection(meals: state.meals),
         ],
       ),
     },
   );
+}
+
+bool _sameMealPresentation(TodayMeals previous, TodayMeals next) {
+  if (previous.meals.length != next.meals.length) return false;
+  for (var i = 0; i < previous.meals.length; i++) {
+    final a = previous.meals[i];
+    final b = next.meals[i];
+    if (a.mealLogId != b.mealLogId ||
+        a.mealId != b.mealId ||
+        a.mealType != b.mealType ||
+        a.mealOrder != b.mealOrder ||
+        a.notes != b.notes ||
+        a.foods.length != b.foods.length ||
+        a.totalCalories != b.totalCalories ||
+        a.totalProtein != b.totalProtein ||
+        a.totalCarbs != b.totalCarbs ||
+        a.totalFat != b.totalFat) {
+      return false;
+    }
+  }
+  return true;
 }

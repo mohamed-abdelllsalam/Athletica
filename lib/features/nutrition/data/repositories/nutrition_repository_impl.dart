@@ -1,3 +1,4 @@
+import 'package:athletica/core/services/completion_changes.dart';
 import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
@@ -9,7 +10,9 @@ import 'package:athletica/features/nutrition/domain/repositories/nutrition_repos
 import 'package:dio/dio.dart';
 
 class NutritionRepositoryImpl implements NutritionRepository {
-  const NutritionRepositoryImpl(this._dataSource);
+  const NutritionRepositoryImpl(this._dataSource, [this._changes]);
+
+  final CompletionChanges? _changes;
 
   final NutritionRemoteDataSource _dataSource;
 
@@ -29,6 +32,7 @@ class NutritionRepositoryImpl implements NutritionRepository {
   Future<ApiResult<TodayMeals>> completeMeal(String mealLogId) async {
     try {
       final model = await _dataSource.completeMeal(mealLogId);
+      _changes?.notify();
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
       return ApiError(mapDioException(e));
@@ -41,6 +45,7 @@ class NutritionRepositoryImpl implements NutritionRepository {
   Future<ApiResult<TodayMeals>> uncompleteMeal(String mealLogId) async {
     try {
       final model = await _dataSource.uncompleteMeal(mealLogId);
+      _changes?.notify();
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
       return ApiError(mapDioException(e));

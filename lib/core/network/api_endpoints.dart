@@ -134,6 +134,9 @@ class ApiEndpoints {
       'nutrition/meals/$mealLogId/complete';
   static String nutritionMealUncomplete(String mealLogId) =>
       'nutrition/meals/$mealLogId/uncomplete';
+  static const String nutritionStreak = 'nutrition/streak';
+  static String coachNutritionStreak(String coachClientId) =>
+      'nutrition/clients/$coachClientId/streak';
 
   // Client assigned plans (workout + nutrition)
   static const String clientAssigned = 'client/assigned';
@@ -219,6 +222,9 @@ class ApiEndpoints {
   static const String workoutMyPlans = 'workout/my/plans';
   static String workoutMyPlan(String planId) => 'workout/my/plans/$planId';
   static const String workoutHistory = 'workout/history';
+  static const String workoutStreak = 'workout/streak';
+  static String coachWorkoutStreak(String coachClientId) =>
+      'workout/clients/$coachClientId/streak';
   static String workoutExerciseComplete(String logId) =>
       'workout/exercises/$logId/complete';
   static String workoutExerciseUncomplete(String logId) =>

@@ -38,18 +38,18 @@ class TodayExerciseModel extends TodayExerciseEntry {
   }
 
   TodayExerciseEntry toEntity() => TodayExerciseEntry(
-        logId: logId,
-        completed: completed,
-        completedAt: completedAt,
-        id: id,
-        exerciseId: exerciseId,
-        orderNumber: orderNumber,
-        sets: sets,
-        reps: reps,
-        restTime: restTime,
-        notes: notes,
-        exercise: exercise,
-      );
+    logId: logId,
+    completed: completed,
+    completedAt: completedAt,
+    id: id,
+    exerciseId: exerciseId,
+    orderNumber: orderNumber,
+    sets: sets,
+    reps: reps,
+    restTime: restTime,
+    notes: notes,
+    exercise: exercise,
+  );
 }
 
 class TodayWorkoutModel extends TodayWorkoutEntry {
@@ -66,8 +66,9 @@ class TodayWorkoutModel extends TodayWorkoutEntry {
   /// Returns null when the API answers `{workout: null}` (no active plan).
   static TodayWorkoutModel? fromResponse(Map<String, dynamic> body) {
     final data = body['data'];
-    final Map<String, dynamic> root =
-        data is Map<String, dynamic> ? data : body;
+    final Map<String, dynamic> root = data is Map<String, dynamic>
+        ? data
+        : body;
     final workout = root['workout'];
     if (workout == null) return null;
     if (workout is! Map<String, dynamic>) return null;
@@ -92,14 +93,14 @@ class TodayWorkoutModel extends TodayWorkoutEntry {
   }
 
   TodayWorkoutEntry toEntity() => TodayWorkoutEntry(
-        dayId: dayId,
-        title: title,
-        dayNumber: dayNumber,
-        isRest: isRest,
-        note: note,
-        exercises: exercises,
-        dayCompleted: dayCompleted,
-      );
+    dayId: dayId,
+    title: title,
+    dayNumber: dayNumber,
+    isRest: isRest,
+    note: note,
+    exercises: exercises,
+    dayCompleted: dayCompleted,
+  );
 }
 
 class ExerciseCompletionModel extends ExerciseCompletionResult {
@@ -113,11 +114,19 @@ class ExerciseCompletionModel extends ExerciseCompletionResult {
 
   factory ExerciseCompletionModel.fromResponse(Map<String, dynamic> body) {
     final dynamic rawData = body['data'];
-    final Map<String, dynamic> data =
-        rawData is Map<String, dynamic> ? rawData : body;
+    final Map<String, dynamic> data = rawData is Map<String, dynamic>
+        ? rawData
+        : body;
     final log = data['exercise_log'];
-    final Map<String, dynamic> logJson =
-        log is Map<String, dynamic> ? log : data;
+    final Map<String, dynamic> logJson = log is Map<String, dynamic>
+        ? log
+        : data;
+    if (logJson['log_id'] is! String ||
+        (logJson['log_id'] as String).isEmpty ||
+        logJson['completed'] is! bool ||
+        data['day_completed'] is! bool) {
+      throw const FormatException('Invalid exercise completion response');
+    }
     return ExerciseCompletionModel(
       logId: logJson['log_id'] as String? ?? '',
       completed: logJson['completed'] as bool? ?? false,
@@ -137,8 +146,9 @@ class WorkoutHistoryModel {
 
   factory WorkoutHistoryModel.fromJson(Map<String, dynamic> json) {
     final data = json['data'];
-    final Map<String, dynamic> root =
-        data is Map<String, dynamic> ? data : json;
+    final Map<String, dynamic> root = data is Map<String, dynamic>
+        ? data
+        : json;
     final history = (root['history'] as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
         .map(

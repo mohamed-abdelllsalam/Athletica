@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/meal_type_labels.dart';
@@ -17,21 +18,35 @@ class TodayMealDetailsView extends StatelessWidget {
   const TodayMealDetailsView({super.key, required this.mealLogId});
   final String mealLogId;
   @override
+  Widget build(BuildContext context) => RefreshOnFocus(
+    onRefresh: () => context.read<NutritionTodayCubit>().load(),
+    child: _TodayMealDetailsContent(mealLogId: mealLogId),
+  );
+}
+
+class _TodayMealDetailsContent extends StatelessWidget {
+  const _TodayMealDetailsContent({required this.mealLogId});
+  final String mealLogId;
+  @override
   Widget build(BuildContext context) {
-    final meal = context
-        .read<NutritionTodayCubit>()
-        .state
-        .meals
-        .meals
+    final state = context.watch<NutritionTodayCubit>().state;
+    final meal = state.meals.meals
         .where((m) => m.mealLogId == mealLogId)
         .firstOrNull;
     if (meal == null) {
-      return const Scaffold(
+      return Scaffold(
         body: SafeArea(
           child: Column(
             children: [
-              NutritionAppBar(title: 'Meal'),
-              NutritionStatus(message: 'This meal is no longer available.'),
+              const NutritionAppBar(title: 'Meal'),
+              if (state is NutritionTodayLoading)
+                const NutritionLoading()
+              else
+                NutritionStatus(
+                  message: state is NutritionTodayError
+                      ? state.message
+                      : 'This meal is no longer available.',
+                ),
             ],
           ),
         ),

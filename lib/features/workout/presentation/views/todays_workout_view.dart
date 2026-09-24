@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -37,7 +38,14 @@ class TodaysWorkoutView extends StatelessWidget {
       create: (_) => sl<WorkoutTodayCubit>()..load(),
       child: Scaffold(
         backgroundColor: AppColors.primaryAppColor,
-        body: SafeArea(child: _Body(userGender: userGender)),
+        body: SafeArea(
+          child: Builder(
+            builder: (context) => RefreshOnFocus(
+              onRefresh: () => context.read<WorkoutTodayCubit>().load(),
+              child: _Body(userGender: userGender),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -88,7 +96,12 @@ class _BodyState extends State<_Body> {
                 _showCompletion();
               }
             },
-            builder: (context, state) => switch (state) {
+          buildWhen: (previous, current) =>
+              previous.runtimeType != current.runtimeType ||
+              (previous is WorkoutTodayLoaded &&
+                  current is WorkoutTodayLoaded &&
+                  !_sameWorkoutLayout(previous.workout, current.workout)),
+          builder: (context, state) => switch (state) {
               WorkoutTodayInitial() ||
               WorkoutTodayLoading() => const TodayWorkoutLoadingView(),
               WorkoutTodayError(:final message) => WorkoutStatusView(
@@ -98,7 +111,7 @@ class _BodyState extends State<_Body> {
                 actionLabel: 'Retry',
                 onAction: () => context.read<WorkoutTodayCubit>().load(),
               ),
-              WorkoutTodayLoaded(:final workout, :final togglingLogId) =>
+              WorkoutTodayLoaded(:final workout) =>
                 workout == null
                     ? WorkoutStatusView(
                         icon: Icons.fitness_center,
@@ -112,7 +125,6 @@ class _BodyState extends State<_Body> {
                     ? TodayWorkoutRestView(workout: workout)
                     : _WorkoutView(
                         workout: workout,
-                        togglingLogId: togglingLogId,
                         gender: widget.userGender,
                       ),
             },
@@ -155,12 +167,10 @@ class _AppBar extends StatelessWidget {
 class _WorkoutView extends StatelessWidget {
   const _WorkoutView({
     required this.workout,
-    required this.togglingLogId,
     required this.gender,
   });
 
   final TodayWorkoutEntry workout;
-  final String? togglingLogId;
   final String? gender;
 
   @override
@@ -193,7 +203,16 @@ class _WorkoutView extends StatelessWidget {
             ),
           ],
           SizedBox(height: 18.h),
-          TodayWorkoutProgressCard(completed: completed, total: total),
+          BlocSelector<WorkoutTodayCubit, WorkoutTodayState, int>(
+            selector: (state) => state.workout?.exercises
+                    .where((exercise) => exercise.completed)
+                    .length ??
+                completed,
+            builder: (context, currentCompleted) => TodayWorkoutProgressCard(
+              completed: currentCompleted,
+              total: total,
+            ),
+          ),
           SizedBox(height: 18.h),
           Text(
             'Exercises',
@@ -207,41 +226,109 @@ class _WorkoutView extends StatelessWidget {
           else
             ...exercises.asMap().entries.map((entry) {
               final exercise = entry.value;
-              return Padding(
-                padding: EdgeInsets.only(bottom: 10.h),
-                child: WorkoutExerciseRow(
-                  key: ValueKey(
-                    exercise.logId.isNotEmpty ? exercise.logId : exercise.id,
-                  ),
-                  order: entry.key + 1,
-                  name: _exerciseName(exercise),
-                  primaryMuscle: exercise.exercise?.primaryMuscle.trim() ?? '',
-                  prescription: formatWorkoutPrescription(
-                    exercise.sets,
-                    exercise.reps,
-                  ),
-                  rest: _restLabel(exercise.restTime),
-                  notes: exercise.notes.trim(),
-                  thumbnail: ExerciseThumbnail(
-                    size: 58,
-                    thumbnailUrl: _thumbnail(exercise, gender),
-                  ),
-                  completed: exercise.completed,
-                  busy: togglingLogId == exercise.logId,
-                  onMediaTap: () => _showVideo(context, exercise, gender),
-                  onCompletionChanged: exercise.logId.isEmpty
-                      ? null
-                      : (value) => context.read<WorkoutTodayCubit>().toggle(
-                          exercise.logId,
-                          value,
-                        ),
+              return _TodayWorkoutExerciseItem(
+                key: ValueKey(
+                  exercise.logId.isNotEmpty ? exercise.logId : exercise.id,
                 ),
+                exercise: exercise,
+                order: entry.key + 1,
+                gender: gender,
               );
             }),
         ],
       ),
     );
   }
+}
+
+class _TodayWorkoutExerciseItem extends StatelessWidget {
+  const _TodayWorkoutExerciseItem({
+    super.key,
+    required this.exercise,
+    required this.order,
+    required this.gender,
+  });
+
+  final TodayExerciseEntry exercise;
+  final int order;
+  final String? gender;
+
+  @override
+  Widget build(BuildContext context) => BlocSelector<
+    WorkoutTodayCubit,
+    WorkoutTodayState,
+    ({bool completed, bool busy})
+  >(
+    selector: (state) {
+      final current = state.workout?.exercises
+          .where((candidate) => candidate.logId == exercise.logId)
+          .firstOrNull;
+      final busy = state is WorkoutTodayLoaded &&
+          state.togglingLogId == exercise.logId;
+      return (
+        completed: current?.completed ?? exercise.completed,
+        busy: busy,
+      );
+    },
+    builder: (context, value) => Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: WorkoutExerciseRow(
+        order: order,
+        name: _exerciseName(exercise),
+        primaryMuscle: exercise.exercise?.primaryMuscle.trim() ?? '',
+        prescription: formatWorkoutPrescription(exercise.sets, exercise.reps),
+        rest: _restLabel(exercise.restTime),
+        notes: exercise.notes.trim(),
+        thumbnail: ExerciseThumbnail(
+          size: 58,
+          thumbnailUrl: _thumbnail(exercise, gender),
+        ),
+        completed: value.completed,
+        busy: value.busy,
+        onMediaTap: () => _showVideo(context, exercise, gender),
+        onCompletionChanged: exercise.logId.isEmpty || value.busy
+            ? null
+            : (completed) => context.read<WorkoutTodayCubit>().toggle(
+                exercise.logId,
+                completed,
+              ),
+      ),
+    ),
+  );
+}
+
+bool _sameWorkoutLayout(TodayWorkoutEntry? previous, TodayWorkoutEntry? next) {
+  if (previous == null || next == null) return previous == next;
+  if (previous.dayId != next.dayId ||
+      previous.title != next.title ||
+      previous.dayNumber != next.dayNumber ||
+      previous.isRest != next.isRest ||
+      previous.note != next.note ||
+      previous.exercises.length != next.exercises.length) {
+    return false;
+  }
+  for (var i = 0; i < previous.exercises.length; i++) {
+    final a = previous.exercises[i];
+    final b = next.exercises[i];
+    if (a.logId != b.logId ||
+        a.id != b.id ||
+        a.exerciseId != b.exerciseId ||
+        a.orderNumber != b.orderNumber ||
+        a.sets != b.sets ||
+        a.reps != b.reps ||
+        a.restTime != b.restTime ||
+        a.notes != b.notes ||
+        a.exercise?.nameEn != b.exercise?.nameEn ||
+        a.exercise?.nameAr != b.exercise?.nameAr ||
+        a.exercise?.primaryMuscle != b.exercise?.primaryMuscle ||
+        a.exercise?.thumbnailUrlMale != b.exercise?.thumbnailUrlMale ||
+        a.exercise?.thumbnailUrlFemale != b.exercise?.thumbnailUrlFemale ||
+        a.exercise?.videoUrlMale != b.exercise?.videoUrlMale ||
+        a.exercise?.videoUrlFemale != b.exercise?.videoUrlFemale) {
+      return false;
+    }
+  }
+  return true;
 }
 
 String _exerciseName(TodayExerciseEntry exercise) => buildBilingualLabel(

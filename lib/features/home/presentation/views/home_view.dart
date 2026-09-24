@@ -4,6 +4,7 @@ import 'package:athletica/features/auth/domain/usecases/check_client_profile_com
 import 'package:athletica/features/home/presentation/views/widgets/home_view_body.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
+import 'package:athletica/features/streak/presentation/cubits/streak_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -56,14 +57,15 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: sl<ProfileCubit>(),
-      child: Scaffold(
-        body: _checking
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
-            : _profileComplete
-                ? const HomeViewBody()
-                : const SizedBox.shrink(),
+      child: BlocProvider(
+        create: (_) => sl<StreakCubit>(),
+        child: Scaffold(
+          body: _checking
+              ? const Center(child: CircularProgressIndicator())
+              : _profileComplete
+                  ? const HomeViewBody()
+                  : const SizedBox.shrink(),
+        ),
       ),
     );
   }

@@ -54,7 +54,14 @@ class WorkoutHistoryDayCard extends StatelessWidget {
               ],
             ),
           ),
-          if (completed)
+          if (day.isRest)
+            Text(
+              'R',
+              style: AppTextStyles.semiBold14(
+                context,
+              ).copyWith(color: AppColors.streakBlue),
+            )
+          else if (completed)
             Icon(Icons.check_circle, color: AppColors.streakGreen, size: 20.sp),
         ],
       ),

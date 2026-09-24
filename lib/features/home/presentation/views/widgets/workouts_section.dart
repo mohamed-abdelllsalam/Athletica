@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -66,7 +67,12 @@ class WorkoutsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<WorkoutTodayCubit>()..load(),
-      child: const _WorkoutsBody(),
+      child: Builder(
+        builder: (context) => RefreshOnFocus(
+          onRefresh: () => context.read<WorkoutTodayCubit>().load(),
+          child: const _WorkoutsBody(),
+        ),
+      ),
     );
   }
 }

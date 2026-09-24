@@ -1,3 +1,5 @@
+import 'package:athletica/core/services/completion_changes.dart';
+import 'package:athletica/core/usecases/watch_completion_changes_usecase.dart';
 import 'package:athletica/core/network/api_client.dart';
 import 'package:athletica/features/assigned/data/datasources/assigned_remote_data_source.dart';
 import 'package:athletica/features/assigned/data/repositories/assigned_repository_impl.dart';
@@ -165,6 +167,12 @@ import 'package:athletica/features/profile/domain/usecases/upload_profile_image_
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_info_cubit.dart';
 import 'package:athletica/features/splash/presentation/cubits/splash_cubit.dart';
+import 'package:athletica/features/streak/data/datasources/streak_remote_data_source.dart';
+import 'package:athletica/features/streak/data/repositories/streak_repository_impl.dart';
+import 'package:athletica/features/streak/domain/repositories/streak_repository.dart';
+import 'package:athletica/features/streak/domain/usecases/get_client_streak_usecase.dart';
+import 'package:athletica/features/streak/domain/usecases/get_coach_client_streak_usecase.dart';
+import 'package:athletica/features/streak/presentation/cubits/streak_cubit.dart';
 import 'package:athletica/features/workout/data/datasources/workout_remote_data_source.dart';
 import 'package:athletica/features/workout/data/repos/workout_repository_impl.dart';
 import 'package:athletica/features/workout/domain/repos/workout_repository.dart';
@@ -275,6 +283,9 @@ void setupDependencies() {
   sl.registerLazySingleton<ClientCoachRemoteDataSource>(
     () => ClientCoachRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<StreakRemoteDataSource>(
+    () => StreakRemoteDataSourceImpl(sl()),
+  );
   sl.registerLazySingleton<NutritionRemoteDataSource>(
     () => NutritionRemoteDataSourceImpl(sl()),
   );
@@ -317,11 +328,19 @@ void setupDependencies() {
   sl.registerLazySingleton<ClientCoachRepository>(
     () => ClientCoachRepositoryImpl(sl()),
   );
+  sl.registerLazySingleton<StreakRepository>(() => StreakRepositoryImpl(sl()));
   sl.registerLazySingleton<AssignedRepository>(
     () => AssignedRepositoryImpl(sl()),
   );
+  sl.registerLazySingleton(
+    () => CompletionChanges(),
+    dispose: (value) => value.dispose(),
+  );
+  sl.registerLazySingleton(
+    () => WatchCompletionChangesUseCase(sl<CompletionChanges>().stream),
+  );
   sl.registerLazySingleton<NutritionRepository>(
-    () => NutritionRepositoryImpl(sl()),
+    () => NutritionRepositoryImpl(sl(), sl()),
   );
 
   // Use cases
@@ -348,6 +367,8 @@ void setupDependencies() {
   sl.registerLazySingleton(() => DeleteProfileImageUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachClientsUseCase(sl()));
   sl.registerLazySingleton(() => GetCoachAssignedClientsUseCase(sl()));
+  sl.registerLazySingleton(() => GetClientStreakUseCase(sl()));
+  sl.registerLazySingleton(() => GetCoachClientStreakUseCase(sl()));
   sl.registerLazySingleton(() => GetChatConversationsUseCase(sl()));
   sl.registerLazySingleton(() => GetChatHistoryUseCase(sl()));
   sl.registerLazySingleton(() => SendChatMessageUseCase(sl()));
@@ -421,7 +442,7 @@ void setupDependencies() {
     () => WorkoutRemoteDataSourceImpl(sl()),
   );
   sl.registerLazySingleton<WorkoutRepository>(
-    () => WorkoutRepositoryImpl(sl()),
+    () => WorkoutRepositoryImpl(sl(), sl()),
   );
   sl.registerLazySingleton(() => GetWorkoutExercisesUseCase(sl()));
   sl.registerLazySingleton(() => CreateWorkoutTemplateV1UseCase(sl()));
@@ -486,11 +507,12 @@ void setupDependencies() {
   );
   sl.registerFactory(() => CoachMessagesCubit(sl()));
   sl.registerFactory(() => ClientDetailCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => StreakCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachJoinRequestsCubit(sl(), sl(), sl()));
   sl.registerFactory(() => CoachInviteCubit(sl(), sl()));
   sl.registerFactory(() => ClientCoachCubit(sl(), sl(), sl()));
   sl.registerFactory(() => AssignedCubit(sl(), sl(), sl()));
-  sl.registerFactory(() => NutritionTodayCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => NutritionTodayCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => MyPlanDetailsCubit(sl(), sl()));
   sl.registerFactory(() => CoachHomeStatsCubit(sl()));
   sl.registerFactory(() => FoodsCubit(sl(), sl()));
@@ -539,7 +561,7 @@ void setupDependencies() {
   sl.registerFactory(
     () => WorkoutPlanDetailCubit(sl(), sl(), sl(), sl(), sl(), sl()),
   );
-  sl.registerFactory(() => WorkoutTodayCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => WorkoutTodayCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => WorkoutMyPlanCubit(sl(), sl()));
   sl.registerFactory(() => WorkoutHistoryCubit(sl()));
 }

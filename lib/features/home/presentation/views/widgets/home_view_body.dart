@@ -7,7 +7,9 @@ import 'package:athletica/features/home/presentation/views/widgets/nutritions_se
 import 'package:athletica/features/home/presentation/views/widgets/streak_section.dart';
 import 'package:athletica/features/home/presentation/views/widgets/summary_section.dart';
 import 'package:athletica/features/home/presentation/views/widgets/workouts_section.dart';
+import 'package:athletica/features/streak/presentation/cubits/streak_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HomeViewBody extends StatefulWidget {
@@ -19,6 +21,13 @@ class HomeViewBody extends StatefulWidget {
 
 class _HomeViewBodyState extends State<HomeViewBody> {
   int _selectedTab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<StreakCubit>().loadClient();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,7 +41,9 @@ class _HomeViewBodyState extends State<HomeViewBody> {
               SizedBox(height: 8.h),
               const HomeAppBar(),
               SizedBox(height: 24.h),
-              const StreakSection(),
+              StreakSection(
+                onRetry: () => context.read<StreakCubit>().loadClient(),
+              ),
               SizedBox(height: 16.h),
               CheckInEntryCard(
                 onTap: () => Navigator.pushNamed(

@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/progress_history_unavailable.dart';
 import 'dart:io';
 
 import 'package:athletica/core/di/injection_container.dart';
@@ -12,6 +13,8 @@ import 'package:athletica/features/profile/presentation/cubits/profile_state.dar
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_info_view.dart';
 import 'package:athletica/features/profile/presentation/views/widgets/profile_assigned_plans_section.dart';
+import 'package:athletica/features/home/presentation/views/widgets/streak_section.dart';
+import 'package:athletica/features/streak/presentation/cubits/streak_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -31,26 +34,15 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
   File? _pendingImage;
 
   static const _tabs = ['Daily', 'Weekly', 'Monthly'];
-  static const _dailyData = [0.80, 0.75, 0.45, 0.60, 0.75, 0.85, 0.95];
-  static const _weeklyData = [0.50, 0.60, 0.70, 0.65, 0.80, 0.72, 0.90];
-  static const _monthlyData = [0.30, 0.45, 0.55, 0.60, 0.70, 0.80, 0.85];
-  static const _xLabels = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Today'];
-
   @override
   void initState() {
     super.initState();
     context.read<ProfileCubit>().loadProfile();
+    _loadClientStreak();
   }
 
-  List<double> get _currentData {
-    switch (_selectedTabIndex) {
-      case 1:
-        return _weeklyData;
-      case 2:
-        return _monthlyData;
-      default:
-        return _dailyData;
-    }
+  Future<void> _loadClientStreak() async {
+    await context.read<StreakCubit>().loadClient();
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -120,9 +112,9 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
           ),
         );
       case ApiError(:final failure):
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(failure.message)));
     }
   }
 
@@ -222,6 +214,8 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                     SizedBox(height: 24.h),
                     _buildAssignedPlanSection(context),
                     SizedBox(height: 24.h),
+                    const StreakSection(showHeader: false),
+                    SizedBox(height: 24.h),
                     _buildProgressOverviewSection(context),
                     SizedBox(height: 8.h),
                     Divider(color: AppColors.surfaceDark, thickness: 1),
@@ -256,12 +250,12 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
             buildWhen: (prev, curr) =>
                 curr is ProfileLoaded || curr is ProfileLoading,
             builder: (context, state) {
-              final name =
-                  state is ProfileLoaded ? state.profile.name : '...';
+              final name = state is ProfileLoaded ? state.profile.name : '...';
               return Text(
                 name,
-                style: AppTextStyles.semiBold15(context)
-                    .copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.semiBold15(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
               );
             },
           ),
@@ -278,10 +272,8 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
         final profile = state is ProfileLoaded ? state.profile : null;
         final name = profile?.name ?? '—';
         final imageUrl = profile?.profileImage;
-        final height =
-            profile?.height != null ? '${profile!.height} Cm' : '—';
-        final weight =
-            profile?.weight != null ? '${profile!.weight} Kg' : '—';
+        final height = profile?.height != null ? '${profile!.height} Cm' : '—';
+        final weight = profile?.weight != null ? '${profile!.weight} Kg' : '—';
 
         return Column(
           children: [
@@ -296,25 +288,22 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                       height: 90.r,
                       color: AppColors.surfaceDark,
                       child: _pendingImage != null
-                          ? Image.file(
-                              _pendingImage!,
-                              fit: BoxFit.cover,
-                            )
+                          ? Image.file(_pendingImage!, fit: BoxFit.cover)
                           : (imageUrl != null && imageUrl.isNotEmpty
-                              ? Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Icon(
+                                ? Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Icon(
+                                      Icons.person,
+                                      color: AppColors.textSecondary,
+                                      size: 40.sp,
+                                    ),
+                                  )
+                                : Icon(
                                     Icons.person,
                                     color: AppColors.textSecondary,
                                     size: 40.sp,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.person,
-                                  color: AppColors.textSecondary,
-                                  size: 40.sp,
-                                )),
+                                  )),
                     ),
                   ),
                 ),
@@ -324,8 +313,9 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                   children: [
                     Text(
                       name,
-                      style: AppTextStyles.bold20(context)
-                          .copyWith(color: AppColors.textPrimary),
+                      style: AppTextStyles.bold20(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
                     ),
                     SizedBox(height: 8.h),
                     Row(
@@ -363,8 +353,9 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                       ),
                       child: Text(
                         'Save Photo',
-                        style: AppTextStyles.semiBold14(context)
-                            .copyWith(color: AppColors.textPrimary),
+                        style: AppTextStyles.semiBold14(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
                       ),
                     ),
                   ),
@@ -381,8 +372,9 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                       ),
                       child: Text(
                         'Cancel',
-                        style: AppTextStyles.semiBold14(context)
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.semiBold14(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                     ),
                   ),
@@ -539,10 +531,7 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
           onTabSelected: (i) => setState(() => _selectedTabIndex = i),
         ),
         SizedBox(height: 16.h),
-        SizedBox(
-          height: 200.h,
-          child: _LineChart(dataPoints: _currentData, xLabels: _xLabels),
-        ),
+        SizedBox(height: 200.h, child: const ProgressHistoryUnavailable()),
       ],
     );
   }
@@ -573,9 +562,9 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                 SizedBox(width: 4.w),
                 Text(
                   'Active',
-                  style: AppTextStyles.medium14(context).copyWith(
-                    color: AppColors.streakGreen,
-                  ),
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.streakGreen),
                 ),
               ],
             ),
@@ -659,155 +648,6 @@ class _TabSelector extends StatelessWidget {
 }
 
 // ---------- Line Chart ----------
-
-class _LineChart extends StatelessWidget {
-  const _LineChart({required this.dataPoints, required this.xLabels});
-
-  final List<double> dataPoints;
-  final List<String> xLabels;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _LineChartPainter(dataPoints: dataPoints, xLabels: xLabels),
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _LineChartPainter extends CustomPainter {
-  _LineChartPainter({required this.dataPoints, required this.xLabels});
-
-  final List<double> dataPoints;
-  final List<String> xLabels;
-
-  static const _yLabels = ['100%', '75%', '50%', '25%', '0%'];
-  static const _leftPad = 44.0;
-  static const _bottomPad = 22.0;
-  static const _rightPad = 8.0;
-  static const _topPad = 6.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final chartW = size.width - _leftPad - _rightPad;
-    final chartH = size.height - _topPad - _bottomPad;
-
-    final gridPaint = Paint()
-      ..color = const Color(0xFF2A2A2A)
-      ..strokeWidth = 1;
-
-    for (int i = 0; i < _yLabels.length; i++) {
-      final ratio = i / (_yLabels.length - 1);
-      final y = _topPad + chartH * ratio;
-      canvas.drawLine(
-        Offset(_leftPad, y),
-        Offset(_leftPad + chartW, y),
-        gridPaint,
-      );
-      _paintText(
-        canvas,
-        _yLabels[i],
-        Offset(0, y - 7),
-        const Color(0xFF9E9E9E),
-        9.5,
-      );
-    }
-
-    if (dataPoints.length < 2) return;
-
-    final fillPath = Path();
-    for (int i = 0; i < dataPoints.length; i++) {
-      final x = _leftPad + chartW * i / (dataPoints.length - 1);
-      final y = _topPad + chartH * (1 - dataPoints[i]);
-      if (i == 0) {
-        fillPath.moveTo(x, y);
-      } else {
-        final prevX = _leftPad + chartW * (i - 1) / (dataPoints.length - 1);
-        final prevY = _topPad + chartH * (1 - dataPoints[i - 1]);
-        final cpX = prevX + (x - prevX) / 2;
-        fillPath.cubicTo(cpX, prevY, cpX, y, x, y);
-      }
-    }
-    fillPath.lineTo(_leftPad + chartW, _topPad + chartH);
-    fillPath.lineTo(_leftPad, _topPad + chartH);
-    fillPath.close();
-
-    canvas.drawPath(
-      fillPath,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            const Color(0xFF5273E0).withValues(alpha: 0.3),
-            const Color(0xFF5273E0).withValues(alpha: 0.0),
-          ],
-        ).createShader(Rect.fromLTWH(_leftPad, _topPad, chartW, chartH)),
-    );
-
-    final linePath = Path();
-    for (int i = 0; i < dataPoints.length; i++) {
-      final x = _leftPad + chartW * i / (dataPoints.length - 1);
-      final y = _topPad + chartH * (1 - dataPoints[i]);
-      if (i == 0) {
-        linePath.moveTo(x, y);
-      } else {
-        final prevX = _leftPad + chartW * (i - 1) / (dataPoints.length - 1);
-        final prevY = _topPad + chartH * (1 - dataPoints[i - 1]);
-        final cpX = prevX + (x - prevX) / 2;
-        linePath.cubicTo(cpX, prevY, cpX, y, x, y);
-      }
-    }
-
-    canvas.drawPath(
-      linePath,
-      Paint()
-        ..color = AppColors.streakPurple
-        ..strokeWidth = 2.0
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-
-    _paintText(
-      canvas,
-      'Days',
-      Offset(0, size.height - _bottomPad + 5),
-      const Color(0xFF6B6B6B),
-      9.0,
-    );
-    for (int i = 0; i < xLabels.length; i++) {
-      final x = _leftPad + chartW * i / (xLabels.length - 1);
-      _paintText(
-        canvas,
-        xLabels[i],
-        Offset(x - xLabels[i].length * 2.8, size.height - _bottomPad + 5),
-        const Color(0xFF9E9E9E),
-        9.5,
-      );
-    }
-  }
-
-  void _paintText(
-    Canvas canvas,
-    String text,
-    Offset offset,
-    Color color,
-    double fontSize,
-  ) {
-    final tp = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(color: color, fontSize: fontSize),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas, offset);
-  }
-
-  @override
-  bool shouldRepaint(_LineChartPainter old) =>
-      old.dataPoints != dataPoints || old.xLabels != xLabels;
-}
 
 // ---------- Subscription Row ----------
 

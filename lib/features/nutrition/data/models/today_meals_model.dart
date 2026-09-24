@@ -19,6 +19,23 @@ class TodayMealsModel {
     );
   }
 
+  factory TodayMealsModel.fromCompletion(
+    Map<String, dynamic> json,
+    String expectedId,
+  ) {
+    final log = json['meal_log'];
+    if (log is! Map<String, dynamic> ||
+        log['meal_log_id'] != expectedId ||
+        log['completed'] is! bool ||
+        json['day_completed'] is! bool) {
+      throw const FormatException('Invalid meal completion response');
+    }
+    return TodayMealsModel(
+      meals: [log],
+      dayCompleted: json['day_completed'] as bool,
+    );
+  }
+
   static TodayMeal _mealFromJson(Map<String, dynamic> json) {
     return TodayMeal(
       mealLogId: json['meal_log_id'] as String? ?? '',
@@ -36,7 +53,7 @@ class TodayMealsModel {
   }
 
   TodayMeals toEntity() => TodayMeals(
-        meals: meals.map(_mealFromJson).toList(),
-        dayCompleted: dayCompleted,
-      );
+    meals: meals.map(_mealFromJson).toList(),
+    dayCompleted: dayCompleted,
+  );
 }

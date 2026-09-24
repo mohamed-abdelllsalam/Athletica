@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -21,9 +22,16 @@ class WorkoutHistoryView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<WorkoutHistoryCubit>()..load(),
-      child: const Scaffold(
+      child: Scaffold(
         backgroundColor: AppColors.primaryAppColor,
-        body: SafeArea(child: _Body()),
+        body: SafeArea(
+          child: Builder(
+            builder: (context) => RefreshOnFocus(
+              onRefresh: () => context.read<WorkoutHistoryCubit>().load(),
+              child: const _Body(),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -31,13 +39,6 @@ class WorkoutHistoryView extends StatelessWidget {
 
 class _Body extends StatelessWidget {
   const _Body();
-
-  String _todayYmd() {
-    final now = DateTime.now();
-    final m = now.month.toString().padLeft(2, '0');
-    final d = now.day.toString().padLeft(2, '0');
-    return '${now.year}-$m-$d';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +118,11 @@ class _Body extends StatelessWidget {
                           itemBuilder: (context, index) {
                             final day = days[index];
                             final bool completed = day.isCompletedUi;
-                            final bool missed = day.isMissed(_todayYmd());
+                            final bool missed = day.isMissed(
+                              days
+                                  .map((entry) => entry.date)
+                                  .reduce((a, b) => a.compareTo(b) > 0 ? a : b),
+                            );
                             final Color dot = day.isRest
                                 ? AppColors.primaryBlue
                                 : completed
