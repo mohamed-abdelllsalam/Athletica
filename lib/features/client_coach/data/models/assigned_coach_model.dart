@@ -15,6 +15,7 @@ class AssignedCoachModel {
     required this.id,
     required this.username,
     required this.email,
+    required this.assignmentId,
     required this.bio,
     required this.specialization,
     required this.imageUrl,
@@ -24,6 +25,7 @@ class AssignedCoachModel {
   final String id;
   final String username;
   final String email;
+  final String assignmentId;
   final String bio;
   final String specialization;
   final String? imageUrl;
@@ -53,6 +55,9 @@ class AssignedCoachModel {
           '',
       email:
           _stringFrom([user, coach, root], const ['email']) ?? '',
+      assignmentId: (root['assignment_id'] ?? root['coach_client_id'])
+              ?.toString() ??
+          '',
       bio: _stringFrom([profile, coach, root], const ['bio']) ?? '',
       specialization:
           _stringFrom([profile, coach, root], const ['specialization']) ?? '',
@@ -132,6 +137,7 @@ class AssignedCoachModel {
         id: id,
         username: username,
         email: email,
+        assignmentId: assignmentId,
         bio: bio,
         specialization: specialization,
         assignedAt: assignedAt,

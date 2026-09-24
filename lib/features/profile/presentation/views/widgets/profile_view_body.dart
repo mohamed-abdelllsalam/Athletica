@@ -1,7 +1,12 @@
 import 'dart:io';
 
+import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/features/chat/presentation/models/chat_route_args.dart';
+import 'package:athletica/features/chat/presentation/views/chat_view.dart';
+import 'package:athletica/features/client_coach/domain/usecases/get_my_coach_usecase.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
@@ -90,6 +95,34 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _openCoachChat() async {
+    final result = await sl<GetMyCoachUseCase>()();
+    if (!mounted) return;
+    switch (result) {
+      case ApiSuccess(:final data):
+        final assignmentId = data?.assignmentId;
+        if (assignmentId == null || assignmentId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No assigned coach is available.')),
+          );
+          return;
+        }
+        Navigator.pushNamed(
+          context,
+          ChatView.routeName,
+          arguments: ChatRouteArgs(
+            title: 'Coach',
+            coachClientId: assignmentId,
+            canStartConversation: true,
+          ),
+        );
+      case ApiError(:final failure):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failure.message)),
+        );
     }
   }
 
@@ -422,7 +455,7 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
       width: double.infinity,
       height: 50.h,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: _openCoachChat,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.buttonColor,
           foregroundColor: AppColors.textPrimary,

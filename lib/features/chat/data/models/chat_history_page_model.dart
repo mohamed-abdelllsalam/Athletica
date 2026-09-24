@@ -10,6 +10,7 @@ class ChatHistoryPageModel extends ChatHistoryPage {
 
   factory ChatHistoryPageModel.fromJson(Map<String, dynamic> json) =>
       ChatHistoryPageModel(
+        // Preserve backend order; history is documented newest-first.
         messages: (json['messages'] as List<dynamic>)
             .map(
               (item) => ChatMessageModel.fromJson(item as Map<String, dynamic>),

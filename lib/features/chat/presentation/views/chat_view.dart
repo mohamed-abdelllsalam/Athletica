@@ -12,12 +12,14 @@ class ChatView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final routeArgs = args is ChatRouteArgs
+        ? args
+        : const ChatRouteArgs(title: 'Coach');
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) =>
-              sl<ChatCubit>(param1: const ChatRouteArgs(title: 'Coach'))
-                ..open(),
+          create: (_) => sl<ChatCubit>(param1: routeArgs)..open(),
         ),
         BlocProvider(create: (_) => sl<ClientCoachCubit>()..loadCoach()),
       ],

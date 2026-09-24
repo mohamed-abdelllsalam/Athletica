@@ -4,6 +4,7 @@ class AssignedCoach {
     required this.id,
     required this.username,
     required this.email,
+    required this.assignmentId,
     this.bio = '',
     this.specialization = '',
     this.assignedAt,
@@ -13,6 +14,7 @@ class AssignedCoach {
   final String id;
   final String username;
   final String email;
+  final String assignmentId;
   final String bio;
   final String specialization;
   final DateTime? assignedAt;

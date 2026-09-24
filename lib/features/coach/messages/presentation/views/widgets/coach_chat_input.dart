@@ -44,9 +44,6 @@ class _CoachChatInputState extends State<CoachChatInput> {
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       child: Row(
         children: [
-          Icon(Icons.camera_alt_outlined,
-              color: AppColors.textSecondary, size: 26.sp),
-          SizedBox(width: 8.w),
           Expanded(
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
@@ -73,11 +70,6 @@ class _CoachChatInputState extends State<CoachChatInput> {
                       ),
                     ),
                   ),
-                  Icon(Icons.attach_file_rounded,
-                      color: AppColors.textSecondary, size: 20.sp),
-                  SizedBox(width: 8.w),
-                  Icon(Icons.image_outlined,
-                      color: AppColors.textSecondary, size: 20.sp),
                 ],
               ),
             ),
@@ -93,7 +85,7 @@ class _CoachChatInputState extends State<CoachChatInput> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                _hasText ? Icons.send_rounded : Icons.mic_none_rounded,
+                Icons.send_rounded,
                 color: AppColors.textPrimary,
                 size: 20.sp,
               ),

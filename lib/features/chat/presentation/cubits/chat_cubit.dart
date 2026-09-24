@@ -153,7 +153,7 @@ class ChatCubit extends Cubit<ChatState> {
         switch (result) {
           case ApiSuccess(:final data):
             conversationId = data.conversation.id;
-            _insert(data.message);
+            _insertNewest(data.message);
             _hasMore = false;
             await _connectRealtime();
           case ApiError(:final failure):
@@ -168,7 +168,7 @@ class ChatCubit extends Cubit<ChatState> {
       if (isClosed) return;
       switch (result) {
         case ApiSuccess(:final data):
-          _insert(data);
+          _insertNewest(data);
         case ApiError(:final failure):
           _error = failure.message;
       }
@@ -179,7 +179,7 @@ class ChatCubit extends Cubit<ChatState> {
 
   void receive(ChatRealtimeEvent event) {
     if (!_remember(_seenEventIds, event.eventId)) return;
-    _insert(event.message);
+    _insertNewest(event.message);
     _emitReady();
   }
 
@@ -226,35 +226,26 @@ class ChatCubit extends Cubit<ChatState> {
 
   void _merge(List<ChatMessage> messages) {
     for (final message in messages) {
-      _insert(message);
+      if (message.conversationId != conversationId ||
+          !_remember(_seenMessageIds, message.id)) {
+        continue;
+      }
+      _messages.add(message);
     }
-    _messages.sort(_compare);
   }
 
-  void _insert(ChatMessage message) {
+  void _insertNewest(ChatMessage message) {
     if (message.conversationId != conversationId ||
         !_remember(_seenMessageIds, message.id)) {
       return;
     }
-    final position = _messages.indexWhere(
-      (other) => _compare(other, message) > 0,
-    );
-    if (position < 0) {
-      _messages.add(message);
-    } else {
-      _messages.insert(position, message);
-    }
+    _messages.insert(0, message);
   }
 
   bool _remember(LinkedHashSet<String> values, String value) {
     if (!values.add(value)) return false;
     if (values.length > 500) values.remove(values.first);
     return true;
-  }
-
-  int _compare(ChatMessage a, ChatMessage b) {
-    final time = a.createdAt.compareTo(b.createdAt);
-    return time == 0 ? a.id.compareTo(b.id) : time;
   }
 
   T? _firstWhereOrNull<T>(Iterable<T> values, bool Function(T) test) {

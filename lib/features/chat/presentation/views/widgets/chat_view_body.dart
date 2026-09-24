@@ -27,6 +27,12 @@ class _ChatViewBodyState extends State<ChatViewBody>
     with WidgetsBindingObserver {
   late final ScrollController _scrollController;
   String _myUserId = '';
+  String? _latestMessageId;
+  bool _followLatest = true;
+  bool _forceFollowLatest = false;
+  double? _olderLoadStartExtent;
+  double? _olderLoadStartPixels;
+  int? _olderLoadStartCount;
 
   @override
   void initState() {
@@ -50,11 +56,41 @@ class _ChatViewBodyState extends State<ChatViewBody>
     }
   }
 
+  @override
+  void didChangeMetrics() {
+    if (!_followLatest) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(
+          _scrollController.position.maxScrollExtent,
+        );
+      }
+    });
+  }
+
   void _onScroll() {
+    final state = context.read<ChatCubit>().state;
+    if (_scrollController.hasClients) {
+      final position = _scrollController.position;
+      _followLatest =
+          position.extentAfter <= position.viewportDimension * 0.25;
+    }
     if (_scrollController.hasClients &&
-        _scrollController.position.pixels <= 24) {
+        state is ChatReady &&
+        state.hasMore &&
+        !state.isLoadingOlder &&
+        _scrollController.position.pixels <=
+            _scrollController.position.minScrollExtent) {
+      _olderLoadStartExtent = _scrollController.position.maxScrollExtent;
+      _olderLoadStartPixels = _scrollController.position.pixels;
+      _olderLoadStartCount = state.messages.length;
       unawaited(context.read<ChatCubit>().loadOlder());
     }
+  }
+
+  void _sendMessage(String text) {
+    _forceFollowLatest = true;
+    unawaited(context.read<ChatCubit>().send(text));
   }
 
   @override
@@ -71,6 +107,7 @@ class _ChatViewBodyState extends State<ChatViewBody>
     final cubit = context.read<ChatCubit>();
     return Scaffold(
       backgroundColor: AppColors.primaryAppColor,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -82,28 +119,72 @@ class _ChatViewBodyState extends State<ChatViewBody>
                 listenWhen: (previous, current) =>
                     current is ChatReady &&
                     (current.errorMessage != null ||
-                        previous is! ChatReady ||
+                        (previous is ChatReady &&
+                            previous.isLoadingOlder &&
+                            !current.isLoadingOlder) ||
                         (current.messages.isNotEmpty &&
-                            (previous.messages.isEmpty ||
-                                current.messages.last.id !=
-                                    previous.messages.last.id))),
+                            ChatMessage.chronological(
+                                  current.messages,
+                                ).last.id !=
+                                _latestMessageId)),
                 listener: (context, state) {
                   if (state is! ChatReady) return;
+                  final messages = ChatMessage.chronological(state.messages);
                   if (state.errorMessage != null) {
+                    _forceFollowLatest = false;
                     ScaffoldMessenger.of(context)
                       ..hideCurrentSnackBar()
                       ..showSnackBar(
                         SnackBar(content: Text(state.errorMessage!)),
                       );
                   }
-                  if (state.messages.isNotEmpty) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (_scrollController.hasClients) {
-                        _scrollController.jumpTo(
-                          _scrollController.position.maxScrollExtent,
-                        );
-                      }
-                    });
+                  if (_olderLoadStartExtent != null &&
+                      _olderLoadStartPixels != null &&
+                      !state.isLoadingOlder) {
+                    final startExtent = _olderLoadStartExtent!;
+                    final startPixels = _olderLoadStartPixels!;
+                    final startCount = _olderLoadStartCount!;
+                    _olderLoadStartExtent = null;
+                    _olderLoadStartPixels = null;
+                    _olderLoadStartCount = null;
+                    if (state.messages.length > startCount) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (_scrollController.hasClients) {
+                          final extentDelta =
+                              _scrollController.position.maxScrollExtent -
+                              startExtent;
+                          final target = startPixels + extentDelta;
+                          _scrollController.jumpTo(
+                            target
+                                .clamp(
+                                  _scrollController.position.minScrollExtent,
+                                  _scrollController.position.maxScrollExtent,
+                                )
+                                .toDouble(),
+                          );
+                        }
+                      });
+                    }
+                  }
+                  if (messages.isNotEmpty &&
+                      messages.last.id != _latestMessageId) {
+                    final shouldFollow =
+                        _latestMessageId == null ||
+                        _forceFollowLatest ||
+                        _followLatest;
+                    _latestMessageId = messages.last.id;
+                    _forceFollowLatest = false;
+                    if (shouldFollow) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted && _scrollController.hasClients) {
+                          _scrollController.animateTo(
+                            _scrollController.position.maxScrollExtent,
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                      });
+                    }
                   }
                 },
                 builder: (context, state) {
@@ -119,23 +200,25 @@ class _ChatViewBodyState extends State<ChatViewBody>
                     );
                   }
                   final ready = state as ChatReady;
+                  final messages =
+                      ChatMessage.chronological(ready.messages);
                   return ListView.builder(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
                     itemCount:
-                        ready.messages.length + (ready.isLoadingOlder ? 1 : 0),
+                        messages.length + (ready.isLoadingOlder ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (ready.isLoadingOlder && index == 0) {
                         return const Center(child: CircularProgressIndicator());
                       }
                       final messageIndex =
                           index - (ready.isLoadingOlder ? 1 : 0);
-                      final message = ready.messages[messageIndex];
+                      final message = messages[messageIndex];
                       final isFirst =
                           messageIndex == 0 ||
                           !DateUtils.isSameDay(
-                            ready.messages[messageIndex - 1].createdAt,
+                            messages[messageIndex - 1].createdAt,
                             message.createdAt,
                           );
                       return Column(
@@ -157,7 +240,7 @@ class _ChatViewBodyState extends State<ChatViewBody>
                   previous.runtimeType != current.runtimeType,
               builder: (context, state) => ChatInputField(
                 enabled: state is ChatReady && state.canSend,
-                onSendMessage: (text) => unawaited(cubit.send(text)),
+                onSendMessage: _sendMessage,
               ),
             ),
             SizedBox(height: 8.h),

@@ -254,7 +254,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case SettingsView.routeName:
       return MaterialPageRoute(builder: (context) => const SettingsView());
     case ChatView.routeName:
-      return MaterialPageRoute(builder: (context) => const ChatView());
+      return MaterialPageRoute(
+        builder: (context) => const ChatView(),
+        settings: settings,
+      );
     case CompleteProfileView.routeName:
       return MaterialPageRoute(
         builder: (context) => const CompleteProfileView(),

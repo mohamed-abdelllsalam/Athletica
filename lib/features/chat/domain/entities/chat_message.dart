@@ -16,4 +16,12 @@ class ChatMessage {
   final DateTime createdAt;
 
   bool isMine(String userId) => senderUserId == userId;
+
+  static List<ChatMessage> chronological(Iterable<ChatMessage> messages) =>
+      List<ChatMessage>.of(messages)..sort(compareChronologically);
+
+  static int compareChronologically(ChatMessage a, ChatMessage b) {
+    final byTime = a.createdAt.compareTo(b.createdAt);
+    return byTime == 0 ? a.id.compareTo(b.id) : byTime;
+  }
 }

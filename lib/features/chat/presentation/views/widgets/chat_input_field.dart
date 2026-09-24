@@ -64,20 +64,13 @@ class _ChatInputFieldState extends State<ChatInputField> {
                         context,
                       ).copyWith(color: AppColors.textPrimary),
                       decoration: InputDecoration(
-                        hintText: 'Hi! 😊 Thank you so much',
+                        hintText: 'Message',
                         hintStyle: AppTextStyles.medium14(
                           context,
                         ).copyWith(color: AppColors.textSecondary),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 12.h),
                       ),
-                    ),
-                  ),
-                  GestureDetector(
-                    child: Icon(
-                      Icons.attach_file_rounded,
-                      color: AppColors.textSecondary,
-                      size: 22.sp,
                     ),
                   ),
                 ],

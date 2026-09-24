@@ -38,6 +38,12 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
   bool _accepted = false;
   late final ScrollController _scrollController;
   String _myUserId = '';
+  String? _latestMessageId;
+  bool _followLatest = true;
+  bool _forceFollowLatest = false;
+  double? _olderLoadStartExtent;
+  double? _olderLoadStartPixels;
+  int? _olderLoadStartCount;
 
   @override
   void initState() {
@@ -46,6 +52,15 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addObserver(this);
     if (widget.chatArgs != null) unawaited(_loadUserId());
+    if (widget.chatArgs == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(
+            _scrollController.position.maxScrollExtent,
+          );
+        }
+      });
+    }
   }
 
   Future<void> _loadUserId() async {
@@ -64,11 +79,33 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
     }
   }
 
+  @override
+  void didChangeMetrics() {
+    if (!_followLatest) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(
+          _scrollController.position.maxScrollExtent,
+        );
+      }
+    });
+  }
+
   void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    _followLatest = position.extentAfter <= position.viewportDimension * 0.25;
     if (widget.chatArgs != null &&
-        _scrollController.hasClients &&
-        _scrollController.position.pixels <= 24) {
-      unawaited(context.read<ChatCubit>().loadOlder());
+        position.pixels <= position.minScrollExtent) {
+      final chatState = context.read<ChatCubit>().state;
+      if (chatState is ChatReady &&
+          chatState.hasMore &&
+          !chatState.isLoadingOlder) {
+        _olderLoadStartExtent = position.maxScrollExtent;
+        _olderLoadStartPixels = position.pixels;
+        _olderLoadStartCount = chatState.messages.length;
+        unawaited(context.read<ChatCubit>().loadOlder());
+      }
     }
   }
 
@@ -93,6 +130,11 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
         );
       }
     });
+  }
+
+  void _sendBackendMessage(String text) {
+    _forceFollowLatest = true;
+    unawaited(context.read<ChatCubit>().send(text));
   }
 
   void _acceptRequest() => setState(() => _accepted = true);
@@ -145,6 +187,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryAppColor,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
@@ -163,8 +206,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
                 : widget.chatArgs == null
                 ? CoachChatInput(onSend: _sendMessage)
                 : CoachChatInput(
-                    onSend: (text) =>
-                        unawaited(context.read<ChatCubit>().send(text)),
+                    onSend: _sendBackendMessage,
                   ),
             SizedBox(height: 8.h),
           ],
@@ -205,25 +247,65 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
               previous.errorMessage != current.errorMessage)) {
         return true;
       }
-      return previous is! ChatReady ||
+      return (previous is ChatReady &&
+              previous.isLoadingOlder &&
+              !current.isLoadingOlder) ||
           (current.messages.isNotEmpty &&
-              (previous.messages.isEmpty ||
-                  current.messages.last.id != previous.messages.last.id));
+              chat.ChatMessage.chronological(current.messages).last.id !=
+                  _latestMessageId);
     },
     listener: (context, state) {
-      if (state is ChatReady && state.errorMessage != null) {
+      if (state is! ChatReady) return;
+      if (state.errorMessage != null) {
+        _forceFollowLatest = false;
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(state.errorMessage!)));
       }
-      if (state is ChatReady && state.messages.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.jumpTo(
-              _scrollController.position.maxScrollExtent,
-            );
-          }
-        });
+      final messages = chat.ChatMessage.chronological(state.messages);
+      if (_olderLoadStartExtent != null &&
+          _olderLoadStartPixels != null &&
+          !state.isLoadingOlder) {
+        final startExtent = _olderLoadStartExtent!;
+        final startPixels = _olderLoadStartPixels!;
+        final startCount = _olderLoadStartCount!;
+        _olderLoadStartExtent = null;
+        _olderLoadStartPixels = null;
+        _olderLoadStartCount = null;
+        if (state.messages.length > startCount) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              final extentDelta =
+                  _scrollController.position.maxScrollExtent - startExtent;
+              final target = startPixels + extentDelta;
+              _scrollController.jumpTo(
+                target
+                    .clamp(
+                      _scrollController.position.minScrollExtent,
+                      _scrollController.position.maxScrollExtent,
+                    )
+                    .toDouble(),
+              );
+            }
+          });
+        }
+      }
+      if (messages.isNotEmpty && messages.last.id != _latestMessageId) {
+        final shouldFollow =
+            _latestMessageId == null || _forceFollowLatest || _followLatest;
+        _latestMessageId = messages.last.id;
+        _forceFollowLatest = false;
+        if (shouldFollow) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+        }
       }
     },
     builder: (context, state) {
@@ -239,7 +321,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
         );
       }
       final ready = state as ChatReady;
-      final messages = ready.messages;
+      final messages = chat.ChatMessage.chronological(ready.messages);
       return ListView(
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
