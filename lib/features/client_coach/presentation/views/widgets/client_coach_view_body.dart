@@ -224,122 +224,105 @@ class _CoachCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 28.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _CoachHeroCard(coach: coach),
+          SizedBox(height: 24.h),
+          if (coach.bio.isNotEmpty) ...[
+            _SectionHeading(
+              title: 'About your coach',
+              subtitle: 'Get to know the person guiding your progress',
+            ),
+            SizedBox(height: 12.h),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(18.r),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(color: Colors.white.withValues(alpha: .06)),
+              ),
+              child: Text(
+                coach.bio,
+                style: AppTextStyles.medium14(context).copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.6,
+                ),
+              ),
+            ),
+            SizedBox(height: 24.h),
+          ],
+          _SectionHeading(
+            title: 'Credentials',
+            subtitle: 'Certificates and qualifications',
+          ),
+          SizedBox(height: 12.h),
+          const ClientCoachAchievementsSection(),
+          SizedBox(height: 28.h),
           Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(20.r),
+            padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
               color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(16.r),
+              borderRadius: BorderRadius.circular(18.r),
+              border: Border.all(color: Colors.redAccent.withValues(alpha: .2)),
             ),
-            child: Column(
+            child: Row(
               children: [
                 Container(
-                  width: 72.r,
-                  height: 72.r,
-                  clipBehavior: Clip.antiAlias,
-                  alignment: Alignment.center,
+                  width: 40.r,
+                  height: 40.r,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.surfaceDark,
-                    border: Border.all(
-                      color: AppColors.primaryBlue,
-                      width: 2,
-                    ),
+                    color: Colors.redAccent.withValues(alpha: .1),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
-                  child: coach.hasPhoto
-                      ? Image.network(
-                          coach.imageUrl!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (_, _, _) => Icon(
-                            Icons.person,
-                            color: AppColors.textSecondary,
-                            size: 32.sp,
-                          ),
-                        )
-                      : Icon(
-                          Icons.person,
-                          color: AppColors.textSecondary,
-                          size: 32.sp,
-                        ),
+                  child: Icon(
+                    Icons.link_off_rounded,
+                    color: Colors.redAccent,
+                    size: 20.sp,
+                  ),
                 ),
-                SizedBox(height: 12.h),
-                Text(
-                  coach.username,
-                  style: AppTextStyles.bold20(context)
-                      .copyWith(color: AppColors.textPrimary),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Your coaching connection',
+                        style: AppTextStyles.semiBold15(context)
+                            .copyWith(color: AppColors.textPrimary),
+                      ),
+                      SizedBox(height: 3.h),
+                      Text(
+                        'Leaving removes your plans and coaching data.',
+                        style: AppTextStyles.meduim12(context)
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  coach.email,
-                  style: AppTextStyles.medium14(context)
-                      .copyWith(color: AppColors.textSecondary),
+                SizedBox(width: 8.w),
+                TextButton(
+                  onPressed: onLeave,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  ),
+                  child: const Text('Leave'),
                 ),
-                if (coach.specialization.isNotEmpty) ...[
-                  SizedBox(height: 12.h),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Text(
-                      coach.specialization,
-                      style: AppTextStyles.meduim12(context)
-                          .copyWith(color: AppColors.primaryBlue),
-                    ),
-                  ),
-                ],
-                if (coach.bio.isNotEmpty) ...[
-                  SizedBox(height: 16.h),
-                  Text(
-                    coach.bio,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.medium14(context)
-                        .copyWith(color: AppColors.textSecondary),
-                  ),
-                ],
-                if (coach.assignedAt != null) ...[
-                  SizedBox(height: 16.h),
-                  Text(
-                    'Coaching since ${_formatDate(coach.assignedAt!)}',
-                    style: AppTextStyles.meduim12(context)
-                        .copyWith(color: AppColors.textSecondary),
-                  ),
-                ],
               ],
             ),
           ),
-          SizedBox(height: 24.h),
-          const ClientCoachAchievementsSection(),
-          SizedBox(height: 24.h),
-          SizedBox(
-            width: double.infinity,
-            height: 50.h,
-            child: OutlinedButton(
-              onPressed: onLeave,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.redAccent),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
+          SizedBox(height: 12.h),
+          if (coach.assignedAt != null)
+            Center(
               child: Text(
-                'Leave coach',
-                style: AppTextStyles.medium14(context).copyWith(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.w600,
-                ),
+                'Coaching together since ${_formatDate(coach.assignedAt!)}',
+                style: AppTextStyles.meduim12(context)
+                    .copyWith(color: AppColors.textTertiary),
               ),
             ),
-          ),
-          SizedBox(height: 24.h),
         ],
       ),
     );
@@ -349,5 +332,196 @@ class _CoachCard extends StatelessWidget {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return '$day/$month/${date.year}';
+  }
+}
+
+class _CoachHeroCard extends StatelessWidget {
+  const _CoachHeroCard({required this.coach});
+
+  final AssignedCoach coach;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20.r),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24.r),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF282044), AppColors.cardBackground, Color(0xFF191919)],
+        ),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: .32)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryBlue.withValues(alpha: .12),
+            blurRadius: 24.r,
+            offset: Offset(0, 10.h),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 82.r,
+                height: 82.r,
+                padding: EdgeInsets.all(3.r),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryBlue, AppColors.primaryPurple],
+                  ),
+                ),
+                child: ClipOval(
+                  child: ColoredBox(
+                    color: AppColors.surfaceDark,
+                    child: coach.hasPhoto
+                        ? Image.network(
+                            coach.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _CoachPlaceholder(),
+                          )
+                        : _CoachPlaceholder(),
+                  ),
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 9.w,
+                        vertical: 5.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.streakGreen.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.verified_rounded,
+                              color: AppColors.streakGreen, size: 13.sp),
+                          SizedBox(width: 4.w),
+                          Text(
+                            'YOUR COACH',
+                            style: AppTextStyles.meduim12(context).copyWith(
+                              color: AppColors.streakGreen,
+                              letterSpacing: .6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      coach.username,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bold20(context)
+                          .copyWith(color: AppColors.textPrimary),
+                    ),
+                    if (coach.specialization.isNotEmpty) ...[
+                      SizedBox(height: 4.h),
+                      Text(
+                        coach.specialization,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.medium14(context)
+                            .copyWith(color: AppColors.primaryBlue),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          Container(height: 1, color: Colors.white.withValues(alpha: .08)),
+          SizedBox(height: 14.h),
+          Row(
+            children: [
+              Icon(Icons.mail_outline_rounded,
+                  size: 17.sp, color: AppColors.textTertiary),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  coach.email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.medium14(context)
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          if (coach.assignedAt != null) ...[
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                Icon(Icons.calendar_month_outlined,
+                    size: 17.sp, color: AppColors.textTertiary),
+                SizedBox(width: 8.w),
+                Text(
+                  'Coaching since ${_formatDate(coach.assignedAt!)}',
+                  style: AppTextStyles.meduim12(context)
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
+}
+
+class _CoachPlaceholder extends StatelessWidget {
+  const _CoachPlaceholder();
+
+  @override
+  Widget build(BuildContext context) => Icon(
+        Icons.person_rounded,
+        color: AppColors.textSecondary,
+        size: 38.sp,
+      );
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppTextStyles.bold20(context)
+              .copyWith(color: AppColors.textPrimary),
+        ),
+        SizedBox(height: 3.h),
+        Text(
+          subtitle,
+          style: AppTextStyles.meduim12(context)
+              .copyWith(color: AppColors.textTertiary),
+        ),
+      ],
+    );
   }
 }
