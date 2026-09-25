@@ -8,6 +8,11 @@ abstract class AuthRepository {
     required String password,
   });
 
+  Future<ApiResult<AuthResponseEntity>> loginWithGoogle({
+    required String idToken,
+    String? role,
+  });
+
   Future<ApiResult<void>> registerClient({
     required String name,
     required String email,

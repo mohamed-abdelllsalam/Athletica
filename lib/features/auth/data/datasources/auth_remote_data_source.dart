@@ -1,4 +1,5 @@
 import 'package:athletica/core/network/api_endpoints.dart';
+import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/client_answers_completion.dart';
 import 'package:athletica/features/auth/data/models/user_model.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +8,11 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponseModel> login({
     required String email,
     required String password,
+  });
+
+  Future<AuthResponseModel> loginWithGoogle({
+    required String idToken,
+    String? role,
   });
 
   Future<void> signup({
@@ -51,6 +57,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final response = await _dio.post(
       ApiEndpoints.login,
       data: {'email': email, 'password': password},
+    );
+    return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  @override
+  Future<AuthResponseModel> loginWithGoogle({
+    required String idToken,
+    String? role,
+  }) async {
+    final response = await _dio.post(
+      ApiEndpoints.googleLogin,
+      data: {'idToken': idToken, 'role': ?role},
     );
     return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
   }
@@ -116,7 +134,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> logout() async {
-    await _dio.post(ApiEndpoints.logout);
+    final token = await TokenStorageService.instance.getToken();
+    await _dio.post(
+      ApiEndpoints.logout,
+      options: Options(
+        headers: token == null ? const {} : {'Authorization': 'Bearer $token'},
+      ),
+    );
   }
 
   @override

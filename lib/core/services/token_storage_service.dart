@@ -1,10 +1,13 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenStorageService {
   TokenStorageService._();
   static final TokenStorageService instance = TokenStorageService._();
 
-  static const String _tokenKey = 'auth_token';
+  static const String _tokenKey = 'athletica_jwt';
+  static const String _legacyTokenKey = 'auth_token';
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const String _roleKey = 'user_role';
   static const String _clientIdKey = 'client_id';
   static const String _trainerIdKey = 'trainer_id';
@@ -13,13 +16,19 @@ class TokenStorageService {
       'coach_complete_profile_prompt_dismissed';
 
   Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    await _secureStorage.write(key: _tokenKey, value: token);
   }
 
   Future<String?> getToken() async {
+    final token = await _secureStorage.read(key: _tokenKey);
+    if (token != null) return token;
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    final legacyToken = prefs.getString(_legacyTokenKey);
+    if (legacyToken != null) {
+      await _secureStorage.write(key: _tokenKey, value: legacyToken);
+      await prefs.remove(_legacyTokenKey);
+    }
+    return legacyToken;
   }
 
   Future<void> saveRole(String role) async {
@@ -84,7 +93,8 @@ class TokenStorageService {
 
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
+    await _secureStorage.delete(key: _tokenKey);
+    await prefs.remove(_legacyTokenKey);
     await prefs.remove(_roleKey);
     await prefs.remove(_clientIdKey);
     await prefs.remove(_trainerIdKey);

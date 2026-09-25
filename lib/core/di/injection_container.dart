@@ -22,6 +22,7 @@ import 'package:athletica/features/auth/domain/usecases/check_auth_status_usecas
 import 'package:athletica/features/auth/domain/usecases/check_client_profile_completion_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/confirm_password_reset_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/login_usecase.dart';
+import 'package:athletica/features/auth/domain/usecases/google_login_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/mark_profile_complete_usecase.dart';
 import 'package:athletica/features/auth/domain/usecases/register_client_usecase.dart';
@@ -361,6 +362,7 @@ void setupDependencies() {
 
   // Use cases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
+  sl.registerLazySingleton(() => GoogleLoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterClientUseCase(sl()));
   sl.registerLazySingleton(() => RegisterTrainerUseCase(sl()));
   sl.registerLazySingleton(() => VerifyEmailUseCase(sl()));
@@ -504,6 +506,7 @@ void setupDependencies() {
       confirmPasswordResetUseCase: sl(),
       logoutUseCase: sl(),
       checkAuthStatusUseCase: sl(),
+      googleLoginUseCase: sl(),
     ),
   );
   sl.registerFactory(() => SplashCubit(sl()));

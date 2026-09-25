@@ -15,6 +15,21 @@ final class UnauthorizedFailure extends AppFailure {
   const UnauthorizedFailure(super.message);
 }
 
+final class GoogleRoleRequiredFailure extends AppFailure {
+  const GoogleRoleRequiredFailure()
+      : super('Choose whether you want to continue as a coach or client.');
+}
+
+final class GoogleIdTokenRequiredFailure extends AppFailure {
+  const GoogleIdTokenRequiredFailure()
+      : super('Google did not provide a valid ID token. Please sign in again.');
+}
+
+final class GoogleInvalidTokenFailure extends AppFailure {
+  const GoogleInvalidTokenFailure()
+      : super('Google sign-in expired. Please try again.');
+}
+
 final class EmailNotVerifiedFailure extends AppFailure {
   const EmailNotVerifiedFailure(super.message);
 }

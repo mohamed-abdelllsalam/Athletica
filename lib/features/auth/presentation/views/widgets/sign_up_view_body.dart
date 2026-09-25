@@ -2,8 +2,14 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/validation_utils.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
+import 'package:athletica/features/auth/domain/entities/auth_status.dart';
+import 'package:athletica/features/auth/presentation/views/widgets/google_role_picker.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
+import 'package:athletica/features/auth/presentation/views/sign_up_email_verification_otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/verify_your_identity_view.dart';
+import 'package:athletica/features/home/presentation/views/home_view.dart';
+import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_passwor_field.dart';
@@ -105,12 +111,25 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
   Widget build(BuildContext context) {
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
-        if (state is RegisterSuccess) {
+        if (state is LoginSuccess) {
+          context.read<AuthCubit>().checkAuthStatus();
+        } else if (state is AuthStatusChecked) {
+          _navigateByStatus(context, state.status);
+        } else if (state is RegisterSuccess) {
           Navigator.pushNamedAndRemoveUntil(
             context,
             VerifyYourIdentityView.routeName,
             (route) =>
                 route.settings.name == SignInView.routeName || route.isFirst,
+            arguments: _emailController.text.trim(),
+          );
+        } else if (state is EmailVerificationRequired) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+          Navigator.pushNamed(
+            context,
+            SignUpEmailVerificationOtpView.routeName,
             arguments: _emailController.text.trim(),
           );
         } else if (state is AuthFailureState) {
@@ -277,7 +296,9 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SocialLogin(
-                        onTap: () {},
+                        onTap: () => context.read<AuthCubit>().signInWithGoogle(
+                          pickRole: () => showGoogleRolePicker(context),
+                        ),
                         image: 'assets/images/google_logo.svg',
                       ),
                       const SizedBox(width: 30),
@@ -300,5 +321,25 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
         );
       },
     );
+  }
+
+  void _navigateByStatus(BuildContext context, AuthStatus status) {
+    final route = switch (status) {
+      Unauthenticated() => null,
+      ClientProfileIncomplete() => InfoView.routeName,
+      CoachProfileIncomplete() => CoachHomeView.routeName,
+      ClientReady() => HomeView.routeName,
+      CoachReady() => CoachHomeView.routeName,
+    };
+    if (route == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login failed. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
   }
 }

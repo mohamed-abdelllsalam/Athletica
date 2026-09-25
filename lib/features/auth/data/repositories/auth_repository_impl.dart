@@ -6,7 +6,6 @@ import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/domain/entities/user_entity.dart';
 import 'package:athletica/features/auth/domain/repositories/auth_repository.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
@@ -24,19 +23,45 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
       final entity = model.toEntity();
-      await TokenStorageService.instance.clearAll();
-      await TokenStorageService.instance.saveToken(entity.token);
-      await TokenStorageService.instance.saveRole(entity.user.primaryRole);
-      if (entity.user.primaryRole == 'TRAINER') {
-        await TokenStorageService.instance.saveTrainerId(entity.user.id);
-      } else {
-        await TokenStorageService.instance.saveClientId(entity.user.id);
-      }
+      await _saveAuthResponse(entity);
       return ApiSuccess(entity);
     } on DioException catch (e) {
       return ApiError(_mapDioError(e));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<ApiResult<AuthResponseEntity>> loginWithGoogle({
+    required String idToken,
+    String? role,
+  }) async {
+    try {
+      final model = await _remoteDataSource.loginWithGoogle(
+        idToken: idToken,
+        role: role,
+      );
+      final entity = model.toEntity();
+      await _saveAuthResponse(entity);
+      return ApiSuccess(entity);
+    } on DioException catch (e) {
+      return ApiError(_mapDioError(e));
+    } catch (e) {
+      return ApiError(UnknownFailure(e.toString()));
+    }
+  }
+
+  Future<void> _saveAuthResponse(AuthResponseEntity entity) async {
+    await TokenStorageService.instance.clearAll();
+    await TokenStorageService.instance.saveToken(entity.token);
+    await TokenStorageService.instance.saveRole(entity.user.primaryRole);
+    if (entity.user.primaryRole == 'TRAINER') {
+      await TokenStorageService.instance.saveTrainerId(entity.user.id);
+    } else if (entity.user.primaryRole == 'CLIENT') {
+      await TokenStorageService.instance.saveClientId(entity.user.id);
+    } else {
+      throw const FormatException('Unsupported account role from server.');
     }
   }
 
@@ -114,7 +139,9 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
   }) async {
     try {
-      final message = await _remoteDataSource.requestPasswordReset(email: email);
+      final message = await _remoteDataSource.requestPasswordReset(
+        email: email,
+      );
       return ApiSuccess(message);
     } on DioException catch (e) {
       return ApiError(_mapDioError(e));
@@ -146,16 +173,13 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<void>> logout() async {
     try {
-      debugPrint('[AuthRepo] Calling server logout...');
       await _remoteDataSource.logout();
-      debugPrint('[AuthRepo] Server logout succeeded.');
-    } on DioException catch (e) {
-      debugPrint('[AuthRepo] Server logout failed: ${e.message}');
+    } on DioException {
+      // Server logout is best-effort; local credentials are always removed.
     } catch (e) {
-      debugPrint('[AuthRepo] Server logout failed: $e');
+      // Server logout is best-effort; local credentials are always removed.
     }
     await TokenStorageService.instance.clearAll();
-    debugPrint('[AuthRepo] Local tokens cleared.');
     return const ApiSuccess(null);
   }
 
@@ -263,6 +287,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final statusCode = e.response?.statusCode;
     final data = e.response?.data;
+    if (statusCode == 400 && _hasDetail(data, 'role_invalid')) {
+      return const GoogleRoleRequiredFailure();
+    }
+    if (statusCode == 400 && _hasDetail(data, 'idToken_required')) {
+      return const GoogleIdTokenRequiredFailure();
+    }
+    if (statusCode == 401 &&
+        data is Map &&
+        data['error']?.toString().toLowerCase() == 'invalid token') {
+      return const GoogleInvalidTokenFailure();
+    }
     final message = data is Map<String, dynamic>
         ? (_extractBackendMessage(data) ?? 'Something went wrong.')
         : 'Something went wrong. Please try again.';
@@ -273,4 +308,9 @@ class AuthRepositoryImpl implements AuthRepository {
     if (statusCode == 401) return UnauthorizedFailure(message);
     return ServerFailure(message);
   }
+
+  bool _hasDetail(dynamic data, String expected) =>
+      data is Map &&
+      data['details'] is List &&
+      (data['details'] as List).any((detail) => detail.toString() == expected);
 }

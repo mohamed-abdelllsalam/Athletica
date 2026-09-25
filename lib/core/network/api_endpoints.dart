@@ -9,6 +9,7 @@ class ApiEndpoints {
   static const String verifyEmail = 'auth/verify-email';
   static const String resendVerification = 'auth/resend-verification';
   static const String login = 'auth/login';
+  static const String googleLogin = 'auth/google';
   static const String requestPasswordReset = 'auth/reset-password';
   static const String confirmPasswordReset = 'auth/reset-password/confirm';
   static const String logout = 'auth/logout';
@@ -28,6 +29,7 @@ class ApiEndpoints {
     verifyEmail,
     resendVerification,
     login,
+    googleLogin,
     requestPasswordReset,
     confirmPasswordReset,
   ];

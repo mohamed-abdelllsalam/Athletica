@@ -11,6 +11,7 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_passwo
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
+import 'package:athletica/features/auth/presentation/views/widgets/google_role_picker.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
@@ -230,7 +231,9 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SocialLogin(
-                        onTap: () {},
+                        onTap: () => context.read<AuthCubit>().signInWithGoogle(
+                          pickRole: () => showGoogleRolePicker(context),
+                        ),
                         image: 'assets/images/google_logo.svg',
                       ),
                       const SizedBox(width: 30),
