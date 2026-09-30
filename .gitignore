@@ -12,6 +12,27 @@
 .swiftpm/
 migrate_working_dir/
 
+# Local environment and machine-specific files
+.env
+.env.*
+!.env.example
+local.properties
+**/local.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.crt
+*.cer
+*.mobileprovision
+android/key.properties
+android/*.jks
+android/*.keystore
+ios/**/*.p12
+ios/**/*.pfx
+ios/**/*.mobileprovision
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -31,25 +52,10 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+.env.dev
+.env.prod
 /build/
 /coverage/
-/NUTRITION_API_FOR_FLUTTER.md
-/DOC_2.md
-/DOC_3.md
-/DOC_4.md
-/DOC_5.md
-/DOC_6.md
-/DOC_7.md
-/GOOGLE_AUTH_DOC.md
-/CHAT_DOC.md
-/STREAK_DOC.md
-/CHAT_DOC_2.md
-/CHAT_DOC_3.md
-/CHECK_IN.md
-/COMPELTE_PROFILE_COACH_DOC.md
-/CHECK_IN_NEW.md
-/WORKOUT_API_DOC_1.md
-/WORKOUT_API_DOC_2.md
 # Symbolication related
 app.*.symbols
 
