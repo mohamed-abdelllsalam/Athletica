@@ -1,3 +1,7 @@
+import 'package:athletica/core/data/repositories/chat_media_repository_impl.dart';
+import 'package:athletica/core/domain/repositories/chat_media_repository.dart';
+import 'package:athletica/core/domain/usecases/chat_media_usecases.dart';
+import 'package:athletica/core/presentation/cubits/chat_draft_cubit.dart';
 import 'package:athletica/core/services/completion_changes.dart';
 import 'package:athletica/core/usecases/watch_completion_changes_usecase.dart';
 import 'package:athletica/core/network/api_client.dart';
@@ -519,6 +523,14 @@ void setupDependencies() {
   sl.registerLazySingleton(() => ProfileCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => CoachProfileCubit(sl(), sl(), sl(), sl()));
   sl.registerFactory(() => CoachClientsCubit(sl(), sl()));
+  sl.registerLazySingleton<ChatMediaRepository>(
+    () => ChatMediaRepositoryImpl(),
+  );
+  sl.registerLazySingleton(() => PickChatImageUseCase(sl()));
+  sl.registerLazySingleton(() => StartChatRecordingUseCase(sl()));
+  sl.registerLazySingleton(() => StopChatRecordingUseCase(sl()));
+  sl.registerLazySingleton(() => DiscardChatMediaUseCase(sl()));
+  sl.registerFactory(() => ChatDraftCubit(sl(), sl(), sl(), sl()));
   sl.registerFactoryParam<ChatCubit, ChatRouteArgs, void>(
     (args, _) => ChatCubit(
       getConversations: sl(),

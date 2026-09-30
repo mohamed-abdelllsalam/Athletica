@@ -23,9 +23,8 @@ final class CoachMessagesFailure extends CoachMessagesState {
 }
 
 class CoachMessagesCubit extends Cubit<CoachMessagesState> {
-  CoachMessagesCubit(
-    this._getConversations,
-  ) : super(const CoachMessagesLoading());
+  CoachMessagesCubit(this._getConversations)
+    : super(const CoachMessagesLoading());
 
   final GetChatConversationsUseCase _getConversations;
 
@@ -47,7 +46,7 @@ class CoachMessagesCubit extends Cubit<CoachMessagesState> {
           return CoachMessagePreview(
             id: clientId,
             name: username?.isNotEmpty == true ? username! : 'Client',
-            preview: conversation.lastMessage?.content ?? '',
+            preview: conversation.lastMessage?.previewText ?? '',
             timeAgo: _timeAgo(conversation.lastMessageAt),
             imageUrl: counterpart?.profileImage,
             conversationId: conversation.id,

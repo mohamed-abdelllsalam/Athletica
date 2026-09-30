@@ -27,6 +27,7 @@ final class ChatReady extends ChatState {
     required this.isSending,
     required this.realtimeAvailable,
     this.errorMessage,
+    this.uploadProgress,
   });
 
   final List<ChatMessage> messages;
@@ -37,4 +38,5 @@ final class ChatReady extends ChatState {
   final bool isSending;
   final bool realtimeAvailable;
   final String? errorMessage;
+  final double? uploadProgress;
 }

@@ -1,3 +1,5 @@
+import 'package:athletica/core/widgets/chat_media_bubble.dart';
+import 'package:athletica/core/widgets/chat_media_composer.dart';
 import 'dart:async';
 
 import 'coach_chat_bubble.dart';
@@ -55,9 +57,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
     if (widget.chatArgs == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
-          _scrollController.jumpTo(
-            _scrollController.position.maxScrollExtent,
-          );
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
         }
       });
     }
@@ -84,9 +84,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
     if (!_followLatest) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
-        _scrollController.jumpTo(
-          _scrollController.position.maxScrollExtent,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
   }
@@ -130,11 +128,6 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
         );
       }
     });
-  }
-
-  void _sendBackendMessage(String text) {
-    _forceFollowLatest = true;
-    unawaited(context.read<ChatCubit>().send(text));
   }
 
   void _acceptRequest() => setState(() => _accepted = true);
@@ -205,8 +198,22 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
                   )
                 : widget.chatArgs == null
                 ? CoachChatInput(onSend: _sendMessage)
-                : CoachChatInput(
-                    onSend: _sendBackendMessage,
+                : BlocBuilder<ChatCubit, ChatState>(
+                    builder: (context, state) {
+                      final cubit = context.read<ChatCubit>();
+                      return ChatMediaComposer(
+                        enabled: state is ChatReady && state.canSend,
+                        sending: state is ChatReady && state.isSending,
+                        progress: state is ChatReady
+                            ? state.uploadProgress
+                            : null,
+                        onCancel: cubit.cancelUpload,
+                        onSend: (text, attachment) {
+                          _forceFollowLatest = true;
+                          return cubit.send(text, attachment: attachment);
+                        },
+                      );
+                    },
                   ),
             SizedBox(height: 8.h),
           ],
@@ -349,12 +356,14 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
             return [
               if (priorDayDiffers)
                 _buildDateDivider(formatChatDay(message.createdAt)),
-              CoachChatBubble(
-                message: ChatMessage(
-                  text: message.content,
-                  isMe: mine,
-                  time: message.createdAt.toIso8601String(),
-                ),
+              ChatMediaBubble(
+                key: ValueKey(message.id),
+                type: message.messageType,
+                content: message.content,
+                url: message.attachmentUrl,
+                durationSeconds: message.attachmentDurationSec,
+                isMe: mine,
+                time: formatChatTime(message.createdAt),
               ),
             ];
           }),

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:ably_flutter/ably_flutter.dart' as ably;
 import 'package:athletica/core/network/api_endpoints.dart';
-import 'package:athletica/features/chat/domain/entities/chat_message.dart';
+import 'package:athletica/features/chat/data/models/chat_message_model.dart';
 import 'package:athletica/features/chat/domain/realtime/chat_realtime_gateway.dart';
 import 'package:dio/dio.dart';
 
@@ -57,14 +57,19 @@ class AblyChatRealtimeGateway implements ChatRealtimeGateway {
         onEvent(
           ChatRealtimeEvent(
             eventId: eventId,
-            message: ChatMessage(
-              id: payload['messageId'] as String,
-              conversationId: payload['conversationId'] as String,
-              senderUserId: payload['senderUserId'] as String,
-              senderRole: payload['senderRole'] as String,
-              content: payload['content'] as String,
-              createdAt: DateTime.parse(payload['createdAt'] as String),
-            ),
+            message: ChatMessageModel.fromJson({
+              'id': payload['messageId'],
+              'conversation_id': payload['conversationId'],
+              'sender_user_id': payload['senderUserId'],
+              'sender_role': payload['senderRole'],
+              'content': payload['content'],
+              'message_type': payload['messageType'],
+              'attachment_url': payload['attachmentUrl'],
+              'attachment_mime': payload['attachmentMime'],
+              'attachment_size': payload['attachmentSize'],
+              'attachment_duration_sec': payload['attachmentDurationSec'],
+              'created_at': payload['createdAt'],
+            }),
           ),
         );
       } on Object {

@@ -1,3 +1,4 @@
+import 'package:athletica/core/domain/entities/chat_attachment.dart';
 import 'dart:async';
 import 'dart:collection';
 
@@ -45,6 +46,8 @@ class ChatCubit extends Cubit<ChatState> {
   bool _loadingOlder = false;
   bool _loadedOlderPages = false;
   bool _sending = false;
+  double? _uploadProgress;
+  ChatUploadControl? _uploadControl;
   bool _realtimeAvailable = false;
   bool _opened = false;
   String? _error;
@@ -130,15 +133,22 @@ class ChatCubit extends Cubit<ChatState> {
     _emitReady();
   }
 
-  Future<void> send(String rawContent) async {
+  Future<bool> send(String rawContent, {ChatAttachment? attachment}) async {
     final content = rawContent.trim();
-    if (content.isEmpty || content.length > 2000 || _sending || isClosed) {
-      return;
+    if (_sending || isClosed) return false;
+    final validation = validateChatSend(content, attachment);
+    if (validation != null) {
+      _error = validation;
+      _emitReady();
+      return false;
     }
-    if (conversationId == null && !canStartConversation) return;
+    if (conversationId == null && !canStartConversation) return false;
+    _uploadControl = ChatUploadControl();
+    _uploadProgress = attachment == null ? null : 0;
     _sending = true;
     _error = null;
     _emitReady();
+    var sentSuccessfully = false;
     final currentId = conversationId;
     if (currentId == null) {
       final assignmentId = coachClientId;
@@ -148,10 +158,17 @@ class ChatCubit extends Cubit<ChatState> {
         final result = await _sendFirstMessage(
           coachClientId: assignmentId,
           content: content,
+          attachment: attachment,
+          uploadControl: _uploadControl,
+          onProgress: (sent, total) {
+            _uploadProgress = total <= 0 ? null : sent / total;
+            _emitReady();
+          },
         );
-        if (isClosed) return;
+        if (isClosed) return false;
         switch (result) {
           case ApiSuccess(:final data):
+            sentSuccessfully = true;
             conversationId = data.conversation.id;
             _insertNewest(data.message);
             _hasMore = false;
@@ -164,18 +181,33 @@ class ChatCubit extends Cubit<ChatState> {
       final result = await _sendMessage(
         conversationId: currentId,
         content: content,
+        attachment: attachment,
+        uploadControl: _uploadControl,
+        onProgress: (sent, total) {
+          _uploadProgress = total <= 0 ? null : sent / total;
+          _emitReady();
+        },
       );
-      if (isClosed) return;
+      if (isClosed) return false;
       switch (result) {
         case ApiSuccess(:final data):
+            sentSuccessfully = true;
           _insertNewest(data);
         case ApiError(:final failure):
           _error = failure.message;
       }
     }
+    final cancelled = _uploadControl?.isCancelled ?? false;
+    _uploadControl?.bind(null);
+    _uploadControl = null;
     _sending = false;
+    _uploadProgress = null;
+    if (cancelled) _error = null;
     _emitReady();
+    return sentSuccessfully;
   }
+
+  void cancelUpload() => _uploadControl?.cancel();
 
   void receive(ChatRealtimeEvent event) {
     if (!_remember(_seenEventIds, event.eventId)) return;
@@ -244,7 +276,9 @@ class ChatCubit extends Cubit<ChatState> {
 
   bool _remember(LinkedHashSet<String> values, String value) {
     if (!values.add(value)) return false;
-    if (values.length > 500) values.remove(values.first);
+    if (identical(values, _seenEventIds) && values.length > 500) {
+      values.remove(values.first);
+    }
     return true;
   }
 
@@ -265,6 +299,7 @@ class ChatCubit extends Cubit<ChatState> {
         hasMore: _hasMore,
         isLoadingOlder: _loadingOlder,
         isSending: _sending,
+        uploadProgress: _uploadProgress,
         realtimeAvailable: _realtimeAvailable,
         errorMessage: _error,
       ),
@@ -273,6 +308,7 @@ class ChatCubit extends Cubit<ChatState> {
 
   @override
   Future<void> close() async {
+    _uploadControl?.cancel();
     _pollTimer?.cancel();
     _pollTimer = null;
     await _realtimeGateway.dispose();

@@ -7,8 +7,8 @@ import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/chat/domain/entities/chat_message.dart';
 import 'package:athletica/features/chat/presentation/cubits/chat_cubit.dart';
 import 'package:athletica/features/chat/presentation/cubits/chat_state.dart';
-import 'package:athletica/features/chat/presentation/views/widgets/chat_bubble.dart';
-import 'package:athletica/features/chat/presentation/views/widgets/chat_input_field.dart';
+import 'package:athletica/core/widgets/chat_media_bubble.dart';
+import 'package:athletica/core/widgets/chat_media_composer.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_cubit.dart';
 import 'package:athletica/features/client_coach/presentation/cubits/client_coach_state.dart';
 import 'package:athletica/features/client_coach/presentation/views/client_coach_view.dart';
@@ -129,8 +129,7 @@ class _ChatViewBodyState extends State<ChatViewBody>
     final state = context.read<ChatCubit>().state;
     if (_scrollController.hasClients) {
       final position = _scrollController.position;
-      _followLatest =
-          position.extentAfter <= position.viewportDimension * 0.25;
+      _followLatest = position.extentAfter <= position.viewportDimension * 0.25;
     }
     if (_scrollController.hasClients &&
         state is ChatReady &&
@@ -143,11 +142,6 @@ class _ChatViewBodyState extends State<ChatViewBody>
       _olderLoadStartCount = state.messages.length;
       unawaited(context.read<ChatCubit>().loadOlder());
     }
-  }
-
-  void _sendMessage(String text) {
-    _forceFollowLatest = true;
-    unawaited(context.read<ChatCubit>().send(text));
   }
 
   @override
@@ -251,14 +245,12 @@ class _ChatViewBodyState extends State<ChatViewBody>
                     );
                   }
                   final ready = state as ChatReady;
-                  final messages =
-                      ChatMessage.chronological(ready.messages);
+                  final messages = ChatMessage.chronological(ready.messages);
                   return ListView.builder(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    itemCount:
-                        messages.length + (ready.isLoadingOlder ? 1 : 0),
+                    itemCount: messages.length + (ready.isLoadingOlder ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (ready.isLoadingOlder && index == 0) {
                         return const Center(child: CircularProgressIndicator());
@@ -287,14 +279,15 @@ class _ChatViewBodyState extends State<ChatViewBody>
               ),
             ),
             BlocBuilder<ChatCubit, ChatState>(
-              buildWhen: (previous, current) =>
-                  previous is ChatReady &&
-                      current is ChatReady &&
-                      previous.canSend != current.canSend ||
-                  previous.runtimeType != current.runtimeType,
-              builder: (context, state) => ChatInputField(
+              builder: (context, state) => ChatMediaComposer(
                 enabled: state is ChatReady && state.canSend,
-                onSendMessage: _sendMessage,
+                sending: state is ChatReady && state.isSending,
+                progress: state is ChatReady ? state.uploadProgress : null,
+                onCancel: cubit.cancelUpload,
+                onSend: (text, attachment) {
+                  _forceFollowLatest = true;
+                  return cubit.send(text, attachment: attachment);
+                },
               ),
             ),
             SizedBox(height: 8.h),
@@ -306,9 +299,12 @@ class _ChatViewBodyState extends State<ChatViewBody>
 
   Widget _messageBubble(ChatMessage msg, {required bool isLatest}) {
     final isMe = msg.isMine(_myUserId);
-    return ChatBubble(
+    return ChatMediaBubble(
       key: isLatest ? _latestMessageKey : null,
-      message: msg.content,
+      content: msg.content,
+      type: msg.messageType,
+      url: msg.attachmentUrl,
+      durationSeconds: msg.attachmentDurationSec,
       isMe: isMe,
       time: formatChatTime(msg.createdAt),
     );
