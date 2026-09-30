@@ -66,6 +66,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Record voice notes to send in your coaching chat.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs camera access to take profile photos</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -1,3 +1,5 @@
+import 'package:athletica/core/domain/entities/chat_attachment.dart';
+
 class ChatMessage {
   const ChatMessage({
     required this.id,
@@ -6,13 +8,37 @@ class ChatMessage {
     required this.senderRole,
     required this.content,
     required this.createdAt,
+    this.messageType = MessageType.text,
+    this.attachmentUrl,
+    this.attachmentMime,
+    this.attachmentSize,
+    this.attachmentDurationSec,
   });
 
   final String id;
   final String conversationId;
   final String senderUserId;
   final String senderRole;
-  final String content;
+  final String? content;
+  final MessageType messageType;
+  final String? attachmentUrl;
+  final String? attachmentMime;
+  final int? attachmentSize;
+  final int? attachmentDurationSec;
+  String get previewText {
+    final caption = content?.trim() ?? '';
+    final label = switch (messageType) {
+      MessageType.text => '',
+      MessageType.image => 'Photo',
+      MessageType.voice => 'Voice note',
+    };
+    return label.isEmpty
+        ? caption
+        : caption.isEmpty
+        ? label
+        : '$label: $caption';
+  }
+
   final DateTime createdAt;
 
   bool isMine(String userId) => senderUserId == userId;

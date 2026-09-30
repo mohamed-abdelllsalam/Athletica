@@ -28,6 +28,9 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          if (options.data is FormData) {
+            options.headers.remove(Headers.contentTypeHeader);
+          }
           final isPublicAuth = ApiEndpoints.isPublicAuthPath(options.uri.path);
           if (!isPublicAuth) {
             final token = await TokenStorageService.instance.getToken();
@@ -85,6 +88,7 @@ class ApiClient {
           error: true,
           compact: true,
           filter: (options, args) =>
+              !options.path.contains('/messaging/') &&
               !options.path.endsWith(ApiEndpoints.ablyToken) &&
               !options.path.endsWith(ApiEndpoints.coachAchievements),
           logPrint: (object) => debugPrint(object.toString()),

@@ -1,3 +1,4 @@
+import 'package:athletica/core/domain/entities/chat_attachment.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/features/chat/data/models/chat_history_page_model.dart';
 import 'package:athletica/features/chat/data/models/chat_message_model.dart';
@@ -10,10 +11,16 @@ abstract interface class ChatRemoteDataSource {
   Future<FirstChatMessageResult> sendFirstMessage({
     required String coachClientId,
     required String content,
+    ChatAttachment? attachment,
+    void Function(int, int)? onProgress,
+    ChatUploadControl? uploadControl,
   });
   Future<ChatMessageModel> sendMessage({
     required String conversationId,
     required String content,
+    ChatAttachment? attachment,
+    void Function(int, int)? onProgress,
+    ChatUploadControl? uploadControl,
   });
   Future<ChatHistoryPageModel> getHistory({
     required String conversationId,
@@ -25,6 +32,30 @@ abstract interface class ChatRemoteDataSource {
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   const ChatRemoteDataSourceImpl(this._dio);
   final Dio _dio;
+
+  CancelToken? _cancelToken(ChatUploadControl? control) {
+    if (control == null) return null;
+    final token = CancelToken();
+    control.bind(() => token.cancel('Cancelled'));
+    return token;
+  }
+
+  Future<Object> _body(String content, ChatAttachment? attachment) async {
+    if (attachment == null) return {'content': content.trim()};
+    return FormData.fromMap({
+      'message_type': attachment.type.name,
+      if (content.trim().isNotEmpty) 'content': content.trim(),
+      if (attachment.durationSeconds != null)
+        'duration_sec': '${attachment.durationSeconds}',
+      'file': await MultipartFile.fromFile(
+        attachment.path,
+        filename: attachment.type == MessageType.image
+            ? 'photo.jpg'
+            : 'voice-note.m4a',
+        contentType: DioMediaType.parse(attachment.mime),
+      ),
+    });
+  }
 
   Map<String, dynamic> _data(dynamic response) =>
       (response as Map<String, dynamic>)['data'] as Map<String, dynamic>;
@@ -48,10 +79,16 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   Future<FirstChatMessageResult> sendFirstMessage({
     required String coachClientId,
     required String content,
+    ChatAttachment? attachment,
+    void Function(int, int)? onProgress,
+    ChatUploadControl? uploadControl,
   }) async {
     final response = await _dio.post(
       ApiEndpoints.messagingFirstMessage(coachClientId),
-      data: {'content': content},
+      data: await _body(content, attachment),
+      options: Options(sendTimeout: const Duration(minutes: 5)),
+      cancelToken: _cancelToken(uploadControl),
+      onSendProgress: onProgress,
     );
     final data = _data(response.data);
     return FirstChatMessageResult(
@@ -68,10 +105,16 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   Future<ChatMessageModel> sendMessage({
     required String conversationId,
     required String content,
+    ChatAttachment? attachment,
+    void Function(int, int)? onProgress,
+    ChatUploadControl? uploadControl,
   }) async {
     final response = await _dio.post(
       ApiEndpoints.messagingMessages(conversationId),
-      data: {'content': content},
+      data: await _body(content, attachment),
+      options: Options(sendTimeout: const Duration(minutes: 5)),
+      cancelToken: _cancelToken(uploadControl),
+      onSendProgress: onProgress,
     );
     return ChatMessageModel.fromJson(
       _data(response.data)['message'] as Map<String, dynamic>,
