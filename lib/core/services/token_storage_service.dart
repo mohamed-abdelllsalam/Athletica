@@ -12,8 +12,6 @@ class TokenStorageService {
   static const String _clientIdKey = 'client_id';
   static const String _trainerIdKey = 'trainer_id';
   static const String _profileCompleteKey = 'is_profile_complete';
-  static const String _coachCompleteProfilePromptDismissedKey =
-      'coach_complete_profile_prompt_dismissed';
 
   Future<void> saveToken(String token) async {
     await _secureStorage.write(key: _tokenKey, value: token);
@@ -76,21 +74,6 @@ class TokenStorageService {
     await prefs.remove(_profileCompleteKey);
   }
 
-  Future<void> setCoachCompleteProfilePromptDismissed() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_coachCompleteProfilePromptDismissedKey, true);
-  }
-
-  Future<bool> hasDismissedCoachCompleteProfilePrompt() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_coachCompleteProfilePromptDismissedKey) ?? false;
-  }
-
-  Future<void> clearCoachCompleteProfilePromptDismissed() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_coachCompleteProfilePromptDismissedKey);
-  }
-
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await _secureStorage.delete(key: _tokenKey);
@@ -99,8 +82,5 @@ class TokenStorageService {
     await prefs.remove(_clientIdKey);
     await prefs.remove(_trainerIdKey);
     await prefs.remove(_profileCompleteKey);
-    // Intentionally NOT removing _coachCompleteProfilePromptDismissedKey
-    // so the "Complete Your Profile" dialog is never shown again after the
-    // coach taps "Complete Profile" — even after logout/login on the same device.
   }
 }

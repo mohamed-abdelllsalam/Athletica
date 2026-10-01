@@ -113,7 +113,10 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
             VerifyYourIdentityView.routeName,
             (route) =>
                 route.settings.name == SignInView.routeName || route.isFirst,
-            arguments: _emailController.text.trim(),
+            arguments: (
+              email: _emailController.text.trim(),
+              isNewCoach: _selectedRole == 'Coach',
+            ),
           );
         } else if (state is EmailVerificationRequired) {
           ScaffoldMessenger.of(context).showSnackBar(

@@ -5,9 +5,14 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_button
 import 'package:flutter/material.dart';
 
 class VerifyYourIdentityViewBody extends StatelessWidget {
-  const VerifyYourIdentityViewBody({super.key, required this.email});
+  const VerifyYourIdentityViewBody({
+    super.key,
+    required this.email,
+    this.isNewCoach = false,
+  });
 
   final String email;
+  final bool isNewCoach;
 
   String get maskedEmail => maskEmail(email);
 
@@ -91,7 +96,7 @@ class VerifyYourIdentityViewBody extends StatelessWidget {
                 Navigator.pushNamed(
                   context,
                   SignUpEmailVerificationOtpView.routeName,
-                  arguments: email,
+                  arguments: (email: email, isNewCoach: isNewCoach),
                 );
               },
               text: 'Continue',

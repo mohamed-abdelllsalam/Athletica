@@ -51,9 +51,6 @@ class _CoachCertificateReviewBody extends StatelessWidget {
         if (state is! CompleteProfileSuccess) return;
 
         await TokenStorageService.instance.saveProfileComplete();
-        // This flag survives logout/login via TokenStorageService.clearAll().
-        await TokenStorageService.instance
-            .setCoachCompleteProfilePromptDismissed();
         if (!context.mounted) return;
 
         await showDialog<void>(

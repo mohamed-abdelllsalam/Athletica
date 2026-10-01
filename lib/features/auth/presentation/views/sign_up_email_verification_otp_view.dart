@@ -5,9 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SignUpEmailVerificationOtpView extends StatelessWidget {
-  const SignUpEmailVerificationOtpView({super.key, this.email = ''});
+  const SignUpEmailVerificationOtpView({
+    super.key,
+    this.email = '',
+    this.isNewCoach = false,
+  });
 
   final String email;
+
+  /// True when the OTP screen was reached through the coach signup flow.
+  /// Such coaches are routed to Complete Profile after their first login.
+  final bool isNewCoach;
+
   static const String routeName = 'signUpEmailVerificationOtpView';
 
   @override
@@ -24,7 +33,10 @@ class SignUpEmailVerificationOtpView extends StatelessWidget {
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           ),
         ),
-        body: SignUpEmailVerificationOtpViewBody(email: email),
+        body: SignUpEmailVerificationOtpViewBody(
+          email: email,
+          isNewCoach: isNewCoach,
+        ),
       ),
     );
   }

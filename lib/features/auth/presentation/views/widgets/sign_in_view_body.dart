@@ -12,6 +12,7 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_text_f
 import 'package:athletica/features/auth/presentation/views/widgets/google_role_picker.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
+import 'package:athletica/features/coach/complete_profile/presentation/views/coach_complete_profile_view.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
@@ -21,9 +22,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SignInViewBody extends StatefulWidget {
-  const SignInViewBody({super.key, this.sessionExpired = false});
+  const SignInViewBody({
+    super.key,
+    this.sessionExpired = false,
+    this.completeProfileAfterLogin = false,
+  });
 
   final bool sessionExpired;
+  final bool completeProfileAfterLogin;
 
   @override
   State<SignInViewBody> createState() => _SignInViewBodyState();
@@ -80,11 +86,7 @@ class _SignInViewBodyState extends State<SignInViewBody> {
           (_) => false,
         );
       case CoachProfileIncomplete():
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          CoachHomeView.routeName,
-          (_) => false,
-        );
+        _navigateCoach(context);
       case ClientReady():
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -92,12 +94,17 @@ class _SignInViewBodyState extends State<SignInViewBody> {
           (_) => false,
         );
       case CoachReady():
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          CoachHomeView.routeName,
-          (_) => false,
-        );
+        _navigateCoach(context);
     }
+  }
+
+  void _navigateCoach(BuildContext context) {
+    // A freshly verified coach completes their profile first; every other
+    // coach lands on Coach Home regardless of profile completion.
+    final route = widget.completeProfileAfterLogin
+        ? CoachCompleteProfileView.routeName
+        : CoachHomeView.routeName;
+    Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
   }
 
   @override
