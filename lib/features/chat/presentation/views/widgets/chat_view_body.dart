@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:athletica/core/widgets/unfocus_on_tap.dart';
 
+import 'package:athletica/core/utils/chat_scroll_anchor.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/chat_date_format.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -26,14 +28,11 @@ class ChatViewBody extends StatefulWidget {
 class _ChatViewBodyState extends State<ChatViewBody>
     with WidgetsBindingObserver {
   late final ScrollController _scrollController;
-  final GlobalKey _latestMessageKey = GlobalKey();
   String _myUserId = '';
+  final ChatScrollAnchor _scrollAnchor = ChatScrollAnchor();
   String? _latestMessageId;
   bool _followLatest = true;
   bool _forceFollowLatest = false;
-  double? _olderLoadStartExtent;
-  double? _olderLoadStartPixels;
-  int? _olderLoadStartCount;
 
   @override
   void initState() {
@@ -67,61 +66,18 @@ class _ChatViewBodyState extends State<ChatViewBody>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
 
-      final latestContext = _latestMessageKey.currentContext;
-      if (latestContext != null) {
+      final target = _scrollController.position.minScrollExtent;
+      if (duration == Duration.zero) {
+        _scrollController.jumpTo(target);
+      } else {
         unawaited(
-          Scrollable.ensureVisible(
-            latestContext,
-            alignment: 1,
+          _scrollController.animateTo(
+            target,
             duration: duration,
             curve: Curves.easeOut,
           ),
         );
-        return;
       }
-
-      final position = _scrollController.position;
-      if (duration == Duration.zero) {
-        _scrollController.jumpTo(position.maxScrollExtent);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          final messageContext = _latestMessageKey.currentContext;
-          if (messageContext != null) {
-            unawaited(
-              Scrollable.ensureVisible(
-                messageContext,
-                alignment: 1,
-                duration: Duration.zero,
-              ),
-            );
-          }
-        });
-        return;
-      }
-
-      unawaited(
-        _scrollController
-            .animateTo(
-              position.maxScrollExtent,
-              duration: duration,
-              curve: Curves.easeOut,
-            )
-            .then((_) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                final messageContext = _latestMessageKey.currentContext;
-                if (messageContext != null) {
-                  unawaited(
-                    Scrollable.ensureVisible(
-                      messageContext,
-                      alignment: 1,
-                      duration: Duration.zero,
-                    ),
-                  );
-                }
-              });
-            }),
-      );
     });
   }
 
@@ -129,17 +85,15 @@ class _ChatViewBodyState extends State<ChatViewBody>
     final state = context.read<ChatCubit>().state;
     if (_scrollController.hasClients) {
       final position = _scrollController.position;
-      _followLatest = position.extentAfter <= position.viewportDimension * 0.25;
+      _followLatest =
+          position.extentBefore <= position.viewportDimension * 0.25;
     }
     if (_scrollController.hasClients &&
         state is ChatReady &&
         state.hasMore &&
         !state.isLoadingOlder &&
-        _scrollController.position.pixels <=
-            _scrollController.position.minScrollExtent) {
-      _olderLoadStartExtent = _scrollController.position.maxScrollExtent;
-      _olderLoadStartPixels = _scrollController.position.pixels;
-      _olderLoadStartCount = state.messages.length;
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent) {
       unawaited(context.read<ChatCubit>().loadOlder());
     }
   }
@@ -166,116 +120,116 @@ class _ChatViewBodyState extends State<ChatViewBody>
             _buildAppBar(context),
             SizedBox(height: 16.h),
             Expanded(
-              child: BlocConsumer<ChatCubit, ChatState>(
-                listenWhen: (previous, current) =>
-                    current is ChatReady &&
-                    (current.errorMessage != null ||
-                        (previous is ChatReady &&
-                            previous.isLoadingOlder &&
-                            !current.isLoadingOlder) ||
-                        (current.messages.isNotEmpty &&
-                            ChatMessage.chronological(
-                                  current.messages,
-                                ).last.id !=
-                                _latestMessageId)),
-                listener: (context, state) {
-                  if (state is! ChatReady) return;
-                  final messages = ChatMessage.chronological(state.messages);
-                  if (state.errorMessage != null) {
-                    _forceFollowLatest = false;
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        SnackBar(content: Text(state.errorMessage!)),
+              child: UnfocusOnTap(
+                child: BlocConsumer<ChatCubit, ChatState>(
+                  listenWhen: (previous, current) =>
+                      current is ChatReady &&
+                      (current.errorMessage != null ||
+                          (previous is ChatReady &&
+                              previous.isLoadingOlder &&
+                              !current.isLoadingOlder) ||
+                          (current.messages.isNotEmpty &&
+                              ChatMessage.chronological(
+                                    current.messages,
+                                  ).last.id !=
+                                  _latestMessageId)),
+                  listener: (context, state) {
+                    if (state is! ChatReady) return;
+                    final messages = ChatMessage.chronological(state.messages);
+                    if (state.errorMessage != null) {
+                      _forceFollowLatest = false;
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(content: Text(state.errorMessage!)),
+                        );
+                    }
+                    if (messages.isNotEmpty &&
+                        messages.last.id != _latestMessageId) {
+                      final isOpening = _latestMessageId == null;
+                      final shouldFollow =
+                          _latestMessageId == null ||
+                          _forceFollowLatest ||
+                          _followLatest;
+                      final restoreAnchor = shouldFollow
+                          ? null
+                          : _scrollAnchor.capture(
+                              _scrollController,
+                              () => mounted,
+                            );
+                      if (restoreAnchor != null) {
+                        WidgetsBinding.instance.addPostFrameCallback(
+                          (_) => restoreAnchor(),
+                        );
+                      }
+                      _latestMessageId = messages.last.id;
+                      _forceFollowLatest = false;
+                      if (shouldFollow) {
+                        _scrollToLatest(
+                          duration: isOpening
+                              ? Duration.zero
+                              : const Duration(milliseconds: 180),
+                        );
+                      }
+                    }
+                  },
+                  builder: (context, state) {
+                    if (state is ChatInitial || state is ChatLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (state is ChatFailureState) {
+                      return Center(
+                        child: TextButton(
+                          onPressed: () => unawaited(cubit.open()),
+                          child: Text(state.message),
+                        ),
                       );
-                  }
-                  if (_olderLoadStartExtent != null &&
-                      _olderLoadStartPixels != null &&
-                      !state.isLoadingOlder) {
-                    final startExtent = _olderLoadStartExtent!;
-                    final startPixels = _olderLoadStartPixels!;
-                    final startCount = _olderLoadStartCount!;
-                    _olderLoadStartExtent = null;
-                    _olderLoadStartPixels = null;
-                    _olderLoadStartCount = null;
-                    if (state.messages.length > startCount) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (_scrollController.hasClients) {
-                          final extentDelta =
-                              _scrollController.position.maxScrollExtent -
-                              startExtent;
-                          final target = startPixels + extentDelta;
-                          _scrollController.jumpTo(
-                            target
-                                .clamp(
-                                  _scrollController.position.minScrollExtent,
-                                  _scrollController.position.maxScrollExtent,
-                                )
-                                .toDouble(),
+                    }
+                    final ready = state as ChatReady;
+                    final messages = ChatMessage.chronological(ready.messages);
+                    _latestMessageId ??= messages.lastOrNull?.id;
+                    _scrollAnchor.retainMessages(
+                      messages.map((message) => message.id),
+                    );
+                    return ListView.builder(
+                      reverse: true,
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      itemCount:
+                          messages.length + (ready.isLoadingOlder ? 1 : 0),
+                      findChildIndexCallback: (key) {
+                        if (key is! ValueKey<String>) return null;
+                        final index = messages.indexWhere(
+                          (message) => message.id == key.value,
+                        );
+                        return index < 0 ? null : messages.length - 1 - index;
+                      },
+                      itemBuilder: (context, index) {
+                        if (ready.isLoadingOlder && index == messages.length) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
                           );
                         }
-                      });
-                    }
-                  }
-                  if (messages.isNotEmpty &&
-                      messages.last.id != _latestMessageId) {
-                    final shouldFollow =
-                        _latestMessageId == null ||
-                        _forceFollowLatest ||
-                        _followLatest;
-                    _latestMessageId = messages.last.id;
-                    _forceFollowLatest = false;
-                    if (shouldFollow) {
-                      _scrollToLatest(
-                        duration: const Duration(milliseconds: 180),
-                      );
-                    }
-                  }
-                },
-                builder: (context, state) {
-                  if (state is ChatInitial || state is ChatLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (state is ChatFailureState) {
-                    return Center(
-                      child: TextButton(
-                        onPressed: () => unawaited(cubit.open()),
-                        child: Text(state.message),
-                      ),
+                        final messageIndex = messages.length - 1 - index;
+                        final message = messages[messageIndex];
+                        final isFirst =
+                            messageIndex == 0 ||
+                            !DateUtils.isSameDay(
+                              messages[messageIndex - 1].createdAt,
+                              message.createdAt,
+                            );
+                        return Column(
+                          key: ValueKey(message.id),
+                          children: [
+                            if (isFirst) _dateDivider(message.createdAt),
+                            _messageBubble(message),
+                          ],
+                        );
+                      },
                     );
-                  }
-                  final ready = state as ChatReady;
-                  final messages = ChatMessage.chronological(ready.messages);
-                  return ListView.builder(
-                    controller: _scrollController,
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    itemCount: messages.length + (ready.isLoadingOlder ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (ready.isLoadingOlder && index == 0) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final messageIndex =
-                          index - (ready.isLoadingOlder ? 1 : 0);
-                      final message = messages[messageIndex];
-                      final isFirst =
-                          messageIndex == 0 ||
-                          !DateUtils.isSameDay(
-                            messages[messageIndex - 1].createdAt,
-                            message.createdAt,
-                          );
-                      return Column(
-                        children: [
-                          if (isFirst) _dateDivider(message.createdAt),
-                          _messageBubble(
-                            message,
-                            isLatest: messageIndex == messages.length - 1,
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
+                  },
+                ),
               ),
             ),
             BlocBuilder<ChatCubit, ChatState>(
@@ -297,10 +251,10 @@ class _ChatViewBodyState extends State<ChatViewBody>
     );
   }
 
-  Widget _messageBubble(ChatMessage msg, {required bool isLatest}) {
+  Widget _messageBubble(ChatMessage msg) {
     final isMe = msg.isMine(_myUserId);
     return ChatMediaBubble(
-      key: isLatest ? _latestMessageKey : null,
+      key: _scrollAnchor.keyFor(msg.id),
       content: msg.content,
       type: msg.messageType,
       url: msg.attachmentUrl,

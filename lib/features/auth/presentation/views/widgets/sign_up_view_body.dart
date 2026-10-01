@@ -1,21 +1,21 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/validation_utils.dart';
+import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
-import 'package:athletica/features/auth/domain/entities/auth_status.dart';
-import 'package:athletica/features/auth/presentation/views/widgets/google_role_picker.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:athletica/features/auth/presentation/views/sign_up_email_verification_otp_view.dart';
 import 'package:athletica/features/auth/presentation/views/verify_your_identity_view.dart';
-import 'package:athletica/features/home/presentation/views/home_view.dart';
-import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
-import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_passwor_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
+import 'package:athletica/features/auth/presentation/views/widgets/google_role_picker.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
+import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/home/presentation/views/home_view.dart';
+import 'package:athletica/features/info/presentation/views/info_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -93,17 +93,9 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
 
     final cubit = context.read<AuthCubit>();
     if (_selectedRole == 'Coach') {
-      cubit.registerTrainer(
-        name: name,
-        email: email,
-        password: password,
-      );
+      cubit.registerTrainer(name: name, email: email, password: password);
     } else {
-      cubit.registerClient(
-        name: name,
-        email: email,
-        password: password,
-      );
+      cubit.registerClient(name: name, email: email, password: password);
     }
   }
 
@@ -302,15 +294,15 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                         image: 'assets/images/google_logo.svg',
                       ),
                       const SizedBox(width: 30),
-                      SocialLogin(
-                        onTap: () {},
-                        image: 'assets/images/facebook_logo.svg',
-                      ),
-                      const SizedBox(width: 30),
-                      SocialLogin(
-                        onTap: () {},
-                        image: 'assets/images/apple_logo.svg',
-                      ),
+                      // SocialLogin(
+                      //   onTap: () {},
+                      //   image: 'assets/images/facebook_logo.svg',
+                      // ),
+                      // const SizedBox(width: 30),
+                      // SocialLogin(
+                      //   onTap: () {},
+                      //   image: 'assets/images/apple_logo.svg',
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 30),
