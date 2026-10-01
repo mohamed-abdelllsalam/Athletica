@@ -127,6 +127,7 @@ class _VoicePlayer extends StatefulWidget {
 class _VoicePlayerState extends State<_VoicePlayer>
     with WidgetsBindingObserver {
   late final AudioPlayer _player;
+  static _VoicePlayerState? _active;
   final List<StreamSubscription<dynamic>> _subscriptions = [];
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -134,16 +135,32 @@ class _VoicePlayerState extends State<_VoicePlayer>
   bool _loading = false;
   bool _loaded = false;
   String? _error;
+  double? _dragPosition;
+  double _speed = 1;
+  bool _foreground = true;
+  bool _completed = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _player = AudioPlayer();
-    _duration = Duration(seconds: widget.seconds ?? 0);
+    _duration = Duration(
+      seconds: (widget.seconds ?? 0).clamp(0, MessagingLimits.voiceMaxSeconds),
+    );
+    _subscriptions.add(
+      _player.onPlayerComplete.listen((_) {
+        if (mounted) {
+          setState(() {
+            _completed = true;
+            _position = Duration.zero;
+          });
+        }
+      }),
+    );
     _subscriptions.add(
       _player.onPositionChanged.listen((value) {
-        if (mounted) setState(() => _position = value);
+        if (mounted && !_completed) setState(() => _position = value);
       }),
     );
     _subscriptions.add(
@@ -159,7 +176,7 @@ class _VoicePlayerState extends State<_VoicePlayer>
   }
 
   Future<void> _toggle() async {
-    if (widget.url == null || _loading) return;
+    if (widget.url == null || _loading || !_foreground) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -168,15 +185,25 @@ class _VoicePlayerState extends State<_VoicePlayer>
       if (_playing) {
         await _player.pause();
       } else {
+        final previous = _active;
+        if (previous != null && previous != this && previous.mounted) {
+          await previous._player.pause();
+        }
+        if (!mounted) return;
+        _active = this;
         if (!_loaded) {
           await _player.setReleaseMode(ReleaseMode.stop);
           await _player.setSourceUrl(widget.url!);
+          await _player.setPlaybackRate(_speed);
           _loaded = true;
         }
-        if (_player.state == PlayerState.completed) {
+        if (_completed) {
           await _player.seek(Duration.zero);
+          _completed = false;
         }
+        if (!mounted || _active != this || !_foreground) return;
         await _player.resume();
+        if (!mounted || _active != this || !_foreground) await _player.pause();
       }
     } catch (_) {
       if (mounted) setState(() => _error = 'Could not play. Tap to retry.');
@@ -187,22 +214,71 @@ class _VoicePlayerState extends State<_VoicePlayer>
   }
 
   Future<void> _seek(double value) async {
+    if (_loading || widget.url == null) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
+      if (!_loaded) {
+        await _player.setReleaseMode(ReleaseMode.stop);
+        await _player.setSourceUrl(widget.url!);
+        await _player.setPlaybackRate(_speed);
+        _loaded = true;
+      }
+      if (!mounted) return;
       await _player.seek(Duration(milliseconds: value.round()));
+      if (mounted) {
+        setState(() {
+          _completed = false;
+          _position = Duration(milliseconds: value.round());
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _error = 'Could not seek. Try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _dragPosition = null;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _changeSpeed() async {
+    final speed = _speed == 1
+        ? 1.5
+        : _speed == 1.5
+        ? 2.0
+        : 1.0;
+    try {
+      await _player.setPlaybackRate(speed);
+      if (mounted) setState(() => _speed = speed);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not change playback speed.');
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
     if (state != AppLifecycleState.resumed && _playing) {
-      unawaited(_toggle());
+      unawaited(_pauseForLifecycle());
+    }
+  }
+
+  Future<void> _pauseForLifecycle() async {
+    try {
+      await _player.pause();
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not pause voice note.');
     }
   }
 
   @override
   void dispose() {
+    if (_active == this) _active = null;
     WidgetsBinding.instance.removeObserver(this);
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
@@ -235,23 +311,48 @@ class _VoicePlayerState extends State<_VoicePlayer>
             ),
             Expanded(
               child: Slider(
-                value: _position.inMilliseconds.toDouble().clamp(
-                  0,
-                  _duration.inMilliseconds.toDouble(),
-                ),
+                value: (_dragPosition ?? _position.inMilliseconds.toDouble())
+                    .clamp(0, _duration.inMilliseconds.toDouble()),
                 max: _duration.inMilliseconds > 0
                     ? _duration.inMilliseconds.toDouble()
                     : 1,
-                onChanged: _loaded && _duration.inMilliseconds > 0
+                onChanged:
+                    widget.url != null &&
+                        !_loading &&
+                        _duration.inMilliseconds > 0
+                    ? (value) => setState(() => _dragPosition = value)
+                    : null,
+                onChangeEnd:
+                    widget.url != null &&
+                        !_loading &&
+                        _duration.inMilliseconds > 0
                     ? (value) => unawaited(_seek(value))
                     : null,
+                activeColor: Colors.white,
+                inactiveColor: Colors.white30,
               ),
             ),
-            Text(
-              '${_duration.inSeconds ~/ 60}:${(_duration.inSeconds % 60).toString().padLeft(2, '0')}',
-              style: const TextStyle(color: Colors.white),
+            TextButton(
+              onPressed: _loaded && !_loading ? _changeSpeed : null,
+              child: Text(
+                '${_speed == 1 || _speed == 2 ? _speed.toInt() : _speed}×',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            _formatTime(
+              _dragPosition != null
+                  ? Duration(milliseconds: _dragPosition!.round())
+                  : _position > Duration.zero || _playing
+                  ? _position
+                  : _duration,
+            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
         ),
         if (widget.url == null) const Text('Voice note unavailable'),
         if (_error != null)
@@ -259,4 +360,7 @@ class _VoicePlayerState extends State<_VoicePlayer>
       ],
     ),
   );
+
+  String _formatTime(Duration value) =>
+      '${value.inSeconds ~/ 60}:${(value.inSeconds % 60).toString().padLeft(2, '0')}';
 }

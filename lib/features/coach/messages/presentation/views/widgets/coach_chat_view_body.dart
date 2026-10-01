@@ -1,6 +1,9 @@
+import 'dart:async';
+import 'package:athletica/core/widgets/unfocus_on_tap.dart';
+
+import 'package:athletica/core/utils/chat_scroll_anchor.dart';
 import 'package:athletica/core/widgets/chat_media_bubble.dart';
 import 'package:athletica/core/widgets/chat_media_composer.dart';
-import 'dart:async';
 
 import 'coach_chat_bubble.dart';
 import 'coach_chat_profile_header.dart';
@@ -40,12 +43,10 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
   bool _accepted = false;
   late final ScrollController _scrollController;
   String _myUserId = '';
+  final ChatScrollAnchor _scrollAnchor = ChatScrollAnchor();
   String? _latestMessageId;
   bool _followLatest = true;
   bool _forceFollowLatest = false;
-  double? _olderLoadStartExtent;
-  double? _olderLoadStartPixels;
-  int? _olderLoadStartCount;
 
   @override
   void initState() {
@@ -54,13 +55,6 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
     _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addObserver(this);
     if (widget.chatArgs != null) unawaited(_loadUserId());
-    if (widget.chatArgs == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-      });
-    }
   }
 
   Future<void> _loadUserId() async {
@@ -84,7 +78,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
     if (!_followLatest) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
       }
     });
   }
@@ -92,16 +86,13 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
-    _followLatest = position.extentAfter <= position.viewportDimension * 0.25;
+    _followLatest = position.extentBefore <= position.viewportDimension * 0.25;
     if (widget.chatArgs != null &&
-        position.pixels <= position.minScrollExtent) {
+        position.pixels >= position.maxScrollExtent) {
       final chatState = context.read<ChatCubit>().state;
       if (chatState is ChatReady &&
           chatState.hasMore &&
           !chatState.isLoadingOlder) {
-        _olderLoadStartExtent = position.maxScrollExtent;
-        _olderLoadStartPixels = position.pixels;
-        _olderLoadStartCount = chatState.messages.length;
         unawaited(context.read<ChatCubit>().loadOlder());
       }
     }
@@ -122,7 +113,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          _scrollController.position.minScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -186,9 +177,11 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
           children: [
             _buildAppBar(context),
             Expanded(
-              child: widget.chatArgs == null
-                  ? _buildLegacyMessages()
-                  : _buildBackendMessages(),
+              child: UnfocusOnTap(
+                child: widget.chatArgs == null
+                    ? _buildLegacyMessages()
+                    : _buildBackendMessages(),
+              ),
             ),
             _isRequest
                 ? CoachChatRequestActions(
@@ -223,6 +216,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
   }
 
   Widget _buildLegacyMessages() => ListView(
+    reverse: true,
     controller: _scrollController,
     physics: const BouncingScrollPhysics(),
     padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -243,7 +237,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
         CoachChatSecurityNotice(contact: widget.contact),
       ],
       SizedBox(height: 16.h),
-    ],
+    ].reversed.toList(),
   );
 
   Widget _buildBackendMessages() => BlocConsumer<ChatCubit, ChatState>(
@@ -270,46 +264,34 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
           ..showSnackBar(SnackBar(content: Text(state.errorMessage!)));
       }
       final messages = chat.ChatMessage.chronological(state.messages);
-      if (_olderLoadStartExtent != null &&
-          _olderLoadStartPixels != null &&
-          !state.isLoadingOlder) {
-        final startExtent = _olderLoadStartExtent!;
-        final startPixels = _olderLoadStartPixels!;
-        final startCount = _olderLoadStartCount!;
-        _olderLoadStartExtent = null;
-        _olderLoadStartPixels = null;
-        _olderLoadStartCount = null;
-        if (state.messages.length > startCount) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients) {
-              final extentDelta =
-                  _scrollController.position.maxScrollExtent - startExtent;
-              final target = startPixels + extentDelta;
-              _scrollController.jumpTo(
-                target
-                    .clamp(
-                      _scrollController.position.minScrollExtent,
-                      _scrollController.position.maxScrollExtent,
-                    )
-                    .toDouble(),
-              );
-            }
-          });
-        }
-      }
       if (messages.isNotEmpty && messages.last.id != _latestMessageId) {
+        final isOpening = _latestMessageId == null;
         final shouldFollow =
             _latestMessageId == null || _forceFollowLatest || _followLatest;
+        final restoreAnchor = shouldFollow
+            ? null
+            : _scrollAnchor.capture(_scrollController, () => mounted);
+        if (restoreAnchor != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => restoreAnchor());
+        }
         _latestMessageId = messages.last.id;
         _forceFollowLatest = false;
         if (shouldFollow) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _scrollController.hasClients) {
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-              );
+              if (isOpening) {
+                _scrollController.jumpTo(
+                  _scrollController.position.minScrollExtent,
+                );
+              } else {
+                unawaited(
+                  _scrollController.animateTo(
+                    _scrollController.position.minScrollExtent,
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                  ),
+                );
+              }
             }
           });
         }
@@ -329,7 +311,10 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
       }
       final ready = state as ChatReady;
       final messages = chat.ChatMessage.chronological(ready.messages);
+      _latestMessageId ??= messages.lastOrNull?.id;
+      _scrollAnchor.retainMessages(messages.map((message) => message.id));
       return ListView(
+        reverse: true,
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -357,7 +342,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
               if (priorDayDiffers)
                 _buildDateDivider(formatChatDay(message.createdAt)),
               ChatMediaBubble(
-                key: ValueKey(message.id),
+                key: _scrollAnchor.keyFor(message.id),
                 type: message.messageType,
                 content: message.content,
                 url: message.attachmentUrl,
@@ -368,7 +353,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
             ];
           }),
           SizedBox(height: 16.h),
-        ],
+        ].reversed.toList(),
       );
     },
   );

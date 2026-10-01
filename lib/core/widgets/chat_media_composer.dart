@@ -59,6 +59,10 @@ class _ComposerBodyState extends State<_ComposerBody>
   bool _awaitingSend = false;
   bool _failed = false;
   Future<void>? _recordingStart;
+  bool _holding = false;
+  bool _locked = false;
+  bool _cancelled = false;
+  Offset? _recordingOrigin;
 
   @override
   void initState() {
@@ -69,9 +73,25 @@ class _ComposerBodyState extends State<_ComposerBody>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
-      unawaited(context.read<ChatDraftCubit>().stopRecording());
+    final cubit = context.read<ChatDraftCubit>();
+    if (state == AppLifecycleState.paused ||
+        (state == AppLifecycleState.inactive && cubit.state.recording)) {
+      unawaited(_preserveRecording(cubit));
+    }
+  }
+
+  Future<void> _preserveRecording(ChatDraftCubit cubit) async {
+    _cancelled = true;
+    final start = _recordingStart;
+    if (start != null) await start;
+    if (!mounted || cubit.isClosed) return;
+    await cubit.stopRecording();
+    if (mounted) {
+      setState(() {
+        _holding = false;
+        _locked = false;
+        _recordingStart = null;
+      });
     }
   }
 
@@ -88,10 +108,11 @@ class _ComposerBodyState extends State<_ComposerBody>
       _awaitingSend = true;
       _failed = false;
     });
-    final sent = await widget.onSend(_controller.text, draft.state.attachment);
+    final text = _controller.text;
+    final sent = await widget.onSend(text, draft.state.attachment);
     if (!mounted) return;
     if (sent) {
-      _controller.clear();
+      if (_controller.text == text) _controller.clear();
       if (draft.state.attachment != null) {
         await draft.discard();
       }
@@ -106,16 +127,60 @@ class _ComposerBodyState extends State<_ComposerBody>
 
   void _startRecording(ChatDraftCubit cubit) {
     if (_recordingStart != null || cubit.state.recording) return;
-    _recordingStart = cubit.startRecording();
+    setState(() {
+      _holding = true;
+      _locked = false;
+      _cancelled = false;
+    });
+    _recordingStart = cubit.startRecording().then((_) {
+      if (mounted && !cubit.isClosed && !cubit.state.recording) {
+        setState(() {
+          _holding = false;
+          _locked = false;
+        });
+      }
+    });
+  }
+
+  void _moveRecording(
+    LongPressMoveUpdateDetails details,
+    ChatDraftCubit cubit,
+  ) {
+    if (!_holding || _locked || _cancelled) return;
+    final offset = details.globalPosition - _recordingOrigin!;
+    if (offset.dx < -80) {
+      setState(() => _cancelled = true);
+      unawaited(_cancelRecording(cubit));
+    } else if (offset.dy < -70) {
+      setState(() => _locked = true);
+    }
+  }
+
+  Future<void> _cancelRecording(ChatDraftCubit cubit) async {
+    _cancelled = true;
+    final start = _recordingStart;
+    if (start != null) await start;
+    if (!mounted || cubit.isClosed) return;
+    await cubit.discard();
+    if (mounted) {
+      setState(() {
+        _holding = false;
+        _locked = false;
+        _recordingStart = null;
+      });
+    }
   }
 
   Future<void> _stopRecordingAndSend(ChatDraftCubit cubit) async {
     final future = _recordingStart;
-    _recordingStart = null;
     if (future != null) await future;
+    _recordingStart = null;
+    if (!mounted || cubit.isClosed || _cancelled) return;
+    setState(() => _holding = false);
+    if (_locked) return;
     if (!cubit.state.recording) return;
     await cubit.stopRecording();
-    if (!mounted || cubit.state.attachment == null) return;
+    if (!mounted || _cancelled || cubit.state.attachment == null) return;
     await _send();
   }
 
@@ -139,91 +204,95 @@ class _ComposerBodyState extends State<_ComposerBody>
           !draft.recording &&
           draft.attachment == null;
       final attachment = draft.attachment;
-      return Material(
-        color: AppColors.cardBackground,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (draft.error != null)
-                Text(
-                  draft.error!,
-                  style: const TextStyle(color: Colors.orangeAccent),
-                ),
-              if (attachment != null)
-                Row(
-                  children: [
-                    if (attachment.type == MessageType.image)
-                      Image.file(
-                        File(attachment.path),
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            const Icon(Icons.broken_image),
-                      )
-                    else
-                      const Icon(Icons.mic, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        attachment.type == MessageType.image
-                            ? 'Photo'
-                            : 'Voice note · ${attachment.durationSeconds ?? 0}s',
-                        style: const TextStyle(color: Colors.white),
+      return TextFieldTapRegion(
+        child: Material(
+          color: AppColors.cardBackground,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (draft.error != null)
+                  Text(
+                    draft.error!,
+                    style: const TextStyle(color: Colors.orangeAccent),
+                  ),
+                if (attachment != null)
+                  Row(
+                    children: [
+                      if (attachment.type == MessageType.image)
+                        Image.file(
+                          File(attachment.path),
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const Icon(Icons.broken_image),
+                        )
+                      else
+                        const Icon(Icons.mic, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          attachment.type == MessageType.image
+                              ? 'Photo'
+                              : 'Voice note · ${attachment.durationSeconds ?? 0}s',
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Discard attachment',
-                      onPressed: busy ? null : () => unawaited(cubit.discard()),
-                      icon: const Icon(Icons.close, color: Colors.white),
-                    ),
-                  ],
-                ),
-              if (draft.busy) const LinearProgressIndicator(),
-              if (_failed && !busy)
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Draft kept',
-                        style: TextStyle(color: Colors.white70),
+                      IconButton(
+                        tooltip: 'Discard attachment',
+                        onPressed: busy
+                            ? null
+                            : () => unawaited(cubit.discard()),
+                        icon: const Icon(Icons.close, color: Colors.white),
                       ),
+                    ],
+                  ),
+                if (draft.recording || _holding)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      key: const ValueKey('chat-recording-details'),
+                      children: [
+                        const Icon(
+                          Icons.fiber_manual_record,
+                          color: Colors.redAccent,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${draft.seconds ~/ 60}:${(draft.seconds % 60).toString().padLeft(2, '0')}  ${_locked ? 'Locked' : '‹ Slide to cancel · ↑ Lock'}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        if (draft.recording && _locked)
+                          IconButton(
+                            tooltip: 'Discard recording',
+                            onPressed: () => unawaited(_cancelRecording(cubit)),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
                     ),
-                    TextButton(onPressed: _send, child: const Text('Retry')),
-                  ],
-                ),
-              if (draft.recording)
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.fiber_manual_record,
-                      color: Colors.redAccent,
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Release to send · ${draft.seconds ~/ 60}:${(draft.seconds % 60).toString().padLeft(2, '0')} / 15:00',
-                        style: const TextStyle(color: Colors.white),
+                  ),
+                if (_failed && !busy)
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Draft kept',
+                          style: TextStyle(color: Colors.white70),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Discard recording',
-                      onPressed: () => unawaited(cubit.discard()),
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.white,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Stop recording',
-                      onPressed: () => unawaited(cubit.stopRecording()),
-                      icon: const Icon(Icons.stop, color: Colors.white),
-                    ),
-                  ],
-                )
-              else
+                      TextButton(onPressed: _send, child: const Text('Retry')),
+                    ],
+                  ),
                 Row(
+                  key: const ValueKey('chat-composer-controls'),
                   children: [
                     PopupMenuButton<bool>(
                       enabled: canAttach,
@@ -242,7 +311,8 @@ class _ComposerBodyState extends State<_ComposerBody>
                     Expanded(
                       child: TextField(
                         controller: _controller,
-                        enabled: widget.enabled && !busy,
+                        enabled:
+                            widget.enabled && !draft.recording && !_holding,
                         maxLength: MessagingLimits.captionMaxChars,
                         minLines: 1,
                         maxLines: 4,
@@ -254,36 +324,36 @@ class _ComposerBodyState extends State<_ComposerBody>
                           hintStyle: const TextStyle(color: Colors.white54),
                           counterText: '',
                         ),
+                        onEditingComplete: () {},
                         onSubmitted: (_) => unawaited(_send()),
                       ),
                     ),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTapDown: canAttach
-                          ? (_) => _startRecording(cubit)
+                      onLongPressStart: canAttach || _holding
+                          ? (details) {
+                              _recordingOrigin = details.globalPosition;
+                              _startRecording(cubit);
+                            }
                           : null,
-                      onTapUp: canAttach
+                      onLongPressMoveUpdate: canAttach || _holding
+                          ? (details) => _moveRecording(details, cubit)
+                          : null,
+                      onLongPressEnd: canAttach || _holding
                           ? (_) => unawaited(_stopRecordingAndSend(cubit))
                           : null,
-                      onTapCancel: canAttach
-                          ? () => unawaited(cubit.discard())
-                          : null,
-                      onLongPressStart: canAttach
-                          ? (_) => _startRecording(cubit)
-                          : null,
-                      onLongPressEnd: canAttach
-                          ? (_) => unawaited(_stopRecordingAndSend(cubit))
-                          : null,
-                      onLongPressCancel: canAttach
-                          ? () => unawaited(cubit.discard())
+                      onLongPressCancel: canAttach || _holding
+                          ? () => unawaited(_cancelRecording(cubit))
                           : null,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Icon(
-                          Icons.mic,
+                          _locked ? Icons.lock : Icons.mic,
                           semanticLabel:
                               'Press and hold to record a voice note',
-                          color: canAttach ? Colors.white : Colors.grey,
+                          color: canAttach || _holding || draft.recording
+                              ? Colors.white
+                              : Colors.grey,
                         ),
                       ),
                     ),
@@ -293,29 +363,56 @@ class _ComposerBodyState extends State<_ComposerBody>
                           : 'Send message',
                       onPressed: widget.sending
                           ? widget.onCancel
-                          : widget.enabled && !busy
+                          : draft.recording && _locked
+                          ? () async {
+                              setState(() => _locked = false);
+                              await cubit.stopRecording();
+                              if (mounted &&
+                                  !_cancelled &&
+                                  cubit.state.attachment != null) {
+                                await _send();
+                              }
+                            }
+                          : widget.enabled && !busy && !draft.recording
                           ? _send
                           : null,
-                      icon: widget.sending
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                value: widget.progress,
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                      icon: busy
+                          ? Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    value: widget.sending
+                                        ? widget.progress?.clamp(0.0, 1.0)
+                                        : null,
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                if (widget.sending)
+                                  const Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                              ],
                             )
                           : Icon(
                               Icons.send,
-                              color: widget.enabled && !busy
+                              color:
+                                  widget.enabled &&
+                                      (!busy || _locked) &&
+                                      (!draft.recording || _locked)
                                   ? Colors.white
                                   : Colors.grey,
                             ),
                     ),
                   ],
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       );

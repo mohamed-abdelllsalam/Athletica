@@ -9,9 +9,9 @@ import 'package:athletica/features/auth/presentation/views/widgets/custom_button
 import 'package:athletica/features/auth/presentation/views/widgets/custom_checbox.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_passwor_field.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_text_form_field.dart';
+import 'package:athletica/features/auth/presentation/views/widgets/google_role_picker.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/or_divder.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/social_login.dart';
-import 'package:athletica/features/auth/presentation/views/widgets/google_role_picker.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
 import 'package:athletica/features/info/presentation/views/info_view.dart';
@@ -237,15 +237,15 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                         image: 'assets/images/google_logo.svg',
                       ),
                       const SizedBox(width: 30),
-                      SocialLogin(
-                        onTap: () {},
-                        image: 'assets/images/facebook_logo.svg',
-                      ),
-                      const SizedBox(width: 30),
-                      SocialLogin(
-                        onTap: () {},
-                        image: 'assets/images/apple_logo.svg',
-                      ),
+                      // SocialLogin(
+                      //   onTap: () {},
+                      //   image: 'assets/images/facebook_logo.svg',
+                      // ),
+                      // const SizedBox(width: 30),
+                      // SocialLogin(
+                      //   onTap: () {},
+                      //   image: 'assets/images/apple_logo.svg',
+                      // ),
                     ],
                   ),
                 ],
