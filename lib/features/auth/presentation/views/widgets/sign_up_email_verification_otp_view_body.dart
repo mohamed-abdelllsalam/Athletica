@@ -12,9 +12,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SignUpEmailVerificationOtpViewBody extends StatefulWidget {
-  const SignUpEmailVerificationOtpViewBody({super.key, required this.email});
+  const SignUpEmailVerificationOtpViewBody({
+    super.key,
+    required this.email,
+    this.isNewCoach = false,
+  });
 
   final String email;
+  final bool isNewCoach;
 
   @override
   State<SignUpEmailVerificationOtpViewBody> createState() =>
@@ -137,10 +142,7 @@ class _SignUpEmailVerificationOtpViewBodyState
     if (!isOtpComplete) {
       return;
     }
-    context.read<AuthCubit>().verifyEmail(
-          email: widget.email,
-          code: otpValue,
-        );
+    context.read<AuthCubit>().verifyEmail(email: widget.email, code: otpValue);
   }
 
   void _resendCode() {
@@ -170,9 +172,7 @@ class _SignUpEmailVerificationOtpViewBodyState
         autofillHints: const [AutofillHints.oneTimeCode],
         textAlign: TextAlign.center,
         textAlignVertical: TextAlignVertical.center,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-        ],
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: AppTextStyles.bold20(context).copyWith(color: Colors.white),
         cursorColor: AppColors.primaryPurple,
         decoration: InputDecoration(
@@ -210,10 +210,16 @@ class _SignUpEmailVerificationOtpViewBodyState
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is VerificationSuccess) {
+          // Newly registered coaches complete their profile after their
+          // first login; everyone else just signs in as before.
+          final arguments = widget.isNewCoach
+              ? {'completeProfileAfterLogin': true}
+              : null;
           Navigator.pushNamedAndRemoveUntil(
             context,
             SignInView.routeName,
             (route) => false,
+            arguments: arguments,
           );
         } else if (state is VerificationCodeResent) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -267,9 +273,7 @@ class _SignUpEmailVerificationOtpViewBodyState
                 const SizedBox(height: 26),
                 Center(
                   child: GestureDetector(
-                    onTap: _isResendEnabled && !isLoading
-                        ? _resendCode
-                        : null,
+                    onTap: _isResendEnabled && !isLoading ? _resendCode : null,
                     child: RichText(
                       text: TextSpan(
                         children: [

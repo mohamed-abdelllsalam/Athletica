@@ -37,33 +37,55 @@ class CoachProfileCompletionHeading extends StatelessWidget {
 }
 
 class CoachProfileCompletionActions extends StatelessWidget {
-  const CoachProfileCompletionActions({super.key, required this.onContinue});
+  const CoachProfileCompletionActions({
+    super.key,
+    required this.onContinue,
+    this.onSkip,
+  });
 
   final VoidCallback onContinue;
+  final VoidCallback? onSkip;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 32.h),
-      child: SizedBox(
-        width: double.infinity,
-        height: 52.h,
-        child: ElevatedButton(
-          onPressed: onContinue,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.buttonColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14.r),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 52.h,
+            child: ElevatedButton(
+              onPressed: onContinue,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.buttonColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'Continue',
+                style: AppTextStyles.semiBold15(
+                  context,
+                ).copyWith(color: AppColors.textPrimary),
+              ),
             ),
-            elevation: 0,
           ),
-          child: Text(
-            'Continue',
-            style: AppTextStyles.semiBold15(
-              context,
-            ).copyWith(color: AppColors.textPrimary),
-          ),
-        ),
+          if (onSkip != null) ...[
+            SizedBox(height: 8.h),
+            TextButton(
+              onPressed: onSkip,
+              child: Text(
+                'Skip',
+                style: AppTextStyles.semiBold15(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

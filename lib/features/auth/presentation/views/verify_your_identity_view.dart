@@ -2,9 +2,17 @@ import 'package:athletica/features/auth/presentation/views/widgets/verify_your_i
 import 'package:flutter/material.dart';
 
 class VerifyYourIdentityView extends StatelessWidget {
-  const VerifyYourIdentityView({super.key, this.email = ''});
+  const VerifyYourIdentityView({
+    super.key,
+    this.email = '',
+    this.isNewCoach = false,
+  });
 
   final String email;
+
+  /// True when the account was just created through coach signup.
+  final bool isNewCoach;
+
   static const String routeName = 'verifyYourIdentityView';
 
   @override
@@ -22,7 +30,7 @@ class VerifyYourIdentityView extends StatelessWidget {
           ),
         ),
       ),
-      body: VerifyYourIdentityViewBody(email: email),
+      body: VerifyYourIdentityViewBody(email: email, isNewCoach: isNewCoach),
     );
   }
 }

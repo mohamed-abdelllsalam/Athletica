@@ -9,6 +9,9 @@ import 'package:athletica/features/coach/complete_profile/presentation/views/coa
 import 'package:athletica/features/coach/complete_profile/presentation/views/coach_certificate_review_view.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/widgets/coach_complete_profile_sections.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/views/widgets/coach_dashed_upload_box.dart';
+import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
+import 'package:athletica/features/complete_profile/presentation/cubits/complete_profile_cubit.dart';
+import 'package:athletica/features/complete_profile/presentation/cubits/complete_profile_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -71,24 +74,43 @@ class _CoachCompleteProfileViewBodyState
       _ => const <CoachAchievement>[],
     };
 
+    if (!mounted) return;
+    setState(() => _isContinuing = false);
+
     if (certificates.isEmpty) {
+      // Certificates are optional — finish onboarding directly.
+      final completeCubit = context.read<CompleteProfileCubit>();
+      await completeCubit.submit();
       if (!mounted) return;
-      setState(() => _isContinuing = false);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Upload at least one certificate to continue.'),
-          ),
-        );
+      final completeState = completeCubit.state;
+      if (completeState is CompleteProfileSuccess) {
+        await Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(CoachHomeView.routeName, (_) => false);
+        return;
+      }
+      if (completeState is CompleteProfileError) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(completeState.message),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+      }
       return;
     }
 
-    if (!mounted) return;
-    setState(() => _isContinuing = false);
     await Navigator.of(
       context,
     ).pushNamed(CoachCertificateReviewView.routeName, arguments: certificates);
+  }
+
+  Future<void> _skip() async {
+    await Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(CoachHomeView.routeName, (_) => false);
   }
 
   @override
@@ -124,9 +146,7 @@ class _CoachCompleteProfileViewBodyState
                         final achievements = switch (state) {
                           CoachAchievementsLoaded(:final achievements) =>
                             achievements,
-                          CoachAchievementsDeleteSuccess(
-                            :final achievements,
-                          ) =>
+                          CoachAchievementsDeleteSuccess(:final achievements) =>
                             achievements,
                           CoachAchievementsDeleting(:final achievements) =>
                             achievements,
@@ -161,7 +181,7 @@ class _CoachCompleteProfileViewBodyState
                 ),
               ),
             ),
-            CoachProfileCompletionActions(onContinue: _continue),
+            CoachProfileCompletionActions(onContinue: _continue, onSkip: _skip),
           ],
         ),
       ),

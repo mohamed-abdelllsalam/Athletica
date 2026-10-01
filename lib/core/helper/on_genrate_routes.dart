@@ -198,8 +198,13 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       final signInArgs = settings.arguments;
       final sessionExpired =
           signInArgs is Map && signInArgs['sessionExpired'] == true;
+      final completeProfileAfterLogin = signInArgs is Map &&
+          signInArgs['completeProfileAfterLogin'] == true;
       return MaterialPageRoute(
-        builder: (context) => SignInView(sessionExpired: sessionExpired),
+        builder: (context) => SignInView(
+          sessionExpired: sessionExpired,
+          completeProfileAfterLogin: completeProfileAfterLogin,
+        ),
       );
     case RoleSelectionView.routeName:
       return MaterialPageRoute(builder: (context) => const RoleSelectionView());
@@ -209,14 +214,20 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         builder: (context) => SignUpView(selectedRole: selectedRole),
       );
     case VerifyYourIdentityView.routeName:
-      final email = settings.arguments as String? ?? '';
+      final args = _signupFlowArgs(settings.arguments);
       return MaterialPageRoute(
-        builder: (context) => VerifyYourIdentityView(email: email),
+        builder: (context) => VerifyYourIdentityView(
+          email: args.email,
+          isNewCoach: args.isNewCoach,
+        ),
       );
     case SignUpEmailVerificationOtpView.routeName:
-      final email = settings.arguments as String? ?? '';
+      final args = _signupFlowArgs(settings.arguments);
       return MaterialPageRoute(
-        builder: (context) => SignUpEmailVerificationOtpView(email: email),
+        builder: (context) => SignUpEmailVerificationOtpView(
+          email: args.email,
+          isNewCoach: args.isNewCoach,
+        ),
       );
     case ResetPasswordView.routeName:
       return MaterialPageRoute(builder: (context) => const ResetPasswordView());
@@ -289,4 +300,17 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     default:
       return MaterialPageRoute(builder: (context) => const Scaffold());
   }
+}
+
+/// Parses the signup-flow route arguments. The signup flow passes a record
+/// `({String email, bool isNewCoach})`; the login flow (email verification
+/// required) passes a plain email string.
+({String email, bool isNewCoach}) _signupFlowArgs(Object? arguments) {
+  if (arguments is ({String email, bool isNewCoach})) {
+    return arguments;
+  }
+  if (arguments is String) {
+    return (email: arguments, isNewCoach: false);
+  }
+  return (email: '', isNewCoach: false);
 }
