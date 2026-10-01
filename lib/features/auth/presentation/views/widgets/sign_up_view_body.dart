@@ -293,7 +293,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                         ),
                         image: 'assets/images/google_logo.svg',
                       ),
-                      const SizedBox(width: 30),
                       // SocialLogin(
                       //   onTap: () {},
                       //   image: 'assets/images/facebook_logo.svg',
@@ -305,7 +304,6 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                       // ),
                     ],
                   ),
-                  const SizedBox(height: 30),
                 ],
               ),
             ),

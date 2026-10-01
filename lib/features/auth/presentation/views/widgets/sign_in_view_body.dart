@@ -236,7 +236,6 @@ class _SignInViewBodyState extends State<SignInViewBody> {
                         ),
                         image: 'assets/images/google_logo.svg',
                       ),
-                      const SizedBox(width: 30),
                       // SocialLogin(
                       //   onTap: () {},
                       //   image: 'assets/images/facebook_logo.svg',

@@ -1,19 +1,19 @@
-import 'package:athletica/core/widgets/progress_history_unavailable.dart';
 import 'dart:io';
 
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/progress_history_unavailable.dart';
 import 'package:athletica/features/chat/presentation/models/chat_route_args.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
 import 'package:athletica/features/client_coach/domain/usecases/get_my_coach_usecase.dart';
+import 'package:athletica/features/home/presentation/views/widgets/streak_section.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/profile/presentation/views/edit_profile_view.dart';
 import 'package:athletica/features/profile/presentation/views/profile_info_view.dart';
 import 'package:athletica/features/profile/presentation/views/widgets/profile_assigned_plans_section.dart';
-import 'package:athletica/features/home/presentation/views/widgets/streak_section.dart';
 import 'package:athletica/features/streak/presentation/cubits/streak_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -540,57 +540,55 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Subscription Information',
-              style: AppTextStyles.semiBold15(
-                context,
-              ).copyWith(color: AppColors.textPrimary),
-            ),
-            Row(
-              children: [
-                Container(
-                  width: 8.r,
-                  height: 8.r,
-                  decoration: const BoxDecoration(
-                    color: AppColors.streakGreen,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                SizedBox(width: 4.w),
-                Text(
-                  'Active',
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.streakGreen),
-                ),
-              ],
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
-        _SubscriptionRow(
-          icon: Icons.access_time_rounded,
-          label: 'Duration',
-          value: '1 Month',
-        ),
-        SizedBox(height: 14.h),
-        _SubscriptionRow(
-          icon: Icons.calendar_month_outlined,
-          label: 'Start date',
-          value: '15 May 2026',
-        ),
-        SizedBox(height: 14.h),
-        _SubscriptionRow(
-          icon: Icons.calendar_month_outlined,
-          label: 'End date',
-          value: '15 Jun 2026',
-          trailingHighlight: '(In 18 days)',
-        ),
+        // Row(
+        //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //   children: [
+        //     Text(
+        //       'Subscription Information',
+        //       style: AppTextStyles.semiBold15(
+        //         context,
+        //       ).copyWith(color: AppColors.textPrimary),
+        //     ),
+        //     Row(
+        //       children: [
+        //         Container(
+        //           width: 8.r,
+        //           height: 8.r,
+        //           decoration: const BoxDecoration(
+        //             color: AppColors.streakGreen,
+        //             shape: BoxShape.circle,
+        //           ),
+        //         ),
+        //         SizedBox(width: 4.w),
+        //         Text(
+        //           'Active',
+        //           style: AppTextStyles.medium14(
+        //             context,
+        //           ).copyWith(color: AppColors.streakGreen),
+        //         ),
+        //       ],
+        //     ),
       ],
     );
+    // SizedBox(height: 16.h),
+    // _SubscriptionRow(
+    //   icon: Icons.access_time_rounded,
+    //   label: 'Duration',
+    //   value: '1 Month',
+    // ),
+    // SizedBox(height: 14.h),
+    // _SubscriptionRow(
+    //   icon: Icons.calendar_month_outlined,
+    //   label: 'Start date',
+    //   value: '15 May 2026',
+    // ),
+    // SizedBox(height: 14.h),
+    // _SubscriptionRow(
+    //   icon: Icons.calendar_month_outlined,
+    //   label: 'End date',
+    //   value: '15 Jun 2026',
+    //   trailingHighlight: '(In 18 days)',
+    // ),
   }
 }
 
@@ -651,63 +649,63 @@ class _TabSelector extends StatelessWidget {
 
 // ---------- Subscription Row ----------
 
-class _SubscriptionRow extends StatelessWidget {
-  const _SubscriptionRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.trailingHighlight,
-  });
+// class _SubscriptionRow extends StatelessWidget {
+//   const _SubscriptionRow({
+//     required this.icon,
+//     required this.label,
+//     required this.value,
+//     this.trailingHighlight,
+//   });
 
-  final IconData icon;
-  final String label;
-  final String value;
-  final String? trailingHighlight;
+//   final IconData icon;
+//   final String label;
+//   final String value;
+//   final String? trailingHighlight;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 36.r,
-          height: 36.r,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Icon(icon, color: AppColors.primaryBlue, size: 18.sp),
-        ),
-        SizedBox(width: 12.w),
-        Text(
-          label,
-          style: AppTextStyles.medium14(
-            context,
-          ).copyWith(color: AppColors.textPrimary),
-        ),
-        const Spacer(),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: value,
-                style: AppTextStyles.medium14(
-                  context,
-                ).copyWith(color: AppColors.textPrimary),
-              ),
-              if (trailingHighlight != null)
-                TextSpan(
-                  text: ' $trailingHighlight',
-                  style: AppTextStyles.medium14(
-                    context,
-                  ).copyWith(color: AppColors.streakFire),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Row(
+//       children: [
+//         Container(
+//           width: 36.r,
+//           height: 36.r,
+//           decoration: BoxDecoration(
+//             color: AppColors.surfaceDark,
+//             borderRadius: BorderRadius.circular(8.r),
+//           ),
+//           child: Icon(icon, color: AppColors.primaryBlue, size: 18.sp),
+//         ),
+//         SizedBox(width: 12.w),
+//         Text(
+//           label,
+//           style: AppTextStyles.medium14(
+//             context,
+//           ).copyWith(color: AppColors.textPrimary),
+//         ),
+//         const Spacer(),
+//         RichText(
+//           text: TextSpan(
+//             children: [
+//               TextSpan(
+//                 text: value,
+//                 style: AppTextStyles.medium14(
+//                   context,
+//                 ).copyWith(color: AppColors.textPrimary),
+//               ),
+//               if (trailingHighlight != null)
+//                 TextSpan(
+//                   text: ' $trailingHighlight',
+//                   style: AppTextStyles.medium14(
+//                     context,
+//                   ).copyWith(color: AppColors.streakFire),
+//                 ),
+//             ],
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
 // ---------- Stat Item ----------
 
