@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:athletica/core/helper/app_navigator_key.dart';
 import 'package:athletica/core/services/auth_session_service.dart';
 import 'package:athletica/core/services/chat_visibility_service.dart';
+import 'package:athletica/core/services/notification_launch_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/notifications/domain/usecases/get_notification_session.dart';
 import 'package:athletica/features/notifications/domain/entities/notification_payload.dart';
@@ -30,9 +31,11 @@ class PushCoordinator with WidgetsBindingObserver {
     this.router,
     this.getSession,
     this.inbox,
+    this.launch,
   );
   final GetNotificationSession getSession;
   final NotificationInbox inbox;
+  final NotificationLaunchService launch;
   final AuthSessionService sessions;
   final ChatVisibilityService visibility;
   final DeviceLifecycle devices;
@@ -169,8 +172,14 @@ class PushCoordinator with WidgetsBindingObserver {
 
   Future<String?> _cachedOwner() async => (await _storedSession())?.owner;
 
-  Future<bool> _belongsToCurrentLogin(RemoteMessage message) async =>
-      (await _storedSession())?.allows(message.sentTime) ?? false;
+  Future<bool> _belongsToCurrentLogin(RemoteMessage message) async {
+    final snapshot = await _storedSession();
+    final sentTime = await launch.resolveSentTime(
+      messageId: message.messageId,
+      sentTime: message.sentTime,
+    );
+    return snapshot?.allows(sentTime) ?? false;
+  }
 
   Future<void> handleRemoteTap(RemoteMessage message) async {
     try {
