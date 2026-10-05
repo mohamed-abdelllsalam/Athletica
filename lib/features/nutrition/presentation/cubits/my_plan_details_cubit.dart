@@ -35,37 +35,36 @@ final class MyPlanDetailsError extends MyPlanDetailsState {
 }
 
 class MyPlanDetailsCubit extends Cubit<MyPlanDetailsState> {
-  MyPlanDetailsCubit(
-    this._getActivePlan,
-    this._getPlanDetails,
-  ) : super(const MyPlanDetailsInitial());
+  MyPlanDetailsCubit(this._getActivePlan, this._getPlanDetails)
+    : super(const MyPlanDetailsInitial());
 
   final GetMyActivePlanUseCase _getActivePlan;
   final GetMyPlanDetailsUseCase _getPlanDetails;
 
-  Future<void> load() async {
+  Future<void> load({String? planId}) async {
     if (state is MyPlanDetailsLoading) return;
 
     emit(const MyPlanDetailsLoading());
 
-    var planId = '';
-    final planResult = await _getActivePlan();
-    switch (planResult) {
-      case ApiSuccess(:final data):
-        planId = data?.id ?? '';
-      case ApiError(:final failure):
-        if (isClosed) return;
-        emit(MyPlanDetailsError(failure.message));
-        return;
+    var resolvedPlanId = planId ?? '';
+    if (resolvedPlanId.isEmpty) {
+      final planResult = await _getActivePlan();
+      switch (planResult) {
+        case ApiSuccess(:final data):
+          resolvedPlanId = data?.id ?? '';
+        case ApiError(:final failure):
+          if (isClosed) return;
+          emit(MyPlanDetailsError(failure.message));
+          return;
+      }
     }
-
-    if (planId.isEmpty) {
+    if (resolvedPlanId.isEmpty) {
       if (isClosed) return;
       emit(const MyPlanDetailsNoPlan());
       return;
     }
 
-    final detailsResult = await _getPlanDetails(planId);
+    final detailsResult = await _getPlanDetails(resolvedPlanId);
     switch (detailsResult) {
       case ApiSuccess(:final data):
         if (isClosed) return;

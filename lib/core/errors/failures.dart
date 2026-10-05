@@ -3,6 +3,14 @@ sealed class AppFailure {
   const AppFailure(this.message);
 }
 
+final class DeviceConflictFailure extends AppFailure {
+  const DeviceConflictFailure() : super('Device registration conflict.');
+}
+
+final class InboxNotFoundFailure extends AppFailure {
+  const InboxNotFoundFailure() : super('Notification is no longer available.');
+}
+
 final class ServerFailure extends AppFailure {
   const ServerFailure(super.message);
 }
@@ -17,17 +25,17 @@ final class UnauthorizedFailure extends AppFailure {
 
 final class GoogleRoleRequiredFailure extends AppFailure {
   const GoogleRoleRequiredFailure()
-      : super('Choose whether you want to continue as a coach or client.');
+    : super('Choose whether you want to continue as a coach or client.');
 }
 
 final class GoogleIdTokenRequiredFailure extends AppFailure {
   const GoogleIdTokenRequiredFailure()
-      : super('Google did not provide a valid ID token. Please sign in again.');
+    : super('Google did not provide a valid ID token. Please sign in again.');
 }
 
 final class GoogleInvalidTokenFailure extends AppFailure {
   const GoogleInvalidTokenFailure()
-      : super('Google sign-in expired. Please try again.');
+    : super('Google sign-in expired. Please try again.');
 }
 
 final class EmailNotVerifiedFailure extends AppFailure {

@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/services/chat_visibility_service.dart';
+import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/widgets/unfocus_on_tap.dart';
 
 import 'package:athletica/core/utils/chat_scroll_anchor.dart';
@@ -26,7 +29,15 @@ class ChatViewBody extends StatefulWidget {
 }
 
 class _ChatViewBodyState extends State<ChatViewBody>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
+  late final ChatVisibilityService _visibility;
+  late final Object _visibilityOwner;
+  late final int _sessionGeneration;
+  StreamSubscription<ChatState>? _chatSubscription;
+  StreamSubscription<void>? _visibilitySubscription;
+  ModalRoute<dynamic>? _route;
+  ChatCubit? _chat;
+  bool _resumed = true;
   late final ScrollController _scrollController;
   String _myUserId = '';
   final ChatScrollAnchor _scrollAnchor = ChatScrollAnchor();
@@ -38,8 +49,58 @@ class _ChatViewBodyState extends State<ChatViewBody>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _visibility = sl<ChatVisibilityService>();
+    _visibilityOwner = _visibility.createOwner();
+    _sessionGeneration = _visibility.sessionGeneration;
+    _resumed =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _visibilitySubscription = _visibility.changes.listen((_) {
+      if (_sessionGeneration != _visibility.sessionGeneration) {
+        unawaited(_chat?.endSession());
+      }
+    });
     _scrollController = ScrollController()..addListener(_onScroll);
     unawaited(_loadUserId());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (_route != route) {
+      appRouteObserver.unsubscribe(this);
+      _route = route;
+      if (route != null) appRouteObserver.subscribe(this, route);
+    }
+    if (_chat == null) {
+      _chat = context.read<ChatCubit>();
+      _chatSubscription = _chat!.stream.listen((_) => _updateVisibility());
+    }
+    _updateVisibility();
+  }
+
+  void _updateVisibility() {
+    if (_resumed && _route?.isCurrent == true) {
+      _visibility.setVisible(_visibilityOwner, _chat?.conversationId);
+    } else {
+      _visibility.clear(_visibilityOwner);
+    }
+  }
+
+  @override
+  void didPushNext() => _visibility.clear(_visibilityOwner);
+
+  @override
+  void didPop() => _visibility.clear(_visibilityOwner);
+
+  @override
+  void didPush() => _updateVisibility();
+
+  @override
+  void didPopNext() {
+    _updateVisibility();
+    if (_resumed) unawaited(_chat?.resume());
   }
 
   Future<void> _loadUserId() async {
@@ -51,7 +112,9 @@ class _ChatViewBodyState extends State<ChatViewBody>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    _resumed = state == AppLifecycleState.resumed;
+    _updateVisibility();
+    if (_resumed && _route?.isCurrent == true) {
       unawaited(context.read<ChatCubit>().resume());
     }
   }
@@ -100,6 +163,10 @@ class _ChatViewBodyState extends State<ChatViewBody>
 
   @override
   void dispose() {
+    _visibility.release(_visibilityOwner);
+    appRouteObserver.unsubscribe(this);
+    unawaited(_chatSubscription?.cancel());
+    unawaited(_visibilitySubscription?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     _scrollController
       ..removeListener(_onScroll)

@@ -1,3 +1,4 @@
+import 'package:athletica/core/services/installation_id_service.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/client_answers_completion.dart';
@@ -47,7 +48,8 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio _dio;
 
-  const AuthRemoteDataSourceImpl(this._dio);
+  final InstallationIdService _installationId;
+  const AuthRemoteDataSourceImpl(this._dio, this._installationId);
 
   @override
   Future<AuthResponseModel> login({
@@ -137,6 +139,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final token = await TokenStorageService.instance.getToken();
     await _dio.post(
       ApiEndpoints.logout,
+      data: {'device_id': await _installationId.getOrCreate()},
       options: Options(
         headers: token == null ? const {} : {'Authorization': 'Bearer $token'},
       ),

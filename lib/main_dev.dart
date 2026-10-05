@@ -1,3 +1,5 @@
+import 'package:athletica/features/notifications/presentation/push_coordinator.dart';
+import 'package:athletica/features/notifications/domain/usecases/notification_inbox.dart';
 import 'package:athletica/athletica_app.dart';
 import 'package:athletica/core/config/app_config.dart';
 import 'package:athletica/core/di/injection_container.dart';
@@ -11,5 +13,7 @@ Future<void> main() async {
   AppConfig.instance = AppConfig.dev();
 
   setupDependencies();
+  sl<NotificationInbox>().start();
+  await sl<PushCoordinator>().initialize();
   runApp(const AthleticaApp());
 }

@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/copy_message_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -50,6 +51,7 @@ class ChatBubble extends StatelessWidget {
                       context,
                     ).copyWith(color: AppColors.textPrimary),
                   ),
+                  CopyMessageButton(message: message),
                   SizedBox(height: 4.h),
                   Text(
                     time,

@@ -15,11 +15,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart' as intl;
 
 class MyPlanDetailsView extends StatelessWidget {
-  const MyPlanDetailsView({super.key});
+  const MyPlanDetailsView({super.key, this.planId});
+  final String? planId;
   static const String routeName = 'client-my-plan';
   @override
   Widget build(BuildContext context) => BlocProvider(
-    create: (_) => sl<MyPlanDetailsCubit>()..load(),
+    create: (_) => sl<MyPlanDetailsCubit>()..load(planId: planId),
     child: Scaffold(
       backgroundColor: AppColors.primaryAppColor,
       body: SafeArea(
@@ -34,13 +35,16 @@ class MyPlanDetailsView extends StatelessWidget {
                     MyPlanDetailsInitial() || MyPlanDetailsLoading() =>
                       const NutritionLoading(plan: true),
                     MyPlanDetailsNoPlan() => NutritionNoPlan(
-                      onRefresh: () =>
-                          context.read<MyPlanDetailsCubit>().load(),
+                      onRefresh: () => context.read<MyPlanDetailsCubit>().load(
+                        planId: planId,
+                      ),
                     ),
                     MyPlanDetailsError(:final message) => NutritionStatus(
                       message: message,
                       action: 'Retry',
-                      onAction: () => context.read<MyPlanDetailsCubit>().load(),
+                      onAction: () => context.read<MyPlanDetailsCubit>().load(
+                        planId: planId,
+                      ),
                     ),
                     MyPlanDetailsLoaded(:final plan) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

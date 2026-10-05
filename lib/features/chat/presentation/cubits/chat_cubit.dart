@@ -50,17 +50,21 @@ class ChatCubit extends Cubit<ChatState> {
   ChatUploadControl? _uploadControl;
   bool _realtimeAvailable = false;
   bool _opened = false;
+  bool _sessionEnded = false;
+  bool _connecting = false;
   String? _error;
   Timer? _pollTimer;
 
   Future<void> open() async {
-    if ((_opened && state is! ChatFailureState) || isClosed) return;
+    if ((_opened && state is! ChatFailureState) || isClosed || _sessionEnded) {
+      return;
+    }
     _opened = true;
     final requestedConversationId = conversationId;
     if (requestedConversationId == null) {
       emit(const ChatLoading());
       final result = await _getConversations();
-      if (isClosed) return;
+      if (isClosed || _sessionEnded) return;
       switch (result) {
         case ApiSuccess(:final data):
           final assignmentId = coachClientId;
@@ -85,6 +89,7 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   Future<void> loadHistory({bool initial = false}) async {
+    if (_sessionEnded || isClosed) return;
     final id = conversationId;
     if (id == null) {
       _emitReady();
@@ -92,7 +97,7 @@ class ChatCubit extends Cubit<ChatState> {
     }
     if (initial && _messages.isEmpty) emit(const ChatLoading());
     final result = await _getHistory(conversationId: id);
-    if (isClosed) return;
+    if (isClosed || _sessionEnded) return;
     switch (result) {
       case ApiSuccess(:final data):
         _merge(data.messages);
@@ -112,13 +117,14 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   Future<void> loadOlder() async {
+    if (_sessionEnded || isClosed) return;
     final id = conversationId;
     final cursor = _cursor;
     if (id == null || cursor == null || !_hasMore || _loadingOlder) return;
     _loadingOlder = true;
     _emitReady();
     final result = await _getHistory(conversationId: id, before: cursor);
-    if (isClosed) return;
+    if (isClosed || _sessionEnded) return;
     switch (result) {
       case ApiSuccess(:final data):
         _merge(data.messages);
@@ -135,7 +141,7 @@ class ChatCubit extends Cubit<ChatState> {
 
   Future<bool> send(String rawContent, {ChatAttachment? attachment}) async {
     final content = rawContent.trim();
-    if (_sending || isClosed) return false;
+    if (_sending || isClosed || _sessionEnded) return false;
     final validation = validateChatSend(content, attachment);
     if (validation != null) {
       _error = validation;
@@ -165,7 +171,7 @@ class ChatCubit extends Cubit<ChatState> {
             _emitReady();
           },
         );
-        if (isClosed) return false;
+        if (isClosed || _sessionEnded) return false;
         switch (result) {
           case ApiSuccess(:final data):
             sentSuccessfully = true;
@@ -188,10 +194,10 @@ class ChatCubit extends Cubit<ChatState> {
           _emitReady();
         },
       );
-      if (isClosed) return false;
+      if (isClosed || _sessionEnded) return false;
       switch (result) {
         case ApiSuccess(:final data):
-            sentSuccessfully = true;
+          sentSuccessfully = true;
           _insertNewest(data);
         case ApiError(:final failure):
           _error = failure.message;
@@ -210,25 +216,28 @@ class ChatCubit extends Cubit<ChatState> {
   void cancelUpload() => _uploadControl?.cancel();
 
   void receive(ChatRealtimeEvent event) {
+    if (_sessionEnded || isClosed) return;
     if (!_remember(_seenEventIds, event.eventId)) return;
     _insertNewest(event.message);
     _emitReady();
   }
 
   Future<void> resume() async {
-    if (conversationId == null) return;
+    if (conversationId == null || _sessionEnded || isClosed) return;
     await loadHistory();
     await _connectRealtime();
   }
 
   Future<void> _connectRealtime() async {
     final id = conversationId;
-    if (id == null || isClosed) return;
+    if (id == null || isClosed || _sessionEnded || _connecting) return;
+    _connecting = true;
     try {
       await _realtimeGateway.connect(
         id,
         onEvent: receive,
         onAvailabilityChanged: (available) {
+          if (_sessionEnded || isClosed) return;
           final becameAvailable = available && !_realtimeAvailable;
           _realtimeAvailable = available;
           if (available) {
@@ -247,12 +256,15 @@ class ChatCubit extends Cubit<ChatState> {
         },
       );
     } catch (_) {
+      if (_sessionEnded || isClosed) return;
       _realtimeAvailable = false;
       _pollTimer ??= Timer.periodic(
         const Duration(seconds: 15),
         (_) => unawaited(loadHistory()),
       );
       _emitReady();
+    } finally {
+      _connecting = false;
     }
   }
 
@@ -290,7 +302,7 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   void _emitReady() {
-    if (isClosed) return;
+    if (isClosed || _sessionEnded) return;
     emit(
       ChatReady(
         messages: List.unmodifiable(_messages),
@@ -304,6 +316,15 @@ class ChatCubit extends Cubit<ChatState> {
         errorMessage: _error,
       ),
     );
+  }
+
+  Future<void> endSession() async {
+    if (_sessionEnded) return;
+    _sessionEnded = true;
+    _uploadControl?.cancel();
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    await _realtimeGateway.dispose();
   }
 
   @override

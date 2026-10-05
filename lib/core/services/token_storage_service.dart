@@ -12,9 +12,21 @@ class TokenStorageService {
   static const String _clientIdKey = 'client_id';
   static const String _trainerIdKey = 'trainer_id';
   static const String _profileCompleteKey = 'is_profile_complete';
+  static const String _sessionStartedKey = 'auth_session_started_at';
 
   Future<void> saveToken(String token) async {
     await _secureStorage.write(key: _tokenKey, value: token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      _sessionStartedKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  Future<DateTime?> getSessionStartedAt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_sessionStartedKey);
+    return value == null ? null : DateTime.fromMillisecondsSinceEpoch(value);
   }
 
   Future<String?> getToken() async {
@@ -82,5 +94,6 @@ class TokenStorageService {
     await prefs.remove(_clientIdKey);
     await prefs.remove(_trainerIdKey);
     await prefs.remove(_profileCompleteKey);
+    await prefs.remove(_sessionStartedKey);
   }
 }

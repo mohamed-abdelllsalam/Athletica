@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/notification_badge_button.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
 import 'package:athletica/features/client_coach/presentation/views/client_coach_view.dart';
@@ -23,12 +24,12 @@ class HomeAppBar extends StatelessWidget {
             buildWhen: (prev, curr) =>
                 curr is ProfileLoaded || curr is ProfileLoading,
             builder: (context, state) {
-              final imageUrl =
-                  state is ProfileLoaded
-                      ? state.profile.profileImage
-                      : null;
-              final name =
-                  state is ProfileLoaded ? state.profile.name.split(' ').first : '...';
+              final imageUrl = state is ProfileLoaded
+                  ? state.profile.profileImage
+                  : null;
+              final name = state is ProfileLoaded
+                  ? state.profile.name.split(' ').first
+                  : '...';
 
               return Row(
                 mainAxisSize: MainAxisSize.min,
@@ -39,8 +40,9 @@ class HomeAppBar extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 22.r,
                       backgroundColor: AppColors.cardBackgroundLight,
-                      backgroundImage:
-                          imageUrl != null ? NetworkImage(imageUrl) : null,
+                      backgroundImage: imageUrl != null
+                          ? NetworkImage(imageUrl)
+                          : null,
                       child: imageUrl == null
                           ? Icon(
                               Icons.person,
@@ -55,8 +57,9 @@ class HomeAppBar extends StatelessWidget {
                     child: Text(
                       name,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.semiBold15(context)
-                          .copyWith(color: AppColors.textPrimary),
+                      style: AppTextStyles.semiBold15(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
                     ),
                   ),
                 ],
@@ -80,10 +83,7 @@ class HomeAppBar extends StatelessWidget {
             },
           ),
           SizedBox(width: 8.w),
-          _buildIconButton(
-            icon: Icons.notifications_none_rounded,
-            badgeCount: 2,
-          ),
+          const NotificationBadgeButton(),
           SizedBox(width: 8.w),
           _buildIconButton(
             icon: Icons.settings_outlined,

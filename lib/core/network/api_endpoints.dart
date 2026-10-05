@@ -13,6 +13,12 @@ class ApiEndpoints {
   static const String requestPasswordReset = 'auth/reset-password';
   static const String confirmPasswordReset = 'auth/reset-password/confirm';
   static const String logout = 'auth/logout';
+  static const String devices = 'devices';
+  static const String deviceHeartbeat = 'devices/heartbeat';
+  static const String notifications = 'notifications';
+  static const String notificationUnreadCount = 'notifications/unread-count';
+  static const String notificationReadAll = 'notifications/read-all';
+  static String notificationRead(String id) => 'notifications/$id/read';
 
   // Realtime messaging contract (CHAT_DOC.md).
   static const String messagingConversations = 'messaging/conversations';

@@ -1,3 +1,4 @@
+import 'package:athletica/core/services/auth_session_service.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
@@ -6,11 +7,13 @@ import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/domain/entities/user_entity.dart';
 import 'package:athletica/features/auth/domain/repositories/auth_repository.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
 
-  const AuthRepositoryImpl(this._remoteDataSource);
+  final AuthSessionService _sessions;
+  const AuthRepositoryImpl(this._remoteDataSource, this._sessions);
 
   @override
   Future<ApiResult<AuthResponseEntity>> login({
@@ -53,6 +56,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<void> _saveAuthResponse(AuthResponseEntity entity) async {
+    await _sessions.end();
     await TokenStorageService.instance.clearAll();
     await TokenStorageService.instance.saveToken(entity.token);
     await TokenStorageService.instance.saveRole(entity.user.primaryRole);
@@ -63,6 +67,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } else {
       throw const FormatException('Unsupported account role from server.');
     }
+    _sessions.start(entity.user.id, entity.user.primaryRole);
   }
 
   @override
@@ -172,12 +177,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<ApiResult<void>> logout() async {
+    await _sessions.end();
     try {
       await _remoteDataSource.logout();
     } on DioException {
       // Server logout is best-effort; local credentials are always removed.
+      debugPrint(
+        'Backend logout failed; device deletion may need retry on the server.',
+      );
     } catch (e) {
       // Server logout is best-effort; local credentials are always removed.
+      debugPrint('Backend logout unavailable; local session will be cleared.');
     }
     await TokenStorageService.instance.clearAll();
     return const ApiSuccess(null);
@@ -189,6 +199,12 @@ class AuthRepositoryImpl implements AuthRepository {
     if (token == null) return const Unauthenticated();
 
     final role = await TokenStorageService.instance.getRole();
+    final userId = role == 'TRAINER'
+        ? await TokenStorageService.instance.getTrainerId()
+        : await TokenStorageService.instance.getClientId();
+    if (userId != null && (role == 'TRAINER' || role == 'CLIENT')) {
+      _sessions.start(userId, role!);
+    }
 
     if (role == 'TRAINER') {
       final isComplete = await TokenStorageService.instance.isProfileComplete();
