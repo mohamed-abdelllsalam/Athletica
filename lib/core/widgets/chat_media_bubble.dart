@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:athletica/core/domain/entities/chat_attachment.dart';
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/copy_message_button.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
@@ -105,6 +106,7 @@ class ChatMediaBubble extends StatelessWidget {
                 style: const TextStyle(color: Colors.white),
               ),
             ),
+          CopyMessageButton(message: content ?? ''),
           const SizedBox(height: 4),
           Text(
             time,

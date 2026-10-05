@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/notification_badge_button.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/messages/presentation/views/coach_messages_view.dart';
 import 'package:flutter/material.dart';
@@ -15,13 +16,22 @@ class CoachHomeAppBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Athletica',
-            style: AppTextStyles.bold24(
-              context,
-            ).copyWith(color: AppColors.textPrimary),
+          Expanded(
+            child: Text(
+              'Athletica',
+              style: AppTextStyles.bold24(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
+            ),
           ),
-          _ChatIconButton(),
+          const SizedBox(width: 8),
+          SizedBox(width: 48, height: 48, child: _ChatIconButton()),
+          const SizedBox(width: 8),
+          const SizedBox(
+            width: 48,
+            height: 48,
+            child: NotificationBadgeButton(compact: true),
+          ),
         ],
       ),
     );
@@ -31,18 +41,29 @@ class CoachHomeAppBar extends StatelessWidget {
 class _ChatIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, CoachMessagesView.routeName),
-      child: Container(
-        padding: EdgeInsets.all(10.r),
-        decoration: BoxDecoration(
-          color: const Color(0xFF333333),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: SvgPicture.asset(
-          'assets/images/chat_icon.svg',
-          width: 20.sp,
-          height: 20.sp,
+    return Semantics(
+      button: true,
+      label: 'Messages',
+      child: Tooltip(
+        message: 'Messages',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () =>
+              Navigator.pushNamed(context, CoachMessagesView.routeName),
+          child: Container(
+            padding: EdgeInsets.all(10.r),
+            decoration: BoxDecoration(
+              color: const Color(0xFF333333),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/images/chat_icon.svg',
+                width: 20.sp,
+                height: 20.sp,
+              ),
+            ),
+          ),
         ),
       ),
     );

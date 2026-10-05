@@ -1,3 +1,26 @@
+import 'package:athletica/core/services/token_storage_service.dart';
+import 'package:athletica/core/config/app_config.dart';
+import 'package:athletica/features/notifications/data/notification_session_repository_impl.dart';
+import 'package:athletica/features/notifications/domain/usecases/get_notification_session.dart';
+import 'package:athletica/core/helper/app_navigator_key.dart';
+import 'package:athletica/core/services/auth_session_service.dart';
+import 'package:athletica/core/services/installation_id_service.dart';
+import 'package:athletica/core/services/chat_visibility_service.dart';
+import 'package:athletica/features/notifications/data/device_repository_impl.dart';
+import 'package:athletica/features/notifications/domain/repositories/device_repository.dart';
+import 'package:athletica/features/notifications/domain/usecases/device_usecases.dart';
+import 'package:athletica/features/notifications/domain/usecases/device_lifecycle.dart';
+import 'package:athletica/features/notifications/domain/usecases/resolve_notification_destination.dart';
+import 'package:athletica/features/notifications/presentation/notification_router.dart';
+import 'package:athletica/features/notifications/presentation/push_coordinator.dart';
+import 'package:athletica/features/notifications/data/inbox_repository_impl.dart';
+import 'package:athletica/features/notifications/domain/repositories/inbox_repository.dart';
+import 'package:athletica/features/notifications/domain/usecases/notification_inbox.dart';
+import 'package:athletica/features/notifications/presentation/cubits/notification_inbox_cubit.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:athletica/core/data/repositories/chat_media_repository_impl.dart';
 import 'package:athletica/core/domain/repositories/chat_media_repository.dart';
 import 'package:athletica/core/domain/usecases/chat_media_usecases.dart';
@@ -256,13 +279,76 @@ void setupCheckInsPreviewDependencies() {
 }
 
 void setupDependencies() {
+  sl.registerLazySingleton(() => AuthSessionService());
+  sl.registerLazySingleton(() => InstallationIdService());
+  sl.registerLazySingleton(() => ChatVisibilityService());
+  sl.registerLazySingleton(() => DeviceDataSource(sl(), sl()));
+  sl.registerLazySingleton<DeviceRepository>(() => DeviceRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => RegisterDevice(sl()));
+  sl.registerLazySingleton(() => HeartbeatDevice(sl()));
+  sl.registerLazySingleton(() => CancelDeviceWork(sl()));
+  sl.registerLazySingleton(
+    () => ResolveNotificationDestination(
+      sl(),
+      getWorkoutPlan: sl<GetMyWorkoutPlanDetailsUseCase>(),
+      getNutritionPlan: sl<GetMyPlanDetailsUseCase>(),
+    ),
+  );
+  sl.registerLazySingleton(() => NotificationRouter(appNavigatorKey, sl()));
+  sl.registerLazySingleton(
+    () => DeviceLifecycle(
+      register: sl(),
+      heartbeat: sl(),
+      cancel: sl(),
+      deviceId: sl<InstallationIdService>().getOrCreate,
+      token: () async {
+        if (Firebase.apps.isEmpty) return null;
+        final messaging = FirebaseMessaging.instance;
+        final settings = await messaging.getNotificationSettings();
+        if (settings.authorizationStatus == AuthorizationStatus.denied) {
+          return null;
+        }
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            await messaging.getAPNSToken() == null) {
+          return null;
+        }
+        return messaging.getToken();
+      },
+      platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+      report: (failure) => debugPrint('Push: ${failure.message}'),
+      onRegistered: (registration) {
+        if (registration.replaced) {
+          debugPrint('Push installation replaced a previous installation.');
+        }
+      },
+    ),
+  );
+  sl.registerLazySingleton<NotificationSessionRepository>(
+    () => NotificationSessionRepositoryImpl(TokenStorageService.instance),
+  );
+  sl.registerLazySingleton(() => GetNotificationSession(sl()));
+  sl.registerLazySingleton(
+    () => PushCoordinator(sl(), sl(), sl(), sl(), sl(), sl()),
+  );
   // Network
   ApiClient.instance.init();
   sl.registerLazySingleton(() => ApiClient.instance.dio);
+  sl.registerLazySingleton(
+    () => InboxDataSource(
+      sl(),
+      sl(),
+      isProduction: () => AppConfig.instance.isProd,
+      language: () =>
+          WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+    ),
+  );
+  sl.registerLazySingleton<InboxRepository>(() => InboxRepositoryImpl(sl()));
+  sl.registerLazySingleton(() => NotificationInbox(sl(), sl()));
+  sl.registerFactory(() => NotificationInboxCubit(sl()));
 
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(sl()),
+    () => AuthRemoteDataSourceImpl(sl(), sl()),
   );
   sl.registerLazySingleton<InfoRemoteDataSource>(
     () => InfoRemoteDataSourceImpl(sl()),
@@ -280,7 +366,7 @@ void setupDependencies() {
     () => ChatRemoteDataSourceImpl(sl()),
   );
   sl.registerFactory<AblyChatRealtimeGateway>(
-    () => AblyChatRealtimeGateway(sl()),
+    () => AblyChatRealtimeGateway(sl(), sl()),
   );
   setupCheckInsPreviewDependencies();
   sl.registerLazySingleton<CoachInviteRemoteDataSource>(
@@ -317,7 +403,9 @@ void setupDependencies() {
   );
 
   // Repositories
-  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(sl()));
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(sl(), sl()),
+  );
   sl.registerLazySingleton<InfoRepository>(() => InfoRepositoryImpl(sl()));
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(sl()),

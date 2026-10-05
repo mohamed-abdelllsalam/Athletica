@@ -1,3 +1,4 @@
+import 'package:athletica/features/notifications/presentation/push_coordinator.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/auth/domain/usecases/check_client_profile_completion_usecase.dart';
@@ -40,6 +41,9 @@ class _HomeViewState extends State<HomeView> {
     };
     if (!mounted) return;
     if (complete) {
+      if (sl.isRegistered<PushCoordinator>()) {
+        sl<PushCoordinator>().navigatorReady(true);
+      }
       setState(() {
         _checking = false;
         _profileComplete = true;
@@ -63,8 +67,8 @@ class _HomeViewState extends State<HomeView> {
           body: _checking
               ? const Center(child: CircularProgressIndicator())
               : _profileComplete
-                  ? const HomeViewBody()
-                  : const SizedBox.shrink(),
+              ? const HomeViewBody()
+              : const SizedBox.shrink(),
         ),
       ),
     );

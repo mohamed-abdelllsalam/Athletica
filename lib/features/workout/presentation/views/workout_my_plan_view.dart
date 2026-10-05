@@ -30,9 +30,15 @@ class WorkoutMyPlanRouteArgs {
 }
 
 class WorkoutMyPlanView extends StatelessWidget {
-  const WorkoutMyPlanView({super.key, this.initialDayNumber, this.userGender});
+  const WorkoutMyPlanView({
+    super.key,
+    this.initialDayNumber,
+    this.userGender,
+    this.planId,
+  });
 
   static const String routeName = 'workout-my-plan';
+  final String? planId;
   final int? initialDayNumber;
   final String? userGender;
 
@@ -40,13 +46,24 @@ class WorkoutMyPlanView extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => sl<WorkoutMyPlanCubit>()..loadActive()),
+        BlocProvider(
+          create: (_) {
+            final cubit = sl<WorkoutMyPlanCubit>();
+            if (planId == null) {
+              cubit.loadActive();
+            } else {
+              cubit.loadDetails(planId!);
+            }
+            return cubit;
+          },
+        ),
         BlocProvider(create: (_) => sl<WorkoutTodayCubit>()..load()),
       ],
       child: Scaffold(
         backgroundColor: AppColors.primaryAppColor,
         body: SafeArea(
           child: _Body(
+            planId: planId,
             initialDayNumber: initialDayNumber,
             userGender: userGender,
           ),
@@ -57,7 +74,16 @@ class WorkoutMyPlanView extends StatelessWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.initialDayNumber, required this.userGender});
+  const _Body({
+    required this.initialDayNumber,
+    required this.userGender,
+    this.planId,
+  });
+
+  final String? planId;
+  Future<void> _reload(BuildContext context) => planId == null
+      ? context.read<WorkoutMyPlanCubit>().loadActive()
+      : context.read<WorkoutMyPlanCubit>().loadDetails(planId!);
 
   final int? initialDayNumber;
   final String? userGender;
@@ -104,7 +130,7 @@ class _Body extends StatelessWidget {
                 title: 'Could not load your plan',
                 message: message,
                 actionLabel: 'Retry',
-                onAction: () => context.read<WorkoutMyPlanCubit>().loadActive(),
+                onAction: () => _reload(context),
               ),
               WorkoutMyPlanLoaded(:final plan) =>
                 plan == null
@@ -114,12 +140,12 @@ class _Body extends StatelessWidget {
                         message:
                             'Your assigned training plan will appear here.',
                         actionLabel: 'Refresh',
-                        onAction: () =>
-                            context.read<WorkoutMyPlanCubit>().loadActive(),
+                        onAction: () => _reload(context),
                       )
                     : const Center(child: CircularProgressIndicator()),
               WorkoutMyPlanDetailLoaded(:final plan) => _PlanBody(
                 plan: plan,
+                onRefresh: () => _reload(context),
                 initialDayNumber: initialDayNumber,
                 userGender: userGender,
               ),
@@ -134,11 +160,13 @@ class _Body extends StatelessWidget {
 class _PlanBody extends StatefulWidget {
   const _PlanBody({
     required this.plan,
+    required this.onRefresh,
     required this.initialDayNumber,
     required this.userGender,
   });
 
   final WorkoutPlanEntry plan;
+  final Future<void> Function() onRefresh;
   final int? initialDayNumber;
   final String? userGender;
 
@@ -172,7 +200,7 @@ class _PlanBodyState extends State<_PlanBody> {
         title: 'This plan has no days',
         message: 'Your coach has not added any training days yet.',
         actionLabel: 'Refresh',
-        onAction: () => context.read<WorkoutMyPlanCubit>().loadActive(),
+        onAction: () => widget.onRefresh(),
       );
     }
     final selected = days.firstWhere(
@@ -183,7 +211,7 @@ class _PlanBodyState extends State<_PlanBody> {
       ..sort((a, b) => a.orderNumber.compareTo(b.orderNumber));
 
     return RefreshIndicator(
-      onRefresh: () => context.read<WorkoutMyPlanCubit>().loadActive(),
+      onRefresh: () => widget.onRefresh(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),

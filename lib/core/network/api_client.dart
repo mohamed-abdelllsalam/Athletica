@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/services/auth_session_service.dart';
 import 'package:athletica/core/helper/app_navigator_key.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/network/session_expired_guard.dart';
@@ -31,10 +34,33 @@ class ApiClient {
           if (options.data is FormData) {
             options.headers.remove(Headers.contentTypeHeader);
           }
+          final generation = options.extra['sessionGeneration'];
+          if (generation != null &&
+              sl<AuthSessionService>().current?.generation != generation) {
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.cancel,
+                message: 'Stale push session',
+              ),
+            );
+            return;
+          }
           final isPublicAuth = ApiEndpoints.isPublicAuthPath(options.uri.path);
           if (!isPublicAuth) {
             final token = await TokenStorageService.instance.getToken();
             if (token != null) {
+              if (generation != null &&
+                  sl<AuthSessionService>().current?.generation != generation) {
+                handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    type: DioExceptionType.cancel,
+                    message: 'Stale push session',
+                  ),
+                );
+                return;
+              }
               options.headers['Authorization'] = 'Bearer $token';
             }
           }
@@ -45,6 +71,12 @@ class ApiClient {
           final isPublicAuth = ApiEndpoints.isPublicAuthPath(
             requestOptions.uri.path,
           );
+          final generation = requestOptions.extra['sessionGeneration'];
+          if (generation != null &&
+              sl<AuthSessionService>().current?.generation != generation) {
+            handler.next(error);
+            return;
+          }
           final isSessionExpired =
               (error.response?.statusCode == 401 ||
                   _isAuthenticationRequiredBody(error.response?.data)) &&
@@ -68,6 +100,7 @@ class ApiClient {
                 (_) => false,
                 arguments: const {'sessionExpired': true},
               );
+              unawaited(sl<AuthSessionService>().end());
               await TokenStorageService.instance.clearAll();
             } finally {
               _sessionExpiredGuard.complete();
@@ -81,7 +114,7 @@ class ApiClient {
     if (kDebugMode) {
       _dio.interceptors.add(
         PrettyDioLogger(
-          requestHeader: true,
+          requestHeader: false,
           requestBody: true,
           responseBody: true,
           responseHeader: false,
@@ -89,6 +122,10 @@ class ApiClient {
           compact: true,
           filter: (options, args) =>
               !options.path.contains('/messaging/') &&
+              !options.path.startsWith('messaging/') &&
+              !options.path.startsWith('devices') &&
+              !options.uri.path.split('/').contains('notifications') &&
+              !options.path.startsWith('auth/') &&
               !options.path.endsWith(ApiEndpoints.ablyToken) &&
               !options.path.endsWith(ApiEndpoints.coachAchievements),
           logPrint: (object) => debugPrint(object.toString()),
