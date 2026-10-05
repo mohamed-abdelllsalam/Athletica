@@ -1,9 +1,10 @@
 import 'dart:async';
+
 import 'package:athletica/core/di/injection_container.dart';
-import 'package:athletica/core/services/auth_session_service.dart';
 import 'package:athletica/core/helper/app_navigator_key.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/network/session_expired_guard.dart';
+import 'package:athletica/core/services/auth_session_service.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
 import 'package:dio/dio.dart';
@@ -17,16 +18,18 @@ class ApiClient {
   static final SessionExpiredGuard _sessionExpiredGuard = SessionExpiredGuard();
 
   late final Dio _dio;
+  late final Dio _rawDio;
+  Completer<bool>? _refreshing;
 
   void init() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: ApiEndpoints.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        headers: {'Content-Type': 'application/json'},
-      ),
+    final options = BaseOptions(
+      baseUrl: ApiEndpoints.baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      headers: {'Content-Type': 'application/json'},
     );
+    _rawDio = Dio(options);
+    _dio = Dio(options);
 
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -82,29 +85,35 @@ class ApiClient {
                   _isAuthenticationRequiredBody(error.response?.data)) &&
               !isPublicAuth;
           if (isSessionExpired) {
-            // Single-flight: a burst of concurrent 401s (e.g. the dashboard
-            // firing 5-6 authenticated requests at once) must produce ONE
-            // navigation + ONE message, not one per request. Duplicates still
-            // propagate as UnauthorizedFailure but show no global UI.
-            if (!_sessionExpiredGuard.shouldHandle(DateTime.now())) {
+            if (requestOptions.extra['authRetry'] == true) {
+              await _expireSession();
               handler.next(error);
               return;
             }
-            try {
-              // Navigate first (sync) so old routes/listeners are disposed
-              // before their cubits emit UnauthorizedFailure — per-screen UI
-              // then never shows its own duplicate message. The login page
-              // itself shows the single "session expired" message client-side.
-              appNavigatorKey.currentState?.pushNamedAndRemoveUntil(
-                SignInView.routeName,
-                (_) => false,
-                arguments: const {'sessionExpired': true},
-              );
-              unawaited(sl<AuthSessionService>().end());
-              await TokenStorageService.instance.clearAll();
-            } finally {
-              _sessionExpiredGuard.complete();
+            if (await _refreshOnce()) {
+              final token = await TokenStorageService.instance.getToken();
+              if (token == null) {
+                await _expireSession();
+                handler.next(error);
+                return;
+              }
+              requestOptions.headers['Authorization'] = '******';
+              requestOptions.extra['authRetry'] = true;
+              try {
+                handler.resolve(await _dio.fetch(requestOptions));
+              } catch (retryError) {
+                handler.next(
+                  retryError is DioException
+                      ? retryError
+                      : DioException(
+                          requestOptions: requestOptions,
+                          error: retryError,
+                        ),
+                );
+              }
+              return;
             }
+            await _expireSession();
           }
           handler.next(error);
         },
@@ -135,6 +144,68 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+
+  Future<bool> _refreshOnce() {
+    final existing = _refreshing;
+    if (existing != null) return existing.future;
+    final completer = Completer<bool>();
+    _refreshing = completer;
+    () async {
+      try {
+        final refreshToken = await TokenStorageService.instance
+            .getRefreshToken();
+        if (refreshToken == null || refreshToken.isEmpty) {
+          completer.complete(false);
+          return;
+        }
+        final response = await _rawDio.post(
+          ApiEndpoints.refresh,
+          data: {'refreshToken': refreshToken},
+          options: Options(validateStatus: (_) => true),
+        );
+        if (response.statusCode != 200 ||
+            response.data is! Map<String, dynamic>) {
+          completer.complete(false);
+          return;
+        }
+        final body = response.data as Map<String, dynamic>;
+        final access = body['token'];
+        final rotated = body['refreshToken'];
+        if (access is! String ||
+            access.isEmpty ||
+            rotated is! String ||
+            rotated.isEmpty) {
+          completer.complete(false);
+          return;
+        }
+        await TokenStorageService.instance.saveTokens(
+          accessToken: access,
+          refreshToken: rotated,
+        );
+        completer.complete(true);
+      } catch (_) {
+        if (!completer.isCompleted) completer.complete(false);
+      } finally {
+        _refreshing = null;
+      }
+    }();
+    return completer.future;
+  }
+
+  Future<void> _expireSession() async {
+    if (!_sessionExpiredGuard.shouldHandle(DateTime.now())) return;
+    try {
+      appNavigatorKey.currentState?.pushNamedAndRemoveUntil(
+        SignInView.routeName,
+        (_) => false,
+        arguments: const {'sessionExpired': true},
+      );
+      unawaited(sl<AuthSessionService>().end());
+      await TokenStorageService.instance.clearAll();
+    } finally {
+      _sessionExpiredGuard.complete();
+    }
+  }
 }
 
 /// Returns true when the backend body explicitly says authentication is

@@ -5,6 +5,7 @@ import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/widgets/progress_history_unavailable.dart';
+import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/chat/presentation/models/chat_route_args.dart';
 import 'package:athletica/features/chat/presentation/views/chat_view.dart';
 import 'package:athletica/features/client_coach/domain/usecases/get_my_coach_usecase.dart';
@@ -222,12 +223,79 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
                     SizedBox(height: 8.h),
                     _buildSubscriptionInfoSection(context),
                     SizedBox(height: 32.h),
+                    _buildLogoutButton(context),
+                    SizedBox(height: 24.h),
                   ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _confirmLogout(context),
+        icon: const Icon(Icons.logout_rounded, color: Colors.red),
+        label: Text(
+          'Log Out',
+          style: AppTextStyles.semiBold15(context).copyWith(color: Colors.red),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.red),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          padding: EdgeInsets.symmetric(vertical: 14.h),
+        ),
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        title: Text(
+          'Log Out',
+          style: AppTextStyles.bold20(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Are you sure you want to log out?',
+          style: AppTextStyles.medium14(
+            context,
+          ).copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<AuthCubit>().logout();
+            },
+            child: Text(
+              'Log Out',
+              style: AppTextStyles.semiBold14(
+                context,
+              ).copyWith(color: AppColors.primaryBlue),
+            ),
+          ),
+        ],
       ),
     );
   }

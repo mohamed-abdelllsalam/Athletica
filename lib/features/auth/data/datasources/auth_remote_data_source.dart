@@ -23,7 +23,10 @@ abstract class AuthRemoteDataSource {
     required String role,
   });
 
-  Future<void> verifyEmail({required String email, required String code});
+  Future<AuthResponseModel> verifyEmail({
+    required String email,
+    required String code,
+  });
 
   Future<void> resendVerification({required String email});
 
@@ -94,14 +97,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> verifyEmail({
+  Future<AuthResponseModel> verifyEmail({
     required String email,
     required String code,
   }) async {
-    await _dio.post(
+    final response = await _dio.post(
       ApiEndpoints.verifyEmail,
       data: {'email': email, 'code': code},
     );
+    return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   @override

@@ -25,7 +25,7 @@ abstract class AuthRepository {
     required String password,
   });
 
-  Future<ApiResult<void>> verifyEmail({
+  Future<ApiResult<AuthResponseEntity>> verifyEmail({
     required String email,
     required String code,
   });

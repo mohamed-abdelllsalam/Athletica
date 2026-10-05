@@ -6,7 +6,7 @@ import 'package:athletica/features/client_coach/presentation/views/client_coach_
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_state.dart';
 import 'package:athletica/features/profile/presentation/views/profile_view.dart';
-import 'package:athletica/features/settings/presentation/views/settings_view.dart';
+// import 'package:athletica/features/settings/presentation/views/settings_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -85,13 +85,13 @@ class HomeAppBar extends StatelessWidget {
           SizedBox(width: 8.w),
           const NotificationBadgeButton(),
           SizedBox(width: 8.w),
-          _buildIconButton(
-            icon: Icons.settings_outlined,
-            badgeCount: 0,
-            onTap: () {
-              Navigator.pushNamed(context, SettingsView.routeName);
-            },
-          ),
+          // _buildIconButton(
+          //   icon: Icons.settings_outlined,
+          //   badgeCount: 0,
+          //   onTap: () {
+          //     Navigator.pushNamed(context, SettingsView.routeName);
+          //   },
+          // ),
         ],
       ),
     );

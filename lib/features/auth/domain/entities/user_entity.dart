@@ -24,7 +24,12 @@ class UserEntity {
 
 class AuthResponseEntity {
   final String token;
+  final String refreshToken;
   final UserEntity user;
 
-  const AuthResponseEntity({required this.token, required this.user});
+  const AuthResponseEntity({
+    required this.token,
+    required this.refreshToken,
+    required this.user,
+  });
 }
