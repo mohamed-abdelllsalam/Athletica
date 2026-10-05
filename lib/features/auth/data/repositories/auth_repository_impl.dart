@@ -58,7 +58,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> _saveAuthResponse(AuthResponseEntity entity) async {
     await _sessions.end();
     await TokenStorageService.instance.clearAll();
-    await TokenStorageService.instance.saveToken(entity.token);
+    await TokenStorageService.instance.saveTokens(
+      accessToken: entity.token,
+      refreshToken: entity.refreshToken,
+    );
     await TokenStorageService.instance.saveRole(entity.user.primaryRole);
     if (entity.user.primaryRole == 'TRAINER') {
       await TokenStorageService.instance.saveTrainerId(entity.user.id);
@@ -113,13 +116,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<void>> verifyEmail({
+  Future<ApiResult<AuthResponseEntity>> verifyEmail({
     required String email,
     required String code,
   }) async {
     try {
-      await _remoteDataSource.verifyEmail(email: email, code: code);
-      return const ApiSuccess(null);
+      final model = await _remoteDataSource.verifyEmail(
+        email: email,
+        code: code,
+      );
+      final entity = model.toEntity();
+      await _saveAuthResponse(entity);
+      return ApiSuccess(entity);
     } on DioException catch (e) {
       return ApiError(_mapDioError(e));
     } catch (e) {

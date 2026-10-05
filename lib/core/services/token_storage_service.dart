@@ -6,6 +6,7 @@ class TokenStorageService {
   static final TokenStorageService instance = TokenStorageService._();
 
   static const String _tokenKey = 'athletica_jwt';
+  static const String _refreshTokenKey = 'athletica_refresh_token';
   static const String _legacyTokenKey = 'auth_token';
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const String _roleKey = 'user_role';
@@ -16,6 +17,19 @@ class TokenStorageService {
 
   Future<void> saveToken(String token) async {
     await _secureStorage.write(key: _tokenKey, value: token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      _sessionStartedKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await _secureStorage.write(key: _tokenKey, value: accessToken);
+    await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
       _sessionStartedKey,
@@ -38,8 +52,12 @@ class TokenStorageService {
       await _secureStorage.write(key: _tokenKey, value: legacyToken);
       await prefs.remove(_legacyTokenKey);
     }
+
     return legacyToken;
   }
+
+  Future<String?> getRefreshToken() =>
+      _secureStorage.read(key: _refreshTokenKey);
 
   Future<void> saveRole(String role) async {
     final prefs = await SharedPreferences.getInstance();
@@ -89,6 +107,7 @@ class TokenStorageService {
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await _secureStorage.delete(key: _tokenKey);
+    await _secureStorage.delete(key: _refreshTokenKey);
     await prefs.remove(_legacyTokenKey);
     await prefs.remove(_roleKey);
     await prefs.remove(_clientIdKey);

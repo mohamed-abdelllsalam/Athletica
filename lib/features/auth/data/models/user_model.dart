@@ -35,8 +35,8 @@ class UserModel {
       primaryRole: role == 'coach'
           ? 'TRAINER'
           : role == 'client'
-              ? 'CLIENT'
-              : role,
+          ? 'CLIENT'
+          : role,
       trainerId: json['trainerId'] as String?,
       clientId: json['clientId'] as String?,
     );
@@ -59,18 +59,28 @@ class UserModel {
 
 class AuthResponseModel {
   final String token;
+  final String refreshToken;
   final UserModel user;
 
-  const AuthResponseModel({required this.token, required this.user});
+  const AuthResponseModel({
+    required this.token,
+    required this.refreshToken,
+    required this.user,
+  });
 
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
     return AuthResponseModel(
       token: json['token'] as String,
+      refreshToken: json['refreshToken'] as String,
       user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
     );
   }
 
   AuthResponseEntity toEntity() {
-    return AuthResponseEntity(token: token, user: user.toEntity());
+    return AuthResponseEntity(
+      token: token,
+      refreshToken: refreshToken,
+      user: user.toEntity(),
+    );
   }
 }

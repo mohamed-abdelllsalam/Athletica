@@ -1,4 +1,7 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
+import 'package:athletica/features/on_boarding/presentation/views/on_boarding_view.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:athletica/features/profile/presentation/views/widgets/profile_view_body.dart';
 import 'package:athletica/features/streak/presentation/cubits/streak_cubit.dart';
@@ -26,7 +29,21 @@ class _ProfileViewState extends State<ProfileView> {
       value: sl<ProfileCubit>(),
       child: BlocProvider(
         create: (_) => sl<StreakCubit>(),
-        child: const Scaffold(body: ProfileViewBody()),
+        child: BlocProvider(
+          create: (_) => sl<AuthCubit>(),
+          child: BlocListener<AuthCubit, AuthState>(
+            listener: (context, state) {
+              if (state is AuthInitial) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  OnBoardingView.routeName,
+                  (_) => false,
+                );
+              }
+            },
+            child: const Scaffold(body: ProfileViewBody()),
+          ),
+        ),
       ),
     );
   }
