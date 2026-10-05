@@ -7,31 +7,35 @@ class AppConfig {
     required this.flavor,
     required this.baseUrl,
     required this.appName,
+    required this.sentryDsn,
   });
 
   final Flavor flavor;
   final String baseUrl;
   final String appName;
+  final String sentryDsn;
 
   static late AppConfig instance;
 
   factory AppConfig.dev() => AppConfig._(
-        flavor: Flavor.dev,
-        baseUrl: _envValue(
-          'BASE_URL',
-          fallback: 'https://athletica-bakend.vercel.app/api/v1/',
-        ),
-        appName: _envValue('APP_NAME', fallback: 'Athletica Dev'),
-      );
+    flavor: Flavor.dev,
+    baseUrl: _envValue(
+      'BASE_URL',
+      fallback: 'https://athletica-bakend.vercel.app/api/v1/',
+    ),
+    appName: _envValue('APP_NAME', fallback: 'Athletica Dev'),
+    sentryDsn: _envValue('SENTRY_DSN', fallback: ''),
+  );
 
   factory AppConfig.prod() => AppConfig._(
-        flavor: Flavor.prod,
-        baseUrl: _envValue(
-          'BASE_URL',
-          fallback: 'https://athletica-bakend.vercel.app/api/v1/',
-        ),
-        appName: _envValue('APP_NAME', fallback: 'Athletica'),
-      );
+    flavor: Flavor.prod,
+    baseUrl: _envValue(
+      'BASE_URL',
+      fallback: 'https://athletica-bakend.vercel.app/api/v1/',
+    ),
+    appName: _envValue('APP_NAME', fallback: 'Athletica'),
+    sentryDsn: _envValue('SENTRY_DSN', fallback: ''),
+  );
 
   static String _envValue(String key, {required String fallback}) {
     final value = dotenv.maybeGet(key);

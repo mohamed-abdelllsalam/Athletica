@@ -13,12 +13,14 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 class ApiClient {
   ApiClient._();
+
   static final ApiClient instance = ApiClient._();
 
   static final SessionExpiredGuard _sessionExpiredGuard = SessionExpiredGuard();
 
   late final Dio _dio;
   late final Dio _rawDio;
+
   Completer<bool>? _refreshing;
 
   void init() {
@@ -28,6 +30,7 @@ class ApiClient {
       receiveTimeout: const Duration(seconds: 15),
       headers: {'Content-Type': 'application/json'},
     );
+
     _rawDio = Dio(options);
     _dio = Dio(options);
 
@@ -37,7 +40,9 @@ class ApiClient {
           if (options.data is FormData) {
             options.headers.remove(Headers.contentTypeHeader);
           }
+
           final generation = options.extra['sessionGeneration'];
+
           if (generation != null &&
               sl<AuthSessionService>().current?.generation != generation) {
             handler.reject(
@@ -49,9 +54,12 @@ class ApiClient {
             );
             return;
           }
+
           final isPublicAuth = ApiEndpoints.isPublicAuthPath(options.uri.path);
+
           if (!isPublicAuth) {
             final token = await TokenStorageService.instance.getToken();
+
             if (token != null) {
               if (generation != null &&
                   sl<AuthSessionService>().current?.generation != generation) {
@@ -64,41 +72,52 @@ class ApiClient {
                 );
                 return;
               }
+
               options.headers['Authorization'] = 'Bearer $token';
             }
           }
+
           handler.next(options);
         },
         onError: (error, handler) async {
           final requestOptions = error.requestOptions;
+
           final isPublicAuth = ApiEndpoints.isPublicAuthPath(
             requestOptions.uri.path,
           );
+
           final generation = requestOptions.extra['sessionGeneration'];
+
           if (generation != null &&
               sl<AuthSessionService>().current?.generation != generation) {
             handler.next(error);
             return;
           }
+
           final isSessionExpired =
               (error.response?.statusCode == 401 ||
                   _isAuthenticationRequiredBody(error.response?.data)) &&
               !isPublicAuth;
+
           if (isSessionExpired) {
             if (requestOptions.extra['authRetry'] == true) {
               await _expireSession();
               handler.next(error);
               return;
             }
+
             if (await _refreshOnce()) {
               final token = await TokenStorageService.instance.getToken();
+
               if (token == null) {
                 await _expireSession();
                 handler.next(error);
                 return;
               }
-              requestOptions.headers['Authorization'] = '******';
+
+              requestOptions.headers['Authorization'] = 'Bearer $token';
               requestOptions.extra['authRetry'] = true;
+
               try {
                 handler.resolve(await _dio.fetch(requestOptions));
               } catch (retryError) {
@@ -111,10 +130,13 @@ class ApiClient {
                         ),
                 );
               }
+
               return;
             }
+
             await _expireSession();
           }
+
           handler.next(error);
         },
       ),
@@ -147,30 +169,41 @@ class ApiClient {
 
   Future<bool> _refreshOnce() {
     final existing = _refreshing;
-    if (existing != null) return existing.future;
+
+    if (existing != null) {
+      return existing.future;
+    }
+
     final completer = Completer<bool>();
     _refreshing = completer;
+
     () async {
       try {
         final refreshToken = await TokenStorageService.instance
             .getRefreshToken();
+
         if (refreshToken == null || refreshToken.isEmpty) {
           completer.complete(false);
           return;
         }
+
         final response = await _rawDio.post(
           ApiEndpoints.refresh,
           data: {'refreshToken': refreshToken},
           options: Options(validateStatus: (_) => true),
         );
+
         if (response.statusCode != 200 ||
             response.data is! Map<String, dynamic>) {
           completer.complete(false);
           return;
         }
+
         final body = response.data as Map<String, dynamic>;
+
         final access = body['token'];
         final rotated = body['refreshToken'];
+
         if (access is! String ||
             access.isEmpty ||
             rotated is! String ||
@@ -178,29 +211,39 @@ class ApiClient {
           completer.complete(false);
           return;
         }
+
         await TokenStorageService.instance.saveTokens(
           accessToken: access,
           refreshToken: rotated,
         );
+
         completer.complete(true);
       } catch (_) {
-        if (!completer.isCompleted) completer.complete(false);
+        if (!completer.isCompleted) {
+          completer.complete(false);
+        }
       } finally {
         _refreshing = null;
       }
     }();
+
     return completer.future;
   }
 
   Future<void> _expireSession() async {
-    if (!_sessionExpiredGuard.shouldHandle(DateTime.now())) return;
+    if (!_sessionExpiredGuard.shouldHandle(DateTime.now())) {
+      return;
+    }
+
     try {
       appNavigatorKey.currentState?.pushNamedAndRemoveUntil(
         SignInView.routeName,
         (_) => false,
         arguments: const {'sessionExpired': true},
       );
+
       unawaited(sl<AuthSessionService>().end());
+
       await TokenStorageService.instance.clearAll();
     } finally {
       _sessionExpiredGuard.complete();
@@ -213,11 +256,15 @@ class ApiClient {
 /// `{"message": "Authentication required"}`), even if the status code
 /// is not exactly 401.
 bool _isAuthenticationRequiredBody(dynamic data) {
-  if (data is! Map) return false;
+  if (data is! Map) {
+    return false;
+  }
+
   final values = [
     data['error']?.toString().toLowerCase() ?? '',
     data['message']?.toString().toLowerCase() ?? '',
   ];
+
   return values.any(
     (v) =>
         v.contains('auth_required') ||
