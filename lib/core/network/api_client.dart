@@ -215,6 +215,7 @@ class ApiClient {
         await TokenStorageService.instance.saveTokens(
           accessToken: access,
           refreshToken: rotated,
+          startsNewSession: false,
         );
 
         completer.complete(true);

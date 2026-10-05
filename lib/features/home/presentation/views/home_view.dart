@@ -20,6 +20,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   bool _checking = true;
   bool _profileComplete = false;
+  bool _profileCheckFailed = false;
 
   @override
   void initState() {
@@ -31,15 +32,24 @@ class _HomeViewState extends State<HomeView> {
   }
 
   /// Defensive questionnaire gate: Home must not render until backend totals
-  /// confirm completion. Fail-closed — incomplete or error routes to Info.
+  /// confirm completion. A failed request must not imply an incomplete profile.
   Future<void> _checkProfileCompletion() async {
+    if (_profileCheckFailed) {
+      setState(() {
+        _checking = true;
+        _profileCheckFailed = false;
+      });
+    }
     final result = await sl<CheckClientProfileCompletionUseCase>()();
     if (!mounted) return;
-    final complete = switch (result) {
-      ApiSuccess(:final data) => data,
-      ApiError() => false,
-    };
-    if (!mounted) return;
+    if (result is ApiError<bool>) {
+      setState(() {
+        _checking = false;
+        _profileCheckFailed = true;
+      });
+      return;
+    }
+    final complete = (result as ApiSuccess<bool>).data;
     if (complete) {
       if (sl.isRegistered<PushCoordinator>()) {
         sl<PushCoordinator>().navigatorReady(true);
@@ -66,6 +76,26 @@ class _HomeViewState extends State<HomeView> {
         child: Scaffold(
           body: _checking
               ? const Center(child: CircularProgressIndicator())
+              : _profileCheckFailed
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Could not verify your profile. Please try again.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _checkProfileCompletion,
+                          child: const Text('Try Again'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
               : _profileComplete
               ? const HomeViewBody()
               : const SizedBox.shrink(),

@@ -27,14 +27,19 @@ class TokenStorageService {
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
+    bool startsNewSession = true,
   }) async {
     await _secureStorage.write(key: _tokenKey, value: accessToken);
     await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(
-      _sessionStartedKey,
-      DateTime.now().millisecondsSinceEpoch,
-    );
+    // Token rotation belongs to the existing login. Advancing this timestamp
+    // would invalidate notifications delivered before the refresh.
+    if (startsNewSession) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _sessionStartedKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+    }
   }
 
   Future<DateTime?> getSessionStartedAt() async {

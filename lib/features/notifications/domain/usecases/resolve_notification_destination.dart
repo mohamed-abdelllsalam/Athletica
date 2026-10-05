@@ -98,9 +98,9 @@ class ResolveNotificationDestination {
     final result = await _getConversations();
     if (result is ApiSuccess<List<Conversation>>) {
       for (final conversation in result.data) {
+        // Membership in this authenticated API response verifies access.
+        // Participant profile IDs are not the login account's user ID.
         if (conversation.id == payload.resourceId &&
-            (role == 'coach' ? conversation.coachId : conversation.clientId) ==
-                userId &&
             conversation.clientId.isNotEmpty &&
             conversation.coachId.isNotEmpty) {
           return NotificationDestination(

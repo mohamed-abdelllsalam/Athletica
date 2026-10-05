@@ -6,6 +6,7 @@ import 'package:athletica/core/helper/app_navigator_key.dart';
 import 'package:athletica/core/services/auth_session_service.dart';
 import 'package:athletica/core/services/installation_id_service.dart';
 import 'package:athletica/core/services/chat_visibility_service.dart';
+import 'package:athletica/core/services/notification_launch_service.dart';
 import 'package:athletica/features/notifications/data/device_repository_impl.dart';
 import 'package:athletica/features/notifications/domain/repositories/device_repository.dart';
 import 'package:athletica/features/notifications/domain/usecases/device_usecases.dart';
@@ -282,6 +283,7 @@ void setupDependencies() {
   sl.registerLazySingleton(() => AuthSessionService());
   sl.registerLazySingleton(() => InstallationIdService());
   sl.registerLazySingleton(() => ChatVisibilityService());
+  sl.registerLazySingleton(() => const NotificationLaunchService());
   sl.registerLazySingleton(() => DeviceDataSource(sl(), sl()));
   sl.registerLazySingleton<DeviceRepository>(() => DeviceRepositoryImpl(sl()));
   sl.registerLazySingleton(() => RegisterDevice(sl()));
@@ -328,7 +330,7 @@ void setupDependencies() {
   );
   sl.registerLazySingleton(() => GetNotificationSession(sl()));
   sl.registerLazySingleton(
-    () => PushCoordinator(sl(), sl(), sl(), sl(), sl(), sl()),
+    () => PushCoordinator(sl(), sl(), sl(), sl(), sl(), sl(), sl()),
   );
   // Network
   ApiClient.instance.init();
