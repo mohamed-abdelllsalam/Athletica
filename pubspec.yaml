@@ -1,4 +1,4 @@
-﻿name: athletica
+name: athletica
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.36+37
+version: 1.0.0+1
 
 environment:
   sdk: ^3.11.4
@@ -74,8 +74,20 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/icons/icon.jpeg"
   adaptive_icon_foreground: "assets/icons/icon_foreground.png"
+  image_path_ios: "assets/icons/icon.jpeg"
   adaptive_icon_background: "#000020"
   remove_alpha_ios: true    
+
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+  background_image: "assets/icons/splash_screen.png"
+  fullscreen: true
+  android_12:
+    color: "#151515"
+    image: "assets/icons/splash_screen.png"
+    fullscreen: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

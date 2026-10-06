@@ -20,6 +20,7 @@ class AuthCubit extends Cubit<AuthState> {
       '481799697583-s8eoafsguqvjllo9foju8k06db2296np.apps.googleusercontent.com';
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     serverClientId: _serverClientId,
+    scopes: const ['email'],
   );
 
   final LoginUseCase _loginUseCase;
