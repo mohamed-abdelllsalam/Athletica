@@ -1,5 +1,6 @@
 import 'nutrition_plan_detail_states.dart';
 import 'nutrition_plan_primary_action.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'nutrition_plan_dialogs.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -275,13 +276,17 @@ class _NutritionPlanDetailViewBodyState
             case TemplateDetailLoading():
               return const CoachNutritionPlanDetailLoading();
             case TemplateDetailError(:final message):
+              if (state.connectionError) return ConnectionErrorView(onRetry: () => context.read<TemplateDetailCubit>().load(widget.plan.id));
               return CoachNutritionPlanDetailError(
                 message: message,
                 onRetry: () =>
                     context.read<TemplateDetailCubit>().load(widget.plan.id),
               );
             case TemplateDetailLoaded(:final plan):
-              return _buildContent(context, plan);
+              return Column(children: [
+                if (state.connectionError) ConnectionErrorView(compact: true, onRetry: () => context.read<TemplateDetailCubit>().refresh()),
+                Expanded(child: _buildContent(context, plan)),
+              ]);
             case TemplateDetailDeleted():
               return const SizedBox.shrink();
           }

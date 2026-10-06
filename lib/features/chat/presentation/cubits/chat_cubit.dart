@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/domain/entities/chat_attachment.dart';
 import 'dart:async';
 import 'dart:collection';
@@ -46,6 +47,7 @@ class ChatCubit extends Cubit<ChatState> {
   bool _loadingOlder = false;
   bool _loadedOlderPages = false;
   bool _sending = false;
+  bool _loadingHistory = false;
   double? _uploadProgress;
   ChatUploadControl? _uploadControl;
   bool _realtimeAvailable = false;
@@ -53,6 +55,7 @@ class ChatCubit extends Cubit<ChatState> {
   bool _sessionEnded = false;
   bool _connecting = false;
   String? _error;
+  bool _connectionError = false;
   Timer? _pollTimer;
 
   Future<void> open() async {
@@ -80,7 +83,12 @@ class ChatCubit extends Cubit<ChatState> {
             return;
           }
         case ApiError(:final failure):
-          emit(ChatFailureState(failure.message));
+          emit(
+            ChatFailureState(
+              failure.message,
+              connectionError: failure is NetworkFailure,
+            ),
+          );
           return;
       }
     }
@@ -90,30 +98,43 @@ class ChatCubit extends Cubit<ChatState> {
 
   Future<void> loadHistory({bool initial = false}) async {
     if (_sessionEnded || isClosed) return;
-    final id = conversationId;
-    if (id == null) {
+    if (_loadingHistory) return;
+    _loadingHistory = true;
+    try {
+      final id = conversationId;
+      if (id == null) {
+        _emitReady();
+        return;
+      }
+      if (initial && _messages.isEmpty) emit(const ChatLoading());
+      final result = await _getHistory(conversationId: id);
+      if (isClosed || _sessionEnded) return;
+      switch (result) {
+        case ApiSuccess(:final data):
+          _merge(data.messages);
+          if (!_loadedOlderPages) {
+            _cursor = data.nextCursor;
+            _hasMore = data.hasMore;
+          }
+          _error = null;
+          _connectionError = false;
+        case ApiError(:final failure):
+          _error = failure.message;
+          _connectionError = failure is NetworkFailure;
+          if (_messages.isEmpty) {
+            emit(
+              ChatFailureState(
+                failure.message,
+                connectionError: failure is NetworkFailure,
+              ),
+            );
+            return;
+          }
+      }
       _emitReady();
-      return;
+    } finally {
+      _loadingHistory = false;
     }
-    if (initial && _messages.isEmpty) emit(const ChatLoading());
-    final result = await _getHistory(conversationId: id);
-    if (isClosed || _sessionEnded) return;
-    switch (result) {
-      case ApiSuccess(:final data):
-        _merge(data.messages);
-        if (!_loadedOlderPages) {
-          _cursor = data.nextCursor;
-          _hasMore = data.hasMore;
-        }
-        _error = null;
-      case ApiError(:final failure):
-        _error = failure.message;
-        if (_messages.isEmpty) {
-          emit(ChatFailureState(failure.message));
-          return;
-        }
-    }
-    _emitReady();
   }
 
   Future<void> loadOlder() async {
@@ -132,8 +153,10 @@ class ChatCubit extends Cubit<ChatState> {
         _hasMore = data.hasMore;
         _loadedOlderPages = true;
         _error = null;
+        _connectionError = false;
       case ApiError(:final failure):
         _error = failure.message;
+        _connectionError = failure is NetworkFailure;
     }
     _loadingOlder = false;
     _emitReady();
@@ -153,6 +176,7 @@ class ChatCubit extends Cubit<ChatState> {
     _uploadProgress = attachment == null ? null : 0;
     _sending = true;
     _error = null;
+    _connectionError = false;
     _emitReady();
     var sentSuccessfully = false;
     final currentId = conversationId;
@@ -181,6 +205,7 @@ class ChatCubit extends Cubit<ChatState> {
             await _connectRealtime();
           case ApiError(:final failure):
             _error = failure.message;
+            _connectionError = failure is NetworkFailure;
         }
       }
     } else {
@@ -201,6 +226,7 @@ class ChatCubit extends Cubit<ChatState> {
           _insertNewest(data);
         case ApiError(:final failure):
           _error = failure.message;
+          _connectionError = failure is NetworkFailure;
       }
     }
     final cancelled = _uploadControl?.isCancelled ?? false;
@@ -209,6 +235,7 @@ class ChatCubit extends Cubit<ChatState> {
     _sending = false;
     _uploadProgress = null;
     if (cancelled) _error = null;
+    _connectionError = false;
     _emitReady();
     return sentSuccessfully;
   }
@@ -314,6 +341,7 @@ class ChatCubit extends Cubit<ChatState> {
         uploadProgress: _uploadProgress,
         realtimeAvailable: _realtimeAvailable,
         errorMessage: _error,
+        connectionError: _connectionError,
       ),
     );
   }

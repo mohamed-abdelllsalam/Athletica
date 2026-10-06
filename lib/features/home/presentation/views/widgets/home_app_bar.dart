@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/widgets/notification_badge_button.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -16,84 +17,102 @@ class HomeAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      child: Row(
-        children: [
-          BlocBuilder<ProfileCubit, ProfileState>(
-            buildWhen: (prev, curr) =>
-                curr is ProfileLoaded || curr is ProfileLoading,
-            builder: (context, state) {
-              final imageUrl = state is ProfileLoaded
-                  ? state.profile.profileImage
-                  : null;
-              final name = state is ProfileLoaded
-                  ? state.profile.name.split(' ').first
-                  : '...';
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          child: Row(
+            children: [
+              BlocBuilder<ProfileCubit, ProfileState>(
+                buildWhen: (prev, curr) =>
+                    curr is ProfileLoaded ||
+                    curr is ProfileLoading ||
+                    curr is ProfileError,
+                builder: (context, state) {
+                  final profile = switch (state) {
+                    ProfileLoaded(:final profile) => profile,
+                    ProfileError(:final profile) => profile,
+                    _ => null,
+                  };
+                  final imageUrl = profile?.profileImage;
+                  final name = profile?.name.split(' ').first ?? '...';
 
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.pushNamed(context, ProfileView.routeName),
-                    child: CircleAvatar(
-                      radius: 22.r,
-                      backgroundColor: AppColors.cardBackgroundLight,
-                      backgroundImage: imageUrl != null
-                          ? NetworkImage(imageUrl)
-                          : null,
-                      child: imageUrl == null
-                          ? Icon(
-                              Icons.person,
-                              color: AppColors.textSecondary,
-                              size: 24.sp,
-                            )
-                          : null,
-                    ),
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () =>
+                            Navigator.pushNamed(context, ProfileView.routeName),
+                        child: CircleAvatar(
+                          radius: 22.r,
+                          backgroundColor: AppColors.cardBackgroundLight,
+                          backgroundImage: imageUrl != null
+                              ? NetworkImage(imageUrl)
+                              : null,
+                          child: imageUrl == null
+                              ? Icon(
+                                  Icons.person,
+                                  color: AppColors.textSecondary,
+                                  size: 24.sp,
+                                )
+                              : null,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Flexible(
+                        child: Text(
+                          name,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.semiBold15(
+                            context,
+                          ).copyWith(color: AppColors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const Spacer(),
+              _buildIconButton(
+                icon: Icons.fitness_center,
+                badgeCount: 0,
+                onTap: () {
+                  Navigator.pushNamed(context, ClientCoachView.routeName);
+                },
+              ),
+              SizedBox(width: 8.w),
+              _buildIconButton(
+                icon: Icons.mail_outline_rounded,
+                badgeCount: 0,
+                onTap: () {
+                  Navigator.pushNamed(context, ChatView.routeName);
+                },
+              ),
+              SizedBox(width: 8.w),
+              const NotificationBadgeButton(),
+              SizedBox(width: 8.w),
+              // _buildIconButton(
+              //   icon: Icons.settings_outlined,
+              //   badgeCount: 0,
+              //   onTap: () {
+              //     Navigator.pushNamed(context, SettingsView.routeName);
+              //   },
+              // ),
+            ],
+          ),
+        ),
+        BlocBuilder<ProfileCubit, ProfileState>(
+          builder: (context, state) =>
+              state is ProfileError && state.isConnectionError
+              ? ConnectionErrorView(
+                  compact: true,
+                  onRetry: () => context.read<ProfileCubit>().loadProfile(
+                    forceRefresh: true,
                   ),
-                  SizedBox(width: 12.w),
-                  Flexible(
-                    child: Text(
-                      name,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.semiBold15(
-                        context,
-                      ).copyWith(color: AppColors.textPrimary),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const Spacer(),
-          _buildIconButton(
-            icon: Icons.fitness_center,
-            badgeCount: 0,
-            onTap: () {
-              Navigator.pushNamed(context, ClientCoachView.routeName);
-            },
-          ),
-          SizedBox(width: 8.w),
-          _buildIconButton(
-            icon: Icons.mail_outline_rounded,
-            badgeCount: 0,
-            onTap: () {
-              Navigator.pushNamed(context, ChatView.routeName);
-            },
-          ),
-          SizedBox(width: 8.w),
-          const NotificationBadgeButton(),
-          SizedBox(width: 8.w),
-          // _buildIconButton(
-          //   icon: Icons.settings_outlined,
-          //   badgeCount: 0,
-          //   onTap: () {
-          //     Navigator.pushNamed(context, SettingsView.routeName);
-          //   },
-          // ),
-        ],
-      ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 

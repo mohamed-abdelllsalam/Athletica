@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -41,6 +42,11 @@ class _TodayMealDetailsContent extends StatelessWidget {
               const NutritionAppBar(title: 'Meal'),
               if (state is NutritionTodayLoading)
                 const NutritionLoading()
+              else if (state is NutritionTodayError && state.isConnectionError)
+                ConnectionErrorView(
+                  onRetry: () => context.read<NutritionTodayCubit>().load(),
+                  compact: true,
+                )
               else
                 NutritionStatus(
                   message: state is NutritionTodayError
@@ -101,6 +107,13 @@ class _TodayMealDetailsContent extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: Column(
                     children: [
+                      if (state is NutritionTodayLoaded &&
+                          state.isConnectionError)
+                        ConnectionErrorView(
+                          onRetry: () =>
+                              context.read<NutritionTodayCubit>().load(),
+                          compact: true,
+                        ),
                       _MealOverview(meal: meal),
                       SizedBox(height: 16.h),
                       NutritionFoodList(foods: meal.foods),

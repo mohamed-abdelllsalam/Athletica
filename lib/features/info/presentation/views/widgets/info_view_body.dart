@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
 import 'package:athletica/features/home/presentation/views/home_view.dart';
@@ -46,8 +47,7 @@ class _InfoViewBodyState extends State<InfoViewBody> {
     return answer is int && answer >= 0 && answer < question.choices.length;
   }
 
-  int _answeredCount() =>
-      _questions.where(_isAnswered).length;
+  int _answeredCount() => _questions.where(_isAnswered).length;
 
   void _submit() {
     final payload = <String, Object>{};
@@ -89,7 +89,11 @@ class _InfoViewBodyState extends State<InfoViewBody> {
     });
   }
 
-  Widget _buildError(BuildContext context, String message, {bool retry = true}) {
+  Widget _buildError(
+    BuildContext context,
+    String message, {
+    bool retry = true,
+  }) {
     return Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -121,8 +125,7 @@ class _InfoViewBodyState extends State<InfoViewBody> {
   Widget _buildQuestionsFlow(BuildContext context, InfoState state) {
     final answered = _answeredCount();
     final progress = _questions.isEmpty ? 0.0 : answered / _questions.length;
-    final allAnswered = answered == _questions.length &&
-        _questions.isNotEmpty;
+    final allAnswered = answered == _questions.length && _questions.isNotEmpty;
     final isLoading = state is InfoLoading;
 
     return SafeArea(
@@ -217,6 +220,11 @@ class _InfoViewBodyState extends State<InfoViewBody> {
         if (state is InfoInitial || state is InfoQuestionsLoading) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF5273E0)),
+          );
+        }
+        if (state case InfoQuestionsError(isConnectionError: true)) {
+          return ConnectionErrorView(
+            onRetry: () => context.read<InfoCubit>().loadQuestions(),
           );
         }
         if (state is InfoQuestionsError) {

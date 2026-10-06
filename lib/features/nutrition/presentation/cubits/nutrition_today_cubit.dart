@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'dart:async';
 import 'package:athletica/core/usecases/watch_completion_changes_usecase.dart';
 import 'package:athletica/features/nutrition/domain/entities/today_meals.dart';
@@ -59,8 +60,12 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
                 ? NutritionTodayLoaded(
                     current.meals,
                     errorMessage: failure.message,
+                    isConnectionError: failure is NetworkFailure,
                   )
-                : NutritionTodayError(failure.message),
+                : NutritionTodayError(
+                    failure.message,
+                    isConnectionError: failure is NetworkFailure,
+                  ),
           );
       }
     } finally {
@@ -126,6 +131,7 @@ class NutritionTodayCubit extends Cubit<NutritionTodayState> {
             latest.meals,
             togglingMealLogIds: pending,
             errorMessage: failure.message,
+            isConnectionError: failure is NetworkFailure,
           ),
         );
     }

@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/features/achievements/domain/entities/coach_achievement.dart';
 import 'package:athletica/features/achievements/domain/usecases/delete_coach_achievement_usecase.dart';
 import 'package:athletica/features/achievements/domain/usecases/get_coach_achievements_usecase.dart';
@@ -21,7 +22,11 @@ class CoachAchievementsCubit extends Cubit<CoachAchievementsState> {
     }
 
     final previous = _currentAchievements;
-    emit(const CoachAchievementsLoading());
+    if (state is! CoachAchievementsLoaded &&
+        state is! CoachAchievementsError &&
+        state is! CoachAchievementsDeleteSuccess) {
+      emit(const CoachAchievementsLoading());
+    }
     final result = await _getAchievements();
     if (isClosed) return;
 
@@ -33,6 +38,7 @@ class CoachAchievementsCubit extends Cubit<CoachAchievementsState> {
           CoachAchievementsError(
             failure.message,
             previous: previous,
+            connectionError: failure is NetworkFailure,
           ),
         );
     }

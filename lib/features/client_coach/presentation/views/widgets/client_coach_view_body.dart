@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/widgets/app_shimmer.dart';
 import 'package:athletica/features/achievements/presentation/views/widgets/client_coach_achievements_section.dart';
@@ -25,14 +26,16 @@ class _ClientCoachViewBodyState extends State<ClientCoachViewBody> {
         backgroundColor: AppColors.cardBackground,
         title: Text(
           'Leave coach?',
-          style: AppTextStyles.semiBold15(dialogContext)
-              .copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.semiBold15(
+            dialogContext,
+          ).copyWith(color: AppColors.textPrimary),
         ),
         content: Text(
           'Leaving your coach will remove all your nutrition and workout '
           'plan data. This cannot be undone.',
-          style: AppTextStyles.medium14(dialogContext)
-              .copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.medium14(
+            dialogContext,
+          ).copyWith(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -95,9 +98,9 @@ class _ClientCoachViewBodyState extends State<ClientCoachViewBody> {
           ),
           Text(
             'My Coach',
-            style: AppTextStyles.semiBold15(context).copyWith(
-              color: AppColors.textPrimary,
-            ),
+            style: AppTextStyles.semiBold15(
+              context,
+            ).copyWith(color: AppColors.textPrimary),
           ),
         ],
       ),
@@ -107,49 +110,67 @@ class _ClientCoachViewBodyState extends State<ClientCoachViewBody> {
   Widget _buildBody(BuildContext context, ClientCoachState state) {
     return switch (state) {
       ClientCoachInitial() || ClientCoachLoading() => AppShimmer(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonBox(height: 220.h, radius: 16.r),
-                SizedBox(height: 24.h),
-                SkeletonBox(height: 50.h, radius: 12.r),
-              ],
-            ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonBox(height: 220.h, radius: 16.r),
+              SizedBox(height: 24.h),
+              SkeletonBox(height: 50.h, radius: 12.r),
+            ],
           ),
         ),
-      ClientCoachLoaded(:final coach) =>
-        _CoachCard(coach: coach, onLeave: () => _confirmLeave(context)),
+      ),
+      ClientCoachLoaded(:final coach) => Column(
+        children: [
+          if (state.connectionError)
+            ConnectionErrorView(
+              compact: true,
+              onRetry: () => context.read<ClientCoachCubit>().loadCoach(),
+            ),
+          Expanded(
+            child: _CoachCard(
+              coach: coach,
+              onLeave: () => _confirmLeave(context),
+            ),
+          ),
+        ],
+      ),
       ClientCoachNoCoach() ||
       ClientCoachSubmitting() ||
-      ClientCoachRequestSent() =>
-        const _JoinCoachSection(),
+      ClientCoachRequestSent() => const _JoinCoachSection(),
+      ClientCoachError(connectionError: true) => ConnectionErrorView(
+        onRetry: () => context.read<ClientCoachCubit>().loadCoach(),
+      ),
       ClientCoachError() => Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.error_outline,
-                    color: AppColors.textSecondary, size: 48.sp),
-                SizedBox(height: 12.h),
-                Text(
-                  state.message,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.medium14(context)
-                      .copyWith(color: AppColors.textSecondary),
-                ),
-                SizedBox(height: 16.h),
-                TextButton(
-                  onPressed: () =>
-                      context.read<ClientCoachCubit>().loadCoach(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: AppColors.textSecondary,
+                size: 48.sp,
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                state.message,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
+              ),
+              SizedBox(height: 16.h),
+              TextButton(
+                onPressed: () => context.read<ClientCoachCubit>().loadCoach(),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
         ),
+      ),
     };
   }
 }
@@ -170,16 +191,18 @@ class _JoinCoachSection extends StatelessWidget {
             Text(
               'Connect with your coach',
               textAlign: TextAlign.center,
-              style: AppTextStyles.bold20(context)
-                  .copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.bold20(
+                context,
+              ).copyWith(color: AppColors.textPrimary),
             ),
             SizedBox(height: 8.h),
             Text(
               "You don't have a coach yet. Get your coach's 6-character "
               'code, then subscribe below to send a connection request.',
               textAlign: TextAlign.center,
-              style: AppTextStyles.medium14(context)
-                  .copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.medium14(
+                context,
+              ).copyWith(color: AppColors.textSecondary),
             ),
             SizedBox(height: 24.h),
             GestureDetector(
@@ -192,8 +215,9 @@ class _JoinCoachSection extends StatelessWidget {
               child: Text.rich(
                 TextSpan(
                   text: "You don't have one. ",
-                  style: AppTextStyles.medium15(context)
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.medium15(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                   children: [
                     TextSpan(
                       text: 'Subscribe',
@@ -246,10 +270,9 @@ class _CoachCard extends StatelessWidget {
               ),
               child: Text(
                 coach.bio,
-                style: AppTextStyles.medium14(context).copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.6,
-                ),
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary, height: 1.6),
               ),
             ),
             SizedBox(height: 24.h),
@@ -290,14 +313,16 @@ class _CoachCard extends StatelessWidget {
                     children: [
                       Text(
                         'Your coaching connection',
-                        style: AppTextStyles.semiBold15(context)
-                            .copyWith(color: AppColors.textPrimary),
+                        style: AppTextStyles.semiBold15(
+                          context,
+                        ).copyWith(color: AppColors.textPrimary),
                       ),
                       SizedBox(height: 3.h),
                       Text(
                         'Leaving removes your plans and coaching data.',
-                        style: AppTextStyles.meduim12(context)
-                            .copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.meduim12(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -319,8 +344,9 @@ class _CoachCard extends StatelessWidget {
             Center(
               child: Text(
                 'Coaching together since ${_formatDate(coach.assignedAt!)}',
-                style: AppTextStyles.meduim12(context)
-                    .copyWith(color: AppColors.textTertiary),
+                style: AppTextStyles.meduim12(
+                  context,
+                ).copyWith(color: AppColors.textTertiary),
               ),
             ),
         ],
@@ -350,7 +376,11 @@ class _CoachHeroCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF282044), AppColors.cardBackground, Color(0xFF191919)],
+          colors: [
+            Color(0xFF282044),
+            AppColors.cardBackground,
+            Color(0xFF191919),
+          ],
         ),
         border: Border.all(color: AppColors.primaryBlue.withValues(alpha: .32)),
         boxShadow: [
@@ -406,8 +436,11 @@ class _CoachHeroCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.verified_rounded,
-                              color: AppColors.streakGreen, size: 13.sp),
+                          Icon(
+                            Icons.verified_rounded,
+                            color: AppColors.streakGreen,
+                            size: 13.sp,
+                          ),
                           SizedBox(width: 4.w),
                           Text(
                             'YOUR COACH',
@@ -424,8 +457,9 @@ class _CoachHeroCard extends StatelessWidget {
                       coach.username,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.bold20(context)
-                          .copyWith(color: AppColors.textPrimary),
+                      style: AppTextStyles.bold20(
+                        context,
+                      ).copyWith(color: AppColors.textPrimary),
                     ),
                     if (coach.specialization.isNotEmpty) ...[
                       SizedBox(height: 4.h),
@@ -433,8 +467,9 @@ class _CoachHeroCard extends StatelessWidget {
                         coach.specialization,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.medium14(context)
-                            .copyWith(color: AppColors.primaryBlue),
+                        style: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.primaryBlue),
                       ),
                     ],
                   ],
@@ -447,16 +482,20 @@ class _CoachHeroCard extends StatelessWidget {
           SizedBox(height: 14.h),
           Row(
             children: [
-              Icon(Icons.mail_outline_rounded,
-                  size: 17.sp, color: AppColors.textTertiary),
+              Icon(
+                Icons.mail_outline_rounded,
+                size: 17.sp,
+                color: AppColors.textTertiary,
+              ),
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
                   coach.email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.medium14(context)
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.medium14(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                 ),
               ),
             ],
@@ -465,13 +504,17 @@ class _CoachHeroCard extends StatelessWidget {
             SizedBox(height: 10.h),
             Row(
               children: [
-                Icon(Icons.calendar_month_outlined,
-                    size: 17.sp, color: AppColors.textTertiary),
+                Icon(
+                  Icons.calendar_month_outlined,
+                  size: 17.sp,
+                  color: AppColors.textTertiary,
+                ),
                 SizedBox(width: 8.w),
                 Text(
                   'Coaching since ${_formatDate(coach.assignedAt!)}',
-                  style: AppTextStyles.meduim12(context)
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.meduim12(
+                    context,
+                  ).copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -492,11 +535,8 @@ class _CoachPlaceholder extends StatelessWidget {
   const _CoachPlaceholder();
 
   @override
-  Widget build(BuildContext context) => Icon(
-        Icons.person_rounded,
-        color: AppColors.textSecondary,
-        size: 38.sp,
-      );
+  Widget build(BuildContext context) =>
+      Icon(Icons.person_rounded, color: AppColors.textSecondary, size: 38.sp);
 }
 
 class _SectionHeading extends StatelessWidget {
@@ -512,14 +552,16 @@ class _SectionHeading extends StatelessWidget {
       children: [
         Text(
           title,
-          style: AppTextStyles.bold20(context)
-              .copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.bold20(
+            context,
+          ).copyWith(color: AppColors.textPrimary),
         ),
         SizedBox(height: 3.h),
         Text(
           subtitle,
-          style: AppTextStyles.meduim12(context)
-              .copyWith(color: AppColors.textTertiary),
+          style: AppTextStyles.meduim12(
+            context,
+          ).copyWith(color: AppColors.textTertiary),
         ),
       ],
     );

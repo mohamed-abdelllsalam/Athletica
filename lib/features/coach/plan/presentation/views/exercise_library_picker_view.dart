@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'widgets/exercise_library_picker_states.dart';
 import 'dart:async';
 
@@ -174,7 +175,10 @@ class _PickerBodyState extends State<_PickerBody> {
                           WorkoutExercisesCubit,
                           WorkoutExercisesState
                         >(
-                          builder: (context, state) => switch (state) {
+                          builder: (context, state) => Column(children: [
+ if (state is WorkoutExercisesLoaded && state.connectionError) ConnectionErrorView(compact: true, onRetry: () => context.read<WorkoutExercisesCubit>().searchLibrary(_searchController.text, bodyPart: _selectedMuscle)),
+ Expanded(child: switch (state) {
+ WorkoutExercisesError(connectionError: true) => ConnectionErrorView(onRetry: () => context.read<WorkoutExercisesCubit>().searchLibrary(_searchController.text, bodyPart: _selectedMuscle)),
                             WorkoutExercisesInitial() ||
                             WorkoutExercisesLoading() => const Center(
                               child: CircularProgressIndicator(),
@@ -231,7 +235,8 @@ class _PickerBodyState extends State<_PickerBody> {
                                         );
                                       },
                                     ),
-                          },
+                          }),
+]),
                         ),
                   ),
                   ExercisePickerMuscleFilterRail(

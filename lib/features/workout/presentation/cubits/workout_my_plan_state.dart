@@ -15,17 +15,20 @@ final class WorkoutMyPlanLoading extends WorkoutMyPlanState {
 
 /// Null [plan] means `{plan: null}` — show the empty state.
 final class WorkoutMyPlanLoaded extends WorkoutMyPlanState {
-  const WorkoutMyPlanLoaded(this.plan);
+  const WorkoutMyPlanLoaded(this.plan, {this.isConnectionError = false});
+  final bool isConnectionError;
   final WorkoutPlanEntry? plan;
 }
 
 final class WorkoutMyPlanDetailLoaded extends WorkoutMyPlanState {
-  const WorkoutMyPlanDetailLoaded(this.plan);
+  const WorkoutMyPlanDetailLoaded(this.plan, {this.isConnectionError = false});
+  final bool isConnectionError;
   final WorkoutPlanEntry plan;
 }
 
 final class WorkoutMyPlanError extends WorkoutMyPlanState {
-  const WorkoutMyPlanError(this.message);
+  const WorkoutMyPlanError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
   final String message;
 }
 
@@ -42,11 +45,13 @@ final class WorkoutHistoryLoading extends WorkoutHistoryState {
 }
 
 final class WorkoutHistoryLoaded extends WorkoutHistoryState {
-  const WorkoutHistoryLoaded(this.days);
+  const WorkoutHistoryLoaded(this.days, {this.isConnectionError = false});
+  final bool isConnectionError;
   final List<WorkoutHistoryDay> days;
 }
 
 final class WorkoutHistoryError extends WorkoutHistoryState {
-  const WorkoutHistoryError(this.message);
+  const WorkoutHistoryError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
   final String message;
 }

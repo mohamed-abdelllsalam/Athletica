@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/nutrition/domain/entities/my_plan.dart';
 import 'package:athletica/features/nutrition/domain/usecases/get_my_active_plan_usecase.dart';
@@ -18,7 +19,8 @@ final class MyPlanDetailsLoading extends MyPlanDetailsState {
 
 /// The active plan with its meals and foods.
 final class MyPlanDetailsLoaded extends MyPlanDetailsState {
-  const MyPlanDetailsLoaded(this.plan);
+  const MyPlanDetailsLoaded(this.plan, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   final MyPlan plan;
 }
@@ -29,7 +31,8 @@ final class MyPlanDetailsNoPlan extends MyPlanDetailsState {
 }
 
 final class MyPlanDetailsError extends MyPlanDetailsState {
-  const MyPlanDetailsError(this.message);
+  const MyPlanDetailsError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   final String message;
 }
@@ -41,10 +44,28 @@ class MyPlanDetailsCubit extends Cubit<MyPlanDetailsState> {
   final GetMyActivePlanUseCase _getActivePlan;
   final GetMyPlanDetailsUseCase _getPlanDetails;
 
-  Future<void> load({String? planId}) async {
-    if (state is MyPlanDetailsLoading) return;
+  bool _loading = false;
+  String? _scope;
+  MyPlanDetailsLoaded? _cached;
 
-    emit(const MyPlanDetailsLoading());
+  void _fail(AppFailure failure) {
+    _loading = false;
+    emit(
+      failure is NetworkFailure && _cached != null
+          ? MyPlanDetailsLoaded(_cached!.plan, isConnectionError: true)
+          : MyPlanDetailsError(
+              failure.message,
+              isConnectionError: failure is NetworkFailure,
+            ),
+    );
+  }
+
+  Future<void> load({String? planId}) async {
+    if (_loading || isClosed) return;
+    _loading = true;
+    if (_scope != planId) _cached = null;
+    _scope = planId;
+    if (_cached == null) emit(const MyPlanDetailsLoading());
 
     var resolvedPlanId = planId ?? '';
     if (resolvedPlanId.isEmpty) {
@@ -54,24 +75,32 @@ class MyPlanDetailsCubit extends Cubit<MyPlanDetailsState> {
           resolvedPlanId = data?.id ?? '';
         case ApiError(:final failure):
           if (isClosed) return;
-          emit(MyPlanDetailsError(failure.message));
+          _fail(failure);
           return;
       }
     }
     if (resolvedPlanId.isEmpty) {
       if (isClosed) return;
+      _loading = false;
+      _cached = null;
       emit(const MyPlanDetailsNoPlan());
       return;
     }
 
+    if (_cached != null && _cached!.plan.id != resolvedPlanId) {
+      _cached = null;
+      emit(const MyPlanDetailsLoading());
+    }
     final detailsResult = await _getPlanDetails(resolvedPlanId);
     switch (detailsResult) {
       case ApiSuccess(:final data):
         if (isClosed) return;
-        emit(MyPlanDetailsLoaded(data));
+        _loading = false;
+        _cached = MyPlanDetailsLoaded(data);
+        emit(_cached!);
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(MyPlanDetailsError(failure.message));
+        _fail(failure);
     }
   }
 }

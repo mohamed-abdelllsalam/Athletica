@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/info/domain/entities/client_answers.dart';
 import 'package:athletica/features/info/domain/entities/client_question.dart';
@@ -13,6 +14,7 @@ class ProfileInfoCubit extends Cubit<ProfileInfoState> {
   final GetClientAnswersUseCase _getClientAnswers;
   final GetClientQuestionsUseCase _getClientQuestions;
   bool _loaded = false;
+  bool _loading = false;
 
   int? _parseChoiceIndex(Object answer) {
     if (answer is int) return answer;
@@ -21,8 +23,15 @@ class ProfileInfoCubit extends Cubit<ProfileInfoState> {
   }
 
   Future<void> loadAnswers({bool forceRefresh = false}) async {
+    if (_loading || isClosed) return;
     if (!forceRefresh && (_loaded || state is ProfileInfoLoading)) return;
-    emit(const ProfileInfoLoading());
+    _loading = true;
+    final previous = switch (state) {
+      ProfileInfoLoaded(:final answers) => answers,
+      ProfileInfoError(:final answers) => answers,
+      _ => null,
+    };
+    if (previous == null) emit(const ProfileInfoLoading());
 
     final answersResult = await _getClientAnswers();
     final List<ClientAnswer> answers;
@@ -30,8 +39,15 @@ class ProfileInfoCubit extends Cubit<ProfileInfoState> {
       case ApiSuccess(:final data):
         answers = data.answers;
       case ApiError(:final failure):
+        _loading = false;
         if (isClosed) return;
-        emit(ProfileInfoError(failure.message));
+        emit(
+          ProfileInfoError(
+            failure.message,
+            answers: failure is NetworkFailure ? previous : null,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
         return;
     }
 
@@ -41,8 +57,15 @@ class ProfileInfoCubit extends Cubit<ProfileInfoState> {
       case ApiSuccess(:final data):
         questions = data;
       case ApiError(:final failure):
+        _loading = false;
         if (isClosed) return;
-        emit(ProfileInfoError(failure.message));
+        emit(
+          ProfileInfoError(
+            failure.message,
+            answers: failure is NetworkFailure ? previous : null,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
         return;
     }
 
@@ -82,6 +105,7 @@ class ProfileInfoCubit extends Cubit<ProfileInfoState> {
       );
     }).toList();
 
+    _loading = false;
     _loaded = true;
     if (isClosed) return;
     emit(ProfileInfoLoaded(resolved));

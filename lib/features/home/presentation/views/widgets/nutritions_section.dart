@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/widgets/nutrition/meal_completion_control.dart';
@@ -22,7 +23,12 @@ class NutritionsSection extends StatelessWidget {
     ],
     child: Builder(
       builder: (context) => RefreshOnFocus(
-        onRefresh: () => context.read<NutritionTodayCubit>().load(),
+        onRefresh: () async {
+          await Future.wait([
+            context.read<NutritionTodayCubit>().load(),
+            context.read<MyPlanDetailsCubit>().load(),
+          ]);
+        },
         child: const _NutritionBody(),
       ),
     ),
@@ -36,22 +42,39 @@ class _NutritionBody extends StatelessWidget {
     padding: EdgeInsets.symmetric(horizontal: 16.w),
     child: NutritionCompletionFeedback(
       child: BlocBuilder<MyPlanDetailsCubit, MyPlanDetailsState>(
-          builder: (context, planState) => switch (planState) {
-            MyPlanDetailsInitial() ||
-            MyPlanDetailsLoading() => const NutritionLoading(),
-            MyPlanDetailsNoPlan() => NutritionNoPlan(
-              onRefresh: () {
+        builder: (context, planState) => switch (planState) {
+          MyPlanDetailsInitial() ||
+          MyPlanDetailsLoading() => const NutritionLoading(),
+          MyPlanDetailsNoPlan() => NutritionNoPlan(
+            onRefresh: () {
+              context.read<MyPlanDetailsCubit>().load();
+              context.read<NutritionTodayCubit>().load();
+            },
+          ),
+          MyPlanDetailsError(:final message, :final isConnectionError) =>
+            isConnectionError
+                ? ConnectionErrorView(
+                    onRetry: () {
+                      context.read<MyPlanDetailsCubit>().load();
+                      context.read<NutritionTodayCubit>().load();
+                    },
+                    compact: true,
+                  )
+                : NutritionStatus(
+                    message: message,
+                    action: 'Retry',
+                    onAction: () => context.read<MyPlanDetailsCubit>().load(),
+                  ),
+          MyPlanDetailsLoaded(:final isConnectionError) =>
+            ConnectionErrorSection(
+              hasError: isConnectionError,
+              onRetry: () {
                 context.read<MyPlanDetailsCubit>().load();
                 context.read<NutritionTodayCubit>().load();
               },
+              child: const _TodayContent(),
             ),
-            MyPlanDetailsError(:final message) => NutritionStatus(
-              message: message,
-              action: 'Retry',
-              onAction: () => context.read<MyPlanDetailsCubit>().load(),
-            ),
-            MyPlanDetailsLoaded() => const _TodayContent(),
-          },
+        },
       ),
     ),
   );
@@ -60,31 +83,44 @@ class _NutritionBody extends StatelessWidget {
 class _TodayContent extends StatelessWidget {
   const _TodayContent();
   @override
-  Widget build(
-    BuildContext context,
-  ) => BlocBuilder<NutritionTodayCubit, NutritionTodayState>(
-    buildWhen: (previous, current) =>
-        previous.runtimeType != current.runtimeType ||
-        (previous is NutritionTodayLoaded &&
-            current is NutritionTodayLoaded &&
-            !_sameMealPresentation(previous.meals, current.meals)),
-    builder: (context, state) => switch (state) {
-      NutritionTodayInitial() ||
-      NutritionTodayLoading() => const NutritionLoading(),
-      NutritionTodayError(:final message) => NutritionStatus(
-        message: message,
-        action: 'Retry',
-        onAction: () => context.read<NutritionTodayCubit>().load(),
-      ),
-      NutritionTodayLoaded() => Column(
-        children: [
-          NutritionSummaryCard(meals: state.meals),
-          SizedBox(height: 16.h),
-          MealSection(meals: state.meals),
-        ],
-      ),
-    },
-  );
+  Widget build(BuildContext context) =>
+      BlocBuilder<NutritionTodayCubit, NutritionTodayState>(
+        buildWhen: (previous, current) =>
+            previous.runtimeType != current.runtimeType ||
+            (previous is NutritionTodayLoaded &&
+                current is NutritionTodayLoaded &&
+                previous.isConnectionError != current.isConnectionError) ||
+            (previous is NutritionTodayLoaded &&
+                current is NutritionTodayLoaded &&
+                !_sameMealPresentation(previous.meals, current.meals)),
+        builder: (context, state) => switch (state) {
+          NutritionTodayInitial() ||
+          NutritionTodayLoading() => const NutritionLoading(),
+          NutritionTodayError(:final message, :final isConnectionError) =>
+            isConnectionError
+                ? ConnectionErrorView(
+                    onRetry: () => context.read<NutritionTodayCubit>().load(),
+                    compact: true,
+                  )
+                : NutritionStatus(
+                    message: message,
+                    action: 'Retry',
+                    onAction: () => context.read<NutritionTodayCubit>().load(),
+                  ),
+          NutritionTodayLoaded(:final isConnectionError) => Column(
+            children: [
+              if (isConnectionError)
+                ConnectionErrorView(
+                  onRetry: () => context.read<NutritionTodayCubit>().load(),
+                  compact: true,
+                ),
+              NutritionSummaryCard(meals: state.meals),
+              SizedBox(height: 16.h),
+              MealSection(meals: state.meals),
+            ],
+          ),
+        },
+      );
 }
 
 bool _sameMealPresentation(TodayMeals previous, TodayMeals next) {

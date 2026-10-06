@@ -1,3 +1,5 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/features/streak/data/models/streak_models.dart';
 import 'package:athletica/features/streak/domain/entities/streak_data.dart';
@@ -35,6 +37,8 @@ class StreakRemoteDataSourceImpl implements StreakRemoteDataSource {
     List<NutritionStreakDayModel> nutritionDays = [];
     String? workoutError;
     String? nutritionError;
+    AppFailure? workoutFailure;
+    AppFailure? nutritionFailure;
 
     try {
       final response = await _dio.get(workoutPath);
@@ -48,8 +52,16 @@ class StreakRemoteDataSourceImpl implements StreakRemoteDataSource {
           )
           .toList();
       workoutSummary = parsedSummary;
-    } catch (error) {
-      workoutError = _errorMessage(error, 'Unable to load workout streak.');
+    } on DioException catch (error) {
+      // No active plan (e.g. after leaving the coach) means there is simply
+      // no streak yet — kept empty so the UI shows "No streak activity yet"
+      // instead of a 404 error.
+      if (!_isEmptyStreak(error)) {
+        workoutFailure = mapDioException(error);
+        workoutError = workoutFailure.message;
+      }
+    } catch (_) {
+      workoutError = 'Unable to load workout streak.';
     }
 
     try {
@@ -63,11 +75,23 @@ class StreakRemoteDataSourceImpl implements StreakRemoteDataSource {
           )
           .toList();
       nutritionSummary = parsedSummary;
-    } catch (error) {
-      nutritionError = _errorMessage(error, 'Unable to load nutrition streak.');
+    } on DioException catch (error) {
+      if (!_isEmptyStreak(error)) {
+        nutritionFailure = mapDioException(error);
+        nutritionError = nutritionFailure.message;
+      }
+    } catch (_) {
+      nutritionError = 'Unable to load nutrition streak.';
     }
 
-    if (workoutSummary == null && nutritionSummary == null) {
+    if (workoutSummary == null &&
+        nutritionSummary == null &&
+        (workoutFailure != null ||
+            nutritionFailure != null ||
+            workoutError != null ||
+            nutritionError != null) &&
+        workoutFailure is! NetworkFailure &&
+        nutritionFailure is! NetworkFailure) {
       throw StreakFetchException(
         workoutError ?? nutritionError ?? 'Unable to load streaks.',
       );
@@ -79,11 +103,23 @@ class StreakRemoteDataSourceImpl implements StreakRemoteDataSource {
       nutritionDays: nutritionDays,
       workoutError: workoutError,
       nutritionError: nutritionError,
+      workoutFailure: workoutFailure,
+      nutritionFailure: nutritionFailure,
     );
   }
 
-  String _errorMessage(Object error, String fallback) =>
-      error is DioException ? error.message ?? fallback : fallback;
+  /// 404-style "no data" responses (no active plan, no coach assigned) mean
+  /// an empty streak, not a failure — mirroring the nutrition/assigned
+  /// data sources. Accepts both snake_case keys and human-readable values.
+  static bool _isEmptyStreak(DioException error) {
+    final data = error.response?.data;
+    final key = data is Map<String, dynamic> ? data['error'] : null;
+    final normalized = key is String
+        ? key.toLowerCase().trim().replaceAll(' ', '_')
+        : null;
+    return normalized == 'no_active_plan_found' ||
+        normalized == 'no_coach_assigned';
+  }
 }
 
 class StreakFetchException implements Exception {

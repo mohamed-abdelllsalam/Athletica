@@ -25,9 +25,14 @@ final class CoachProfileUpdating extends CoachProfileState {
 }
 
 final class CoachProfileError extends CoachProfileState {
-  const CoachProfileError(this.message, {this.profile});
+  const CoachProfileError(
+    this.message, {
+    this.profile,
+    this.isConnectionError = false,
+  });
 
   final String message;
+  final bool isConnectionError;
   final CoachProfileEntity? profile;
 }
 

@@ -12,7 +12,9 @@ final class InboxNotFoundFailure extends AppFailure {
 }
 
 final class ServerFailure extends AppFailure {
-  const ServerFailure(super.message);
+  const ServerFailure(super.message, {this.retryable = false});
+
+  final bool retryable;
 }
 
 final class NetworkFailure extends AppFailure {

@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'coach_clients_states.dart';
 import 'coach_active_clients_search.dart';
 import 'coach_remove_client_dialog.dart';
@@ -25,12 +26,13 @@ class CoachClientsViewBody extends StatefulWidget {
 }
 
 class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
   String _query = '';
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     context.read<CoachClientsCubit>().loadClients();
   }
 
@@ -87,7 +89,7 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
     return BlocProvider(
       create: (_) => sl<CoachJoinRequestsCubit>()..loadRequests(),
       child: BlocListener<CoachClientsCubit, CoachClientsState>(
-        listenWhen: (previous, current) => current is CoachClientsActionError,
+        listenWhen: (previous, current) => current is CoachClientsActionError && !current.isConnectionError,
         listener: (context, state) {
           if (state is CoachClientsActionError) {
             _showSnackBar(context, state.message);
@@ -124,27 +126,49 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
                         CoachJoinRequestsState
                       >(
                         builder: (context, joinState) {
-                          return CoachJoinRequestsBanner(
-                            count: joinState.requests.length,
-                            onTap: () async {
-                              await Navigator.pushNamed(
-                                context,
-                                CoachJoinRequestsView.routeName,
-                              );
-                              if (context.mounted) {
-                                context
-                                    .read<CoachJoinRequestsCubit>()
-                                    .loadRequests();
-                                // Accepted/rejected requests change the roster,
-                                // so reload it instead of showing stale data.
-                                context.read<CoachClientsCubit>().loadClients();
-                              }
-                            },
+                          void retry() => context.read<CoachJoinRequestsCubit>().loadRequests();
+                          if (joinState is CoachJoinRequestsError &&
+                              joinState.isConnectionError) {
+                            return ConnectionErrorView(
+                              onRetry: retry,
+                              compact: true,
+                            );
+                          }
+                          return ConnectionErrorSection(
+                            hasError:
+                                joinState is CoachJoinRequestsLoaded &&
+                                joinState.isConnectionError || joinState is CoachJoinRequestsActionError && joinState.isConnectionError,
+                            onRetry: retry,
+                            child: CoachJoinRequestsBanner(
+                              count: joinState.requests.length,
+                              onTap: () async {
+                                await Navigator.pushNamed(
+                                  context,
+                                  CoachJoinRequestsView.routeName,
+                                );
+                                if (context.mounted) {
+                                  context
+                                      .read<CoachJoinRequestsCubit>()
+                                      .loadRequests();
+                                  // Accepted/rejected requests change the roster,
+                                  // so reload it instead of showing stale data.
+                                  context
+                                      .read<CoachClientsCubit>()
+                                      .loadClients();
+                                }
+                              },
+                            ),
                           );
                         },
                       ),
                 ),
                 SizedBox(height: 16.h),
+                if (state is CoachClientsLoaded && state.isConnectionError || state is CoachClientsActionError && state.isConnectionError)
+                  ConnectionErrorView(
+                    onRetry: () =>
+                        context.read<CoachClientsCubit>().loadClients(),
+                    compact: true,
+                  ),
                 Expanded(child: _buildBody(state)),
               ],
             );
@@ -158,10 +182,18 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
     return switch (state) {
       CoachClientsInitial() ||
       CoachClientsLoading() => const CoachClientsLoadingView(),
-      CoachClientsError(:final message) => CoachClientsErrorView(
-        message: message,
-        onRetry: () => context.read<CoachClientsCubit>().loadClients(),
-      ),
+      CoachClientsError(:final message, :final isConnectionError) =>
+        isConnectionError
+            ? SingleChildScrollView(
+                child: ConnectionErrorView(
+                  onRetry: () =>
+                      context.read<CoachClientsCubit>().loadClients(),
+                ),
+              )
+            : CoachClientsErrorView(
+                message: message,
+                onRetry: () => context.read<CoachClientsCubit>().loadClients(),
+              ),
       CoachClientsActionInProgress() ||
       CoachClientsLoaded() ||
       CoachClientsActionError() => _buildList(_filter(state.clients), state),

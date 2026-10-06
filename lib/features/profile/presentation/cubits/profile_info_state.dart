@@ -18,6 +18,12 @@ final class ProfileInfoLoaded extends ProfileInfoState {
 }
 
 final class ProfileInfoError extends ProfileInfoState {
-  const ProfileInfoError(this.message);
+  const ProfileInfoError(
+    this.message, {
+    this.answers,
+    this.isConnectionError = false,
+  });
   final String message;
+  final List<ClientAnswer>? answers;
+  final bool isConnectionError;
 }

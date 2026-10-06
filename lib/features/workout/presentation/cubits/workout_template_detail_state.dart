@@ -13,13 +13,22 @@ final class WorkoutTemplateDetailLoading extends WorkoutTemplateDetailState {
 }
 
 final class WorkoutTemplateDetailLoaded extends WorkoutTemplateDetailState {
-  const WorkoutTemplateDetailLoaded(this.template, {this.mutating = false});
+  const WorkoutTemplateDetailLoaded(
+    this.template, {
+    this.mutating = false,
+    this.connectionError = false,
+  });
 
   final WorkoutTemplateEntry template;
   final bool mutating;
+  final bool connectionError;
 }
 
 final class WorkoutTemplateDetailError extends WorkoutTemplateDetailState {
-  const WorkoutTemplateDetailError(this.message);
+  const WorkoutTemplateDetailError(
+    this.message, {
+    this.connectionError = false,
+  });
   final String message;
+  final bool connectionError;
 }

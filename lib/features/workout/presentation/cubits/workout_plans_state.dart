@@ -15,15 +15,21 @@ final class WorkoutPlansLoading extends WorkoutPlansState {
 }
 
 final class WorkoutPlansLoaded extends WorkoutPlansState {
-  const WorkoutPlansLoaded(this.items, this.pagination);
+  const WorkoutPlansLoaded(
+    this.items,
+    this.pagination, {
+    this.connectionError = false,
+  });
 
   final List<WorkoutPlanSummary> items;
   final ApiPagination pagination;
+  final bool connectionError;
 }
 
 final class WorkoutPlansError extends WorkoutPlansState {
-  const WorkoutPlansError(this.message);
+  const WorkoutPlansError(this.message, {this.connectionError = false});
   final String message;
+  final bool connectionError;
 }
 
 sealed class WorkoutPlanDetailState {
@@ -39,13 +45,19 @@ final class WorkoutPlanDetailLoading extends WorkoutPlanDetailState {
 }
 
 final class WorkoutPlanDetailLoaded extends WorkoutPlanDetailState {
-  const WorkoutPlanDetailLoaded(this.plan, {this.mutating = false});
+  const WorkoutPlanDetailLoaded(
+    this.plan, {
+    this.mutating = false,
+    this.connectionError = false,
+  });
 
   final WorkoutPlanEntry plan;
   final bool mutating;
+  final bool connectionError;
 }
 
 final class WorkoutPlanDetailError extends WorkoutPlanDetailState {
-  const WorkoutPlanDetailError(this.message);
+  const WorkoutPlanDetailError(this.message, {this.connectionError = false});
   final String message;
+  final bool connectionError;
 }

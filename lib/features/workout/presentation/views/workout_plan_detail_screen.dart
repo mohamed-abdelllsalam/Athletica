@@ -1,4 +1,5 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
@@ -24,16 +25,17 @@ class WorkoutPlanDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<WorkoutPlanDetailCubit>()..load(planId),
-      child: const Scaffold(
+      child: Scaffold(
         backgroundColor: AppColors.primaryAppColor,
-        body: SafeArea(child: _Body()),
+        body: SafeArea(child: _Body(planId: planId)),
       ),
     );
   }
 }
 
 class _Body extends StatelessWidget {
-  const _Body();
+  const _Body({required this.planId});
+  final String planId;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +43,7 @@ class _Body extends StatelessWidget {
       builder: (context, state) => switch (state) {
         WorkoutPlanDetailInitial() || WorkoutPlanDetailLoading() =>
           const Center(child: CircularProgressIndicator()),
+        WorkoutPlanDetailError(connectionError: true) => ConnectionErrorView(onRetry: () => context.read<WorkoutPlanDetailCubit>().load(planId)),
         WorkoutPlanDetailError(:final message) => Center(
           child: Padding(
             padding: EdgeInsets.all(20.w),
@@ -63,10 +66,10 @@ class _Body extends StatelessWidget {
             ),
           ),
         ),
-        WorkoutPlanDetailLoaded(:final plan, :final mutating) => _Content(
-          plan: plan,
-          mutating: mutating,
-        ),
+        WorkoutPlanDetailLoaded(:final plan, :final mutating) => Column(children: [
+          if (state.connectionError) ConnectionErrorView(compact: true, onRetry: () => context.read<WorkoutPlanDetailCubit>().load(planId)),
+          Expanded(child: _Content(plan: plan, mutating: mutating)),
+        ]),
       },
     );
   }

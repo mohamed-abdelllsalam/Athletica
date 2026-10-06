@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'dart:async';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/services/chat_visibility_service.dart';
@@ -245,6 +246,7 @@ class _ChatViewBodyState extends State<ChatViewBody>
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (state is ChatFailureState) {
+                      if (state.connectionError) return ConnectionErrorView(onRetry: () => unawaited(cubit.open()));
                       return Center(
                         child: TextButton(
                           onPressed: () => unawaited(cubit.open()),
@@ -258,7 +260,9 @@ class _ChatViewBodyState extends State<ChatViewBody>
                     _scrollAnchor.retainMessages(
                       messages.map((message) => message.id),
                     );
-                    return ListView.builder(
+                    return Column(children: [
+                      if (ready.connectionError) ConnectionErrorView(compact: true, onRetry: () => unawaited(cubit.loadHistory())),
+                      Expanded(child: ListView.builder(
                       reverse: true,
                       controller: _scrollController,
                       physics: const BouncingScrollPhysics(),
@@ -294,7 +298,8 @@ class _ChatViewBodyState extends State<ChatViewBody>
                           ],
                         );
                       },
-                    );
+                    )),
+                    ]);
                   },
                 ),
               ),

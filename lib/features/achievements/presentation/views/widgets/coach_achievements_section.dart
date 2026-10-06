@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/pdf_opener.dart';
 import 'package:athletica/features/achievements/domain/entities/coach_achievement.dart';
@@ -90,6 +91,13 @@ class CoachAchievementsSection extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 12.h),
+                if (state is CoachAchievementsError && state.connectionError)
+                  ConnectionErrorView(
+                    compact: data != null,
+                    onRetry: () => context.read<CoachAchievementsCubit>().load(
+                      forceRefresh: true,
+                    ),
+                  ),
                 if (state is CoachAchievementsInitial ||
                     state is CoachAchievementsLoading)
                   const LinearProgressIndicator(color: AppColors.primaryBlue)
@@ -107,14 +115,26 @@ class CoachAchievementsSection extends StatelessWidget {
                     deletingId: deletingId,
                   )
                 else
-                  Text(
-                    state is CoachAchievementsError
-                        ? state.message
-                        : 'Unable to load certificates.',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.medium14(
-                      context,
-                    ).copyWith(color: AppColors.textSecondary),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state is CoachAchievementsError
+                            ? state.message
+                            : 'Unable to load certificates.',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.medium14(
+                          context,
+                        ).copyWith(color: AppColors.textSecondary),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextButton(
+                        onPressed: () => context
+                            .read<CoachAchievementsCubit>()
+                            .load(forceRefresh: true),
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   ),
               ],
             ),

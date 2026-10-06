@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'coach_edit_profile_header.dart';
 import 'coach_edit_profile_save_action.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -26,6 +27,7 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
   String? _selectedLocation;
 
   bool _hasChanges = false;
+  bool _retryingLoad = false;
   String _initialUsername = '';
   String _initialBio = '';
   String? _initialSpecializationKey;
@@ -52,8 +54,12 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
 
   void _initializeFromProfile() {
     final state = context.read<CoachProfileCubit>().state;
-    if (state is CoachProfileLoaded) {
-      final profile = state.profile;
+    final profile = switch (state) {
+      CoachProfileLoaded(:final profile) => profile,
+      CoachProfileError(:final profile) => profile,
+      _ => null,
+    };
+    if (profile != null) {
       _initialUsername = profile.name;
       _initialBio = profile.bio;
       _initialSpecializationKey = profile.specialization;
@@ -84,8 +90,11 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
 
   @override
   void dispose() {
+    _usernameController.removeListener(_onFieldChanged);
     _usernameController.dispose();
+    _bioController.removeListener(_onFieldChanged);
     _bioController.dispose();
+    _phoneNumberController.removeListener(_onFieldChanged);
     _phoneNumberController.dispose();
     super.dispose();
   }
@@ -94,7 +103,7 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
   Widget build(BuildContext context) {
     return BlocListener<CoachProfileCubit, CoachProfileState>(
       listener: (context, state) {
-        if (state is CoachProfileLoaded) {
+        if (state is CoachProfileLoaded && !_hasChanges && !_retryingLoad) {
           _initializeFromProfile();
         }
       },
@@ -235,6 +244,11 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
     return BlocConsumer<CoachProfileCubit, CoachProfileState>(
       listener: (context, state) {
         if (state is CoachProfileLoaded) {
+          if (_retryingLoad) {
+            _retryingLoad = false;
+            if (!_hasChanges) _initializeFromProfile();
+            return;
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Profile updated successfully'),
@@ -243,6 +257,7 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
           );
           Navigator.pop(context);
         } else if (state is CoachProfileError) {
+          _retryingLoad = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
@@ -250,10 +265,24 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
       },
       builder: (context, state) {
         final isUpdating = state is CoachProfileUpdating;
-        return CoachEditProfileSaveAction(
-          hasChanges: _hasChanges,
-          isUpdating: isUpdating,
-          onSave: _saveProfile,
+        return Column(
+          children: [
+            if (state is CoachProfileError && state.isConnectionError)
+              ConnectionErrorView(
+                compact: true,
+                onRetry: () {
+                  _retryingLoad = true;
+                  context.read<CoachProfileCubit>().loadProfile(
+                    forceRefresh: true,
+                  );
+                },
+              ),
+            CoachEditProfileSaveAction(
+              hasChanges: _hasChanges,
+              isUpdating: isUpdating,
+              onSave: _saveProfile,
+            ),
+          ],
         );
       },
     );

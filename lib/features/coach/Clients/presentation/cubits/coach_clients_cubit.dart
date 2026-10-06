@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/clients/domain/entities/coach_assigned_client.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_assigned_clients_usecase.dart';
@@ -7,24 +8,36 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CoachClientsCubit extends Cubit<CoachClientsState> {
   CoachClientsCubit(this._getAssignedClients, this._removeAssignedClient)
-      : super(CoachClientsInitial());
+    : super(CoachClientsInitial());
 
   final GetCoachAssignedClientsUseCase _getAssignedClients;
   final RemoveCoachAssignedClientUseCase _removeAssignedClient;
 
-  Future<void> loadClients() async {
-    if (state is CoachClientsLoading) return;
+  bool _loading = false;
 
-    emit(CoachClientsLoading());
+  Future<void> loadClients() async {
+    if (_loading || isClosed || state is CoachClientsActionInProgress) return;
+    _loading = true;
+    final current = state;
+
+    if (current is! CoachClientsLoaded && current is! CoachClientsActionError) emit(CoachClientsLoading());
 
     final result = await _getAssignedClients();
+    _loading = false;
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return;
         emit(CoachClientsLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(CoachClientsError(failure.message));
+        emit(
+          failure is NetworkFailure && (current is CoachClientsLoaded || current is CoachClientsActionError)
+              ? CoachClientsLoaded(current.clients, isConnectionError: true)
+              : CoachClientsError(
+                  failure.message,
+                  isConnectionError: failure is NetworkFailure,
+                ),
+        );
     }
   }
 
@@ -50,7 +63,7 @@ class CoachClientsCubit extends Cubit<CoachClientsState> {
         );
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(CoachClientsActionError(clients, failure.message));
+        emit(CoachClientsActionError(clients, failure.message, isConnectionError: failure is NetworkFailure));
     }
   }
 }

@@ -24,8 +24,9 @@ final class CheckInsLoading extends CheckInsState {
 }
 
 final class CheckInsError extends CheckInsState {
-  const CheckInsError(this.message);
+  const CheckInsError(this.message, {this.connectionError = false});
   final String message;
+  final bool connectionError;
 }
 
 final class CheckInsReady extends CheckInsState {
@@ -36,6 +37,8 @@ final class CheckInsReady extends CheckInsState {
     this.history,
     this.saving = false,
     this.message,
+    this.connectionError = false,
+    this.previousHistory,
   });
   final List<CheckIn> entries;
   final List<CheckInQuestion> questions;
@@ -44,11 +47,14 @@ final class CheckInsReady extends CheckInsState {
 
   /// Null while history loads; failures stay local to the history section.
   final ApiResult<List<CheckInSubmission>>? history;
+  final ApiResult<List<CheckInSubmission>>? previousHistory;
   final bool saving;
   final String? message;
+  final bool connectionError;
 
   CheckInStatus? get clientStatus {
-    final submissions = switch (history) {
+    final visibleHistory = history is ApiSuccess<List<CheckInSubmission>> ? history : previousHistory;
+    final submissions = switch (visibleHistory) {
       ApiSuccess(:final data) => data,
       _ => null,
     };
@@ -96,8 +102,9 @@ class CheckInsCubit extends Cubit<CheckInsState> {
     _filter = filter;
     _role = role;
     final request = ++_request;
+    final previous = state is CheckInsReady ? state as CheckInsReady : null;
     if (role == CheckInPreviewRole.client) {
-      await _loadClient(request);
+      await _loadClient(request, previous);
       return;
     }
     final entries = await _getEntries(query: query, status: filter);
@@ -107,17 +114,39 @@ class CheckInsCubit extends Cubit<CheckInsState> {
       case (ApiSuccess(data: final list), ApiSuccess(data: final fields)):
         emit(CheckInsReady(entries: list, questions: fields));
       case (ApiError(:final failure), _):
-        emit(CheckInsError(failure.message));
+        _loadFailure(failure, previous);
       case (_, ApiError(:final failure)):
-        emit(CheckInsError(failure.message));
+        _loadFailure(failure, previous);
     }
   }
 
-  Future<void> _loadClient(int request) async {
+  void _loadFailure(AppFailure failure, CheckInsReady? previous) {
+    if (failure is NetworkFailure && previous != null) {
+      emit(
+        CheckInsReady(
+          entries: previous.entries,
+          questions: previous.questions,
+          hasPending: previous.hasPending,
+          history: previous.history,
+          previousHistory: previous.previousHistory,
+          connectionError: true,
+        ),
+      );
+    } else {
+      emit(
+        CheckInsError(
+          failure.message,
+          connectionError: failure is NetworkFailure,
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadClient(int request, CheckInsReady? previous) async {
     final pending = await _getPending();
     if (isClosed || request != _request) return;
     if (pending case ApiError(:final failure)) {
-      emit(CheckInsError(failure.message));
+      _loadFailure(failure, previous);
       return;
     }
     final hasPending = (pending as ApiSuccess<bool>).data;
@@ -127,13 +156,15 @@ class CheckInsCubit extends Cubit<CheckInsState> {
     if (isClosed || request != _request) return;
     switch (questions) {
       case ApiError(:final failure):
-        emit(CheckInsError(failure.message));
+        _loadFailure(failure, previous);
       case ApiSuccess(:final data):
         emit(
           CheckInsReady(
             entries: const [],
             questions: data,
             hasPending: hasPending,
+            history: previous?.history,
+            previousHistory: previous?.previousHistory,
           ),
         );
         await reloadClientHistory();
@@ -153,6 +184,8 @@ class CheckInsCubit extends Cubit<CheckInsState> {
         hasPending: current.hasPending,
         saving: current.saving,
         message: current.message,
+        history: current.history,
+        previousHistory: current.history is ApiSuccess<List<CheckInSubmission>> ? current.history : current.previousHistory,
       ),
     );
     final result = await _getClientSubmissions();
@@ -169,6 +202,7 @@ class CheckInsCubit extends Cubit<CheckInsState> {
         saving: ready.saving,
         message: ready.message,
         history: result,
+        previousHistory: ready.history is ApiSuccess<List<CheckInSubmission>> ? ready.history : ready.previousHistory,
       ),
     );
   }
@@ -317,6 +351,7 @@ class CheckInsCubit extends Cubit<CheckInsState> {
             questions: previous.questions,
             hasPending: previous.hasPending,
             history: previous.history,
+          previousHistory: previous.previousHistory,
             message: failure.message,
           ),
         );

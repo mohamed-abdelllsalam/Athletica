@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
 import 'package:athletica/features/check_ins/presentation/views/check_in_history_view.dart';
@@ -84,9 +85,7 @@ class CheckInCoachListState extends State<CheckInCoachList> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          sent ? 'Check-in sent to ${entry.clientName}.' : error!,
-        ),
+        content: Text(sent ? 'Check-in sent to ${entry.clientName}.' : error!),
       ),
     );
   }
@@ -141,37 +140,52 @@ class CheckInCoachListState extends State<CheckInCoachList> {
               CheckInsLoading() => const Center(
                 child: CircularProgressIndicator(),
               ),
+              CheckInsError(connectionError: true) => ConnectionErrorView(
+                onRetry: _load,
+              ),
               CheckInsError(:final message) => StatusMessage(
                 message: message,
                 onRetry: _load,
               ),
-              CheckInsReady(:final entries) => RefreshIndicator(
-                onRefresh: _load,
-                child: entries.isEmpty
-                    ? ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'No clients match your search or filter.',
-                              style: TextStyle(color: Colors.white),
+              CheckInsReady(:final entries) => Column(
+                children: [
+                  if (state.connectionError)
+                    ConnectionErrorView(compact: true, onRetry: _load),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _load,
+                      child: entries.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                Padding(
+                                  padding: EdgeInsets.all(24),
+                                  child: Text(
+                                    'No clients match your search or filter.',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+                              itemCount: entries.length,
+                              separatorBuilder: (_, index) =>
+                                  SizedBox(height: 12.h),
+                              itemBuilder: (context, index) =>
+                                  CheckInClientCard(
+                                    entry: entries[index],
+                                    sending: _sendingIds.contains(
+                                      entries[index].id,
+                                    ),
+                                    onView: () => _openHistory(entries[index]),
+                                    onSend: () => _sendDirect(entries[index]),
+                                  ),
                             ),
-                          ),
-                        ],
-                      )
-                      : ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
-                        itemCount: entries.length,
-                        separatorBuilder: (_, index) => SizedBox(height: 12.h),
-                        itemBuilder: (context, index) => CheckInClientCard(
-                          entry: entries[index],
-                          sending: _sendingIds.contains(entries[index].id),
-                          onView: () => _openHistory(entries[index]),
-                          onSend: () => _sendDirect(entries[index]),
-                        ),
-                      ),
+                    ),
+                  ),
+                ],
               ),
             },
           ),

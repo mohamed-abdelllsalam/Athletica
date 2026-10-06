@@ -1,4 +1,6 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/errors/failures.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/check_in_date_format.dart';
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
@@ -12,13 +14,26 @@ class CheckInHistorySection extends StatelessWidget {
     required this.result,
     required this.onRetry,
     required this.onOpen,
+    this.previousResult,
   });
   final ApiResult<List<CheckInSubmission>>? result;
+  final ApiResult<List<CheckInSubmission>>? previousResult;
   final VoidCallback onRetry;
   final ValueChanged<CheckInSubmission> onOpen;
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) {
+    if (result case ApiError(failure: NetworkFailure())) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ConnectionErrorView(compact: true, onRetry: onRetry),
+        if (previousResult is ApiSuccess<List<CheckInSubmission>>)
+          CheckInHistorySection(result: previousResult, onRetry: onRetry, onOpen: onOpen),
+      ]);
+    }
+    return _buildSection(context);
+  }
+
+  Widget _buildSection(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(

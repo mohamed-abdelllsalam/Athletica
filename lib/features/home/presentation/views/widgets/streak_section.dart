@@ -1,3 +1,5 @@
+import 'package:athletica/core/errors/failures.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/widgets/streak_row.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -32,7 +34,30 @@ class StreakSection extends StatelessWidget {
       final error =
           errorMessage ?? (state is StreakError ? state.message : null);
       final empty = state is StreakEmpty;
-      return _buildContent(context, currentData, loading, error, empty);
+      final content = _buildContent(
+        context,
+        currentData,
+        loading,
+        error,
+        empty,
+      );
+      if (state is StreakError && state.isConnectionError) {
+        return ConnectionErrorView(
+          onRetry: onRetry ?? () => context.read<StreakCubit>().refresh(),
+          compact: true,
+        );
+      }
+      if (state is StreakLoaded &&
+          state.isConnectionError &&
+          state.data.workoutFailure == null &&
+          state.data.nutritionFailure == null) {
+        return ConnectionErrorSection(
+          hasError: true,
+          onRetry: onRetry ?? () => context.read<StreakCubit>().refresh(),
+          child: content,
+        );
+      }
+      return content;
     }
 
     try {
@@ -67,7 +92,11 @@ class StreakSection extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text(error)),
-                TextButton(onPressed: onRetry, child: const Text('Retry')),
+                TextButton(
+                  onPressed:
+                      onRetry ?? () => context.read<StreakCubit>().refresh(),
+                  child: const Text('Retry'),
+                ),
               ],
             )
           else if (empty)
@@ -78,6 +107,11 @@ class StreakSection extends StatelessWidget {
               ).copyWith(color: AppColors.textSecondary),
             )
           else if (data != null) ...[
+            if (data.nutritionFailure is NetworkFailure)
+              ConnectionErrorView(
+                onRetry: onRetry ?? () => context.read<StreakCubit>().refresh(),
+                compact: true,
+              ),
             if (data.nutritionSummary != null)
               StreakRow(
                 title: 'Nutrition Streak',
@@ -89,9 +123,14 @@ class StreakSection extends StatelessWidget {
                   for (final day in data.nutritionDays) day.date: day.status,
                 },
               )
-            else
+            else if (data.nutritionFailure is! NetworkFailure)
               Text(data.nutritionError ?? 'Nutrition streak unavailable'),
             SizedBox(height: 10.h),
+            if (data.workoutFailure is NetworkFailure)
+              ConnectionErrorView(
+                onRetry: onRetry ?? () => context.read<StreakCubit>().refresh(),
+                compact: true,
+              ),
             if (data.workoutSummary != null)
               StreakRow(
                 title: 'Workout Streak',
@@ -104,7 +143,7 @@ class StreakSection extends StatelessWidget {
                   for (final day in data.workoutDays) day.date: day.status,
                 },
               )
-            else
+            else if (data.workoutFailure is! NetworkFailure)
               Text(data.workoutError ?? 'Workout streak unavailable'),
           ],
         ],

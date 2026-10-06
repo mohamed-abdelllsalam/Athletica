@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/check_ins/check_in_history_section.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
@@ -19,6 +20,9 @@ class ClientPreview extends StatelessWidget {
         final cubit = context.read<CheckInsCubit>();
         return switch (state) {
           CheckInsLoading() => const Center(child: CircularProgressIndicator()),
+          CheckInsError(connectionError: true) => ConnectionErrorView(
+            onRetry: cubit.refresh,
+          ),
           CheckInsError(:final message) => StatusMessage(
             message: message,
             onRetry: cubit.refresh,
@@ -29,6 +33,8 @@ class ClientPreview extends StatelessWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
+                if (state.connectionError)
+                  ConnectionErrorView(compact: true, onRetry: cubit.refresh),
                 Text('Current check-in', style: CheckInUi.text(16)),
                 const SizedBox(height: 8),
                 if (state.hasPending) ...[
@@ -63,6 +69,7 @@ class ClientPreview extends StatelessWidget {
                 const SizedBox(height: 24),
                 CheckInHistorySection(
                   result: state.history,
+                  previousResult: state.previousHistory,
                   onRetry: cubit.reloadClientHistory,
                   onOpen: (submission) async {
                     await Navigator.push<void>(

@@ -157,7 +157,10 @@ class DeviceLifecycle {
       });
       return;
     }
-    if (failure is! NetworkFailure || _attempts >= 3) return;
+    final retryable =
+        failure is NetworkFailure ||
+        (failure is ServerFailure && failure.retryable);
+    if (!retryable || _attempts >= 3) return;
     _retry?.cancel();
     _retry = Timer(Duration(seconds: 5 * (1 << _attempts++)), () {
       if (_current(generation)) _launch(true);

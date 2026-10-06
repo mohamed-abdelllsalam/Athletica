@@ -1,3 +1,5 @@
+import 'package:athletica/core/errors/failures.dart';
+
 enum StreakDayStatus { completed, missed, rest }
 
 StreakDayStatus streakDayStatusFrom(String value) =>
@@ -75,6 +77,8 @@ class StreakData {
     this.nutritionDays = const [],
     this.workoutError,
     this.nutritionError,
+    this.workoutFailure,
+    this.nutritionFailure,
   });
 
   final StreakSummary? workoutSummary;
@@ -83,4 +87,6 @@ class StreakData {
   final List<NutritionStreakDay> nutritionDays;
   final String? workoutError;
   final String? nutritionError;
+  final AppFailure? workoutFailure;
+  final AppFailure? nutritionFailure;
 }

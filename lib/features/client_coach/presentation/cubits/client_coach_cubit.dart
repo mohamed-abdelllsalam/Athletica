@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/features/client_coach/domain/usecases/get_my_coach_usecase.dart';
 import 'package:athletica/features/client_coach/domain/usecases/leave_coach_usecase.dart';
 import 'package:athletica/features/client_coach/domain/usecases/submit_coach_invite_token_usecase.dart';
@@ -6,11 +7,8 @@ import 'package:athletica/features/client_coach/presentation/cubits/client_coach
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ClientCoachCubit extends Cubit<ClientCoachState> {
-  ClientCoachCubit(
-    this._getMyCoach,
-    this._submitToken,
-    this._leaveCoach,
-  ) : super(ClientCoachInitial());
+  ClientCoachCubit(this._getMyCoach, this._submitToken, this._leaveCoach)
+    : super(ClientCoachInitial());
 
   final GetMyCoachUseCase _getMyCoach;
   final SubmitCoachInviteTokenUseCase _submitToken;
@@ -19,18 +17,28 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
   Future<void> loadCoach() async {
     if (state is ClientCoachLoading) return;
 
-    emit(ClientCoachLoading());
+    final previous = state;
+    if (previous is! ClientCoachLoaded) emit(ClientCoachLoading());
 
     final result = await _getMyCoach();
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return;
-        emit(data == null
-            ? const ClientCoachNoCoach()
-            : ClientCoachLoaded(data));
+        emit(
+          data == null ? const ClientCoachNoCoach() : ClientCoachLoaded(data),
+        );
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ClientCoachError(failure.message));
+        if (failure is NetworkFailure && previous is ClientCoachLoaded) {
+          emit(ClientCoachLoaded(previous.coach, connectionError: true));
+        } else {
+          emit(
+            ClientCoachError(
+              failure.message,
+              connectionError: failure is NetworkFailure,
+            ),
+          );
+        }
     }
   }
 
@@ -47,12 +55,7 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return;
-        emit(
-          ClientCoachRequestSent(
-            data.status,
-            coachName: data.coachName,
-          ),
-        );
+        emit(ClientCoachRequestSent(data.status, coachName: data.coachName));
         await loadCoach();
       case ApiError(:final failure):
         if (isClosed) return;
@@ -63,8 +66,10 @@ class ClientCoachCubit extends Cubit<ClientCoachState> {
   /// Accepts either the raw token or a full invite URL ending in the token.
   String _normalizeToken(String input) {
     if (!input.contains('/')) return input;
-    final segments =
-        input.split('/').where((s) => s.trim().isNotEmpty).toList();
+    final segments = input
+        .split('/')
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
     return segments.isEmpty ? '' : segments.last;
   }
 

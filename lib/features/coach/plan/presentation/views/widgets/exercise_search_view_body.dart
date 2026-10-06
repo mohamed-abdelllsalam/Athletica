@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'exercise_search_summary.dart';
 import 'exercise_search_result.dart';
 import 'exercise_search_header.dart';
@@ -94,7 +95,10 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
         SizedBox(height: 8.h),
         Expanded(
           child: BlocBuilder<WorkoutExercisesCubit, WorkoutExercisesState>(
-            builder: (context, state) => switch (state) {
+            builder: (context, state) => Column(children: [
+ if (state is WorkoutExercisesLoaded && state.connectionError) ConnectionErrorView(compact: true, onRetry: () => context.read<WorkoutExercisesCubit>().load()),
+ Expanded(child: switch (state) {
+ WorkoutExercisesError(connectionError: true) => ConnectionErrorView(onRetry: () => context.read<WorkoutExercisesCubit>().load()),
               WorkoutExercisesInitial() || WorkoutExercisesLoading() =>
                 const Center(child: CircularProgressIndicator()),
               WorkoutExercisesError(:final message) => Center(
@@ -168,7 +172,8 @@ class _ExerciseSearchViewBodyState extends State<ExerciseSearchViewBody> {
                           );
                         },
                       ),
-            },
+            }),
+]),
           ),
         ),
         if (_selected.isNotEmpty)

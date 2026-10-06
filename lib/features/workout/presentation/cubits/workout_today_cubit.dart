@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'dart:async';
 import 'package:athletica/core/usecases/watch_completion_changes_usecase.dart';
 import 'package:athletica/core/utils/api_result.dart';
@@ -56,8 +57,12 @@ class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
                 ? WorkoutTodayLoaded(
                     current.workout,
                     errorMessage: failure.message,
+                    isConnectionError: failure is NetworkFailure,
                   )
-                : WorkoutTodayError(failure.message),
+                : WorkoutTodayError(
+                    failure.message,
+                    isConnectionError: failure is NetworkFailure,
+                  ),
           );
       }
     } finally {
@@ -123,7 +128,13 @@ class WorkoutTodayCubit extends Cubit<WorkoutTodayState> {
         if (isClosed) return null;
         // Keep confirmed data visible on failure;
         // the error travels on the state so the UI can notify in place.
-        emit(WorkoutTodayLoaded(workout, errorMessage: failure.message));
+        emit(
+          WorkoutTodayLoaded(
+            workout,
+            errorMessage: failure.message,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
         return null;
     }
   }

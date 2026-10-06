@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'dart:async';
 
 import 'package:athletica/core/di/injection_container.dart';
@@ -23,7 +24,8 @@ class ApiClient {
 
   Completer<bool>? _refreshing;
 
-  void init() {
+  // Optional transports allow deterministic request/refresh failure tests.
+  void init({Dio? transport, Dio? refreshTransport}) {
     final options = BaseOptions(
       baseUrl: ApiEndpoints.baseUrl,
       connectTimeout: const Duration(seconds: 15),
@@ -31,8 +33,8 @@ class ApiClient {
       headers: {'Content-Type': 'application/json'},
     );
 
-    _rawDio = Dio(options);
-    _dio = Dio(options);
+    _rawDio = refreshTransport ?? Dio(options);
+    _dio = transport ?? Dio(options);
 
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -106,7 +108,15 @@ class ApiClient {
               return;
             }
 
-            if (await _refreshOnce()) {
+            final bool refreshed;
+            try {
+              refreshed = await _refreshOnce();
+            } on DioException catch (refreshError) {
+              // A failed transport cannot invalidate stored credentials.
+              handler.next(refreshError);
+              return;
+            }
+            if (refreshed) {
               final token = await TokenStorageService.instance.getToken();
 
               if (token == null) {
@@ -219,10 +229,16 @@ class ApiClient {
         );
 
         completer.complete(true);
-      } catch (_) {
+      } on DioException catch (error, stack) {
         if (!completer.isCompleted) {
-          completer.complete(false);
+          if (isConnectivityException(error)) {
+            completer.completeError(error, stack);
+          } else {
+            completer.complete(false);
+          }
         }
+      } catch (_) {
+        if (!completer.isCompleted) completer.complete(false);
       } finally {
         _refreshing = null;
       }

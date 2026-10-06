@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'workout_plan_detail_states.dart';
 import 'workout_plan_create_content.dart';
 import 'workout_plan_dialogs.dart';
@@ -542,7 +543,10 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody> {
                 _descriptionController.text = state.template.description;
               }
             },
-            builder: (context, state) => switch (state) {
+            builder: (context, state) => Column(children: [
+ if (state is WorkoutTemplateDetailLoaded && state.connectionError) ConnectionErrorView(compact: true, onRetry: () => context.read<WorkoutTemplateDetailCubit>().load(widget.program.id)),
+ Expanded(child: switch (state) {
+ WorkoutTemplateDetailError(connectionError: true) => ConnectionErrorView(onRetry: () => context.read<WorkoutTemplateDetailCubit>().load(widget.program.id)),
               WorkoutTemplateDetailInitial() ||
               WorkoutTemplateDetailLoading() => const Center(
                 child: CircularProgressIndicator(),
@@ -588,7 +592,8 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody> {
                     if (!ok) _showMutationError();
                   },
                 ),
-            },
+            }),
+]),
           ),
     );
   }

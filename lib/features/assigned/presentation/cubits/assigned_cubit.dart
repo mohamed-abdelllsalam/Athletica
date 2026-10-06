@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/features/assigned/domain/entities/client_assigned.dart';
 import 'package:athletica/features/assigned/domain/usecases/assigned_usecases.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,15 +11,17 @@ final class AssignedInitial extends AssignedState {}
 final class AssignedLoading extends AssignedState {}
 
 final class AssignedLoaded extends AssignedState {
-  AssignedLoaded(this.assigned);
+  AssignedLoaded(this.assigned, {this.connectionError = false});
 
   final ClientAssigned assigned;
+  final bool connectionError;
 }
 
 final class AssignedError extends AssignedState {
-  AssignedError(this.message);
+  AssignedError(this.message, {this.connectionError = false});
 
   final String message;
+  final bool connectionError;
 }
 
 sealed class AssignActionState {}
@@ -43,11 +46,8 @@ final class AssignActionError extends AssignActionState {
 enum AssignType { workout, nutrition }
 
 class AssignedCubit extends Cubit<AssignedState> {
-  AssignedCubit(
-    this._getAssigned,
-    this._assignWorkout,
-    this._assignNutrition,
-  ) : super(AssignedInitial());
+  AssignedCubit(this._getAssigned, this._assignWorkout, this._assignNutrition)
+    : super(AssignedInitial());
 
   final GetAssignedPlansUseCase _getAssigned;
   final AssignClientWorkoutUseCase _assignWorkout;
@@ -58,7 +58,8 @@ class AssignedCubit extends Cubit<AssignedState> {
 
   Future<void> loadAssigned() async {
     if (state is AssignedLoading) return;
-    emit(AssignedLoading());
+    final previous = state;
+    if (previous is! AssignedLoaded) emit(AssignedLoading());
 
     final result = await _getAssigned();
     switch (result) {
@@ -67,7 +68,16 @@ class AssignedCubit extends Cubit<AssignedState> {
         emit(AssignedLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(AssignedError(failure.message));
+        if (failure is NetworkFailure && previous is AssignedLoaded) {
+          emit(AssignedLoaded(previous.assigned, connectionError: true));
+        } else {
+          emit(
+            AssignedError(
+              failure.message,
+              connectionError: failure is NetworkFailure,
+            ),
+          );
+        }
     }
   }
 
@@ -97,8 +107,7 @@ class AssignedCubit extends Cubit<AssignedState> {
         _actionState = AssignActionSuccess(AssignType.nutrition);
         await loadAssigned();
       case ApiError(:final failure):
-        _actionState =
-            AssignActionError(failure.message, AssignType.nutrition);
+        _actionState = AssignActionError(failure.message, AssignType.nutrition);
         if (isClosed) return;
         emit(_clamp());
     }

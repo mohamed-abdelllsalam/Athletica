@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/achievements/presentation/views/widgets/coach_achievements_section.dart';
@@ -77,17 +78,37 @@ class _ProfileBody extends StatelessWidget {
       _ => null,
     };
 
-    if (profileState is CoachProfileLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryBlue),
-      );
-    }
-
-    if (profile == null) {
-      return const Center(
-        child: Text(
-          'Failed to load profile',
-          style: TextStyle(color: Colors.red),
+    final connectionError =
+        profileState is CoachProfileError &&
+        (profileState as CoachProfileError).isConnectionError;
+    if (profile == null &&
+        !connectionError &&
+        profileState is! CoachProfileLoading) {
+      final message = profileState is CoachProfileError
+          ? (profileState as CoachProfileError).message
+          : 'Failed to load profile';
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.medium14(
+                  context,
+                ).copyWith(color: AppColors.textSecondary),
+              ),
+              SizedBox(height: 8.h),
+              TextButton(
+                onPressed: () => context.read<CoachProfileCubit>().loadProfile(
+                  forceRefresh: true,
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -100,9 +121,22 @@ class _ProfileBody extends StatelessWidget {
           SizedBox(height: 8.h),
           _buildAppBar(context),
           SizedBox(height: 20.h),
-          CoachProfileHeader(profile: profile),
-          SizedBox(height: 24.h),
-          CoachProfilePersonalInfo(profile: profile),
+          if (profileState is CoachProfileLoading)
+            const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryBlue),
+            ),
+          if (profileState case CoachProfileError(isConnectionError: true))
+            ConnectionErrorView(
+              compact: profile != null,
+              onRetry: () => context.read<CoachProfileCubit>().loadProfile(
+                forceRefresh: true,
+              ),
+            ),
+          if (profile != null) ...[
+            CoachProfileHeader(profile: profile),
+            SizedBox(height: 24.h),
+            CoachProfilePersonalInfo(profile: profile),
+          ],
           const CoachAchievementsSection(),
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 32.h),

@@ -1,4 +1,5 @@
 import 'package:athletica/features/assigned/presentation/cubits/assigned_cubit.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/features/assigned/presentation/views/widgets/assigned_app_bar.dart';
 import 'package:athletica/features/assigned/presentation/views/widgets/assigned_content.dart';
 import 'package:athletica/features/assigned/presentation/views/widgets/assigned_error_view.dart';
@@ -21,11 +22,26 @@ class AssignedViewBody extends StatelessWidget {
               }
 
               if (state is AssignedError) {
+                if (state.connectionError) {
+                  return ConnectionErrorView(
+                    onRetry: () => context.read<AssignedCubit>().loadAssigned(),
+                  );
+                }
                 return AssignedErrorView(message: state.message);
               }
 
               if (state is AssignedLoaded) {
-                return AssignedContent(assigned: state.assigned);
+                return Column(
+                  children: [
+                    if (state.connectionError)
+                      ConnectionErrorView(
+                        compact: true,
+                        onRetry: () =>
+                            context.read<AssignedCubit>().loadAssigned(),
+                      ),
+                    Expanded(child: AssignedContent(assigned: state.assigned)),
+                  ],
+                );
               }
 
               return const SizedBox.shrink();

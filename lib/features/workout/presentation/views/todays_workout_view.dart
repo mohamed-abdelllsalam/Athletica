@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -84,7 +85,8 @@ class _BodyState extends State<_Body> {
                   current.errorMessage != null &&
                   (previous is! WorkoutTodayLoaded ||
                       previous.errorMessage != current.errorMessage);
-              return current.dayCompletionConfirmed || freshError;
+              return current.dayCompletionConfirmed ||
+                  (freshError && !current.isConnectionError);
             },
             listener: (context, state) {
               final loaded = state as WorkoutTodayLoaded;
@@ -96,37 +98,60 @@ class _BodyState extends State<_Body> {
                 _showCompletion();
               }
             },
-          buildWhen: (previous, current) =>
-              previous.runtimeType != current.runtimeType ||
-              (previous is WorkoutTodayLoaded &&
-                  current is WorkoutTodayLoaded &&
-                  !_sameWorkoutLayout(previous.workout, current.workout)),
-          builder: (context, state) => switch (state) {
+            buildWhen: (previous, current) =>
+                previous.runtimeType != current.runtimeType ||
+                (previous is WorkoutTodayLoaded &&
+                    current is WorkoutTodayLoaded &&
+                    previous.isConnectionError != current.isConnectionError) ||
+                (previous is WorkoutTodayLoaded &&
+                    current is WorkoutTodayLoaded &&
+                    !_sameWorkoutLayout(previous.workout, current.workout)),
+            builder: (context, state) => switch (state) {
               WorkoutTodayInitial() ||
               WorkoutTodayLoading() => const TodayWorkoutLoadingView(),
-              WorkoutTodayError(:final message) => WorkoutStatusView(
-                icon: Icons.error_outline,
-                title: 'Could not load today\'s workout',
-                message: message,
-                actionLabel: 'Retry',
-                onAction: () => context.read<WorkoutTodayCubit>().load(),
-              ),
-              WorkoutTodayLoaded(:final workout) =>
-                workout == null
-                    ? WorkoutStatusView(
-                        icon: Icons.fitness_center,
-                        title: 'No workout today',
-                        message: 'No workout is assigned for today.',
-                        actionLabel: 'Refresh',
+              WorkoutTodayError(:final message, :final isConnectionError) =>
+                isConnectionError
+                    ? SingleChildScrollView(
+                        child: ConnectionErrorView(
+                          onRetry: () =>
+                              context.read<WorkoutTodayCubit>().load(),
+                        ),
+                      )
+                    : WorkoutStatusView(
+                        icon: Icons.error_outline,
+                        title: 'Could not load today\'s workout',
+                        message: message,
+                        actionLabel: 'Retry',
                         onAction: () =>
                             context.read<WorkoutTodayCubit>().load(),
-                      )
-                    : workout.isRest
-                    ? TodayWorkoutRestView(workout: workout)
-                    : _WorkoutView(
-                        workout: workout,
-                        gender: widget.userGender,
                       ),
+              WorkoutTodayLoaded(:final workout, :final isConnectionError) =>
+                Column(
+                  children: [
+                    if (isConnectionError)
+                      ConnectionErrorView(
+                        onRetry: () => context.read<WorkoutTodayCubit>().load(),
+                        compact: true,
+                      ),
+                    Expanded(
+                      child: workout == null
+                          ? WorkoutStatusView(
+                              icon: Icons.fitness_center,
+                              title: 'No workout today',
+                              message: 'No workout is assigned for today.',
+                              actionLabel: 'Refresh',
+                              onAction: () =>
+                                  context.read<WorkoutTodayCubit>().load(),
+                            )
+                          : workout.isRest
+                          ? TodayWorkoutRestView(workout: workout)
+                          : _WorkoutView(
+                              workout: workout,
+                              gender: widget.userGender,
+                            ),
+                    ),
+                  ],
+                ),
             },
           ),
         ),
@@ -165,10 +190,7 @@ class _AppBar extends StatelessWidget {
 }
 
 class _WorkoutView extends StatelessWidget {
-  const _WorkoutView({
-    required this.workout,
-    required this.gender,
-  });
+  const _WorkoutView({required this.workout, required this.gender});
 
   final TodayWorkoutEntry workout;
   final String? gender;
@@ -204,7 +226,8 @@ class _WorkoutView extends StatelessWidget {
           ],
           SizedBox(height: 18.h),
           BlocSelector<WorkoutTodayCubit, WorkoutTodayState, int>(
-            selector: (state) => state.workout?.exercises
+            selector: (state) =>
+                state.workout?.exercises
                     .where((exercise) => exercise.completed)
                     .length ??
                 completed,
@@ -254,47 +277,52 @@ class _TodayWorkoutExerciseItem extends StatelessWidget {
   final String? gender;
 
   @override
-  Widget build(BuildContext context) => BlocSelector<
-    WorkoutTodayCubit,
-    WorkoutTodayState,
-    ({bool completed, bool busy})
-  >(
-    selector: (state) {
-      final current = state.workout?.exercises
-          .where((candidate) => candidate.logId == exercise.logId)
-          .firstOrNull;
-      final busy = state is WorkoutTodayLoaded &&
-          state.togglingLogId == exercise.logId;
-      return (
-        completed: current?.completed ?? exercise.completed,
-        busy: busy,
-      );
-    },
-    builder: (context, value) => Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
-      child: WorkoutExerciseRow(
-        order: order,
-        name: _exerciseName(exercise),
-        primaryMuscle: exercise.exercise?.primaryMuscle.trim() ?? '',
-        prescription: formatWorkoutPrescription(exercise.sets, exercise.reps),
-        rest: _restLabel(exercise.restTime),
-        notes: exercise.notes.trim(),
-        thumbnail: ExerciseThumbnail(
-          size: 58,
-          thumbnailUrl: _thumbnail(exercise, gender),
+  Widget build(BuildContext context) =>
+      BlocSelector<
+        WorkoutTodayCubit,
+        WorkoutTodayState,
+        ({bool completed, bool busy})
+      >(
+        selector: (state) {
+          final current = state.workout?.exercises
+              .where((candidate) => candidate.logId == exercise.logId)
+              .firstOrNull;
+          final busy =
+              state is WorkoutTodayLoaded &&
+              state.togglingLogId == exercise.logId;
+          return (
+            completed: current?.completed ?? exercise.completed,
+            busy: busy,
+          );
+        },
+        builder: (context, value) => Padding(
+          padding: EdgeInsets.only(bottom: 10.h),
+          child: WorkoutExerciseRow(
+            order: order,
+            name: _exerciseName(exercise),
+            primaryMuscle: exercise.exercise?.primaryMuscle.trim() ?? '',
+            prescription: formatWorkoutPrescription(
+              exercise.sets,
+              exercise.reps,
+            ),
+            rest: _restLabel(exercise.restTime),
+            notes: exercise.notes.trim(),
+            thumbnail: ExerciseThumbnail(
+              size: 58,
+              thumbnailUrl: _thumbnail(exercise, gender),
+            ),
+            completed: value.completed,
+            busy: value.busy,
+            onMediaTap: () => _showVideo(context, exercise, gender),
+            onCompletionChanged: exercise.logId.isEmpty || value.busy
+                ? null
+                : (completed) => context.read<WorkoutTodayCubit>().toggle(
+                    exercise.logId,
+                    completed,
+                  ),
+          ),
         ),
-        completed: value.completed,
-        busy: value.busy,
-        onMediaTap: () => _showVideo(context, exercise, gender),
-        onCompletionChanged: exercise.logId.isEmpty || value.busy
-            ? null
-            : (completed) => context.read<WorkoutTodayCubit>().toggle(
-                exercise.logId,
-                completed,
-              ),
-      ),
-    ),
-  );
+      );
 }
 
 bool _sameWorkoutLayout(TodayWorkoutEntry? previous, TodayWorkoutEntry? next) {

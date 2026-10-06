@@ -19,6 +19,7 @@ final class WorkoutTemplatesLoaded extends WorkoutTemplatesState {
     this.pagination, {
     this.mutating = false,
     this.mutationError,
+    this.connectionError = false,
   });
 
   final List<WorkoutTemplateEntry> items;
@@ -28,9 +29,11 @@ final class WorkoutTemplatesLoaded extends WorkoutTemplatesState {
   /// failed mutation message while keeping the loaded list visible.
   final bool mutating;
   final String? mutationError;
+  final bool connectionError;
 }
 
 final class WorkoutTemplatesError extends WorkoutTemplatesState {
-  const WorkoutTemplatesError(this.message);
+  const WorkoutTemplatesError(this.message, {this.connectionError = false});
   final String message;
+  final bool connectionError;
 }

@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/workout/domain/entities/workout_template.dart';
 import 'package:athletica/features/workout/domain/usecases/add_template_exercise_usecase.dart';
@@ -51,7 +52,10 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
   Future<void> load(String templateId) async {
     if (state is WorkoutTemplateDetailLoading) return;
     _hasChanges = false;
-    emit(const WorkoutTemplateDetailLoading());
+    final previous = state;
+    if (previous is! WorkoutTemplateDetailLoaded) {
+      emit(const WorkoutTemplateDetailLoading());
+    }
     final result = await _getDetail(templateId);
     switch (result) {
       case ApiSuccess(:final data):
@@ -59,7 +63,22 @@ class WorkoutTemplateDetailCubit extends Cubit<WorkoutTemplateDetailState> {
         emit(WorkoutTemplateDetailLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(WorkoutTemplateDetailError(failure.message));
+        if (failure is NetworkFailure &&
+            previous is WorkoutTemplateDetailLoaded) {
+          emit(
+            WorkoutTemplateDetailLoaded(
+              previous.template,
+              connectionError: true,
+            ),
+          );
+        } else {
+          emit(
+            WorkoutTemplateDetailError(
+              failure.message,
+              connectionError: failure is NetworkFailure,
+            ),
+          );
+        }
     }
   }
 

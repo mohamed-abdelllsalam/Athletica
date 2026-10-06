@@ -1,4 +1,5 @@
 import 'coach_messages_controls.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/messages/domain/entities/coach_message_preview.dart';
@@ -18,8 +19,14 @@ class CoachMessagesViewBody extends StatefulWidget {
 }
 
 class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
 
   @override
   void dispose() {
@@ -57,6 +64,10 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
                   CoachMessagesLoading() => const Center(
                     child: CircularProgressIndicator(),
                   ),
+                  CoachMessagesFailure(connectionError: true) =>
+                    ConnectionErrorView(
+                      onRetry: () => context.read<CoachMessagesCubit>().load(),
+                    ),
                   CoachMessagesFailure(:final message) => Center(
                     child: TextButton(
                       onPressed: () =>
@@ -64,8 +75,16 @@ class _CoachMessagesViewBodyState extends State<CoachMessagesViewBody> {
                       child: Text(message),
                     ),
                   ),
-                  CoachMessagesLoaded(:final messages) => _buildMessagesList(
-                    _filtered(messages),
+                  CoachMessagesLoaded(:final messages) => Column(
+                    children: [
+                      if (state.connectionError)
+                        ConnectionErrorView(
+                          compact: true,
+                          onRetry: () =>
+                              context.read<CoachMessagesCubit>().load(),
+                        ),
+                      Expanded(child: _buildMessagesList(_filtered(messages))),
+                    ],
                   ),
                 },
               ),

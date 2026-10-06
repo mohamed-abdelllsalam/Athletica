@@ -9,7 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  SentryWidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: '.env.prod');
   AppConfig.instance = AppConfig.prod();

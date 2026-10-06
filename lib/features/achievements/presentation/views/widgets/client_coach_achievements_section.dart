@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/pdf_opener.dart';
 import 'package:athletica/features/achievements/presentation/cubits/client_coach_achievements_cubit.dart';
@@ -62,6 +63,16 @@ class _ClientCoachAchievementsSectionState
                     ).copyWith(color: AppColors.textPrimary),
                   ),
                   SizedBox(height: 12.h),
+                  if ((state is ClientCoachAchievementsError &&
+                          state.connectionError) ||
+                      (state is ClientCoachAchievementsLoaded &&
+                          state.connectionError))
+                    ConnectionErrorView(
+                      compact: true,
+                      onRetry: () => context
+                          .read<ClientCoachAchievementsCubit>()
+                          .load(forceRefresh: true),
+                    ),
                   if (state is ClientCoachAchievementsInitial ||
                       state is ClientCoachAchievementsLoading)
                     const LinearProgressIndicator(color: AppColors.primaryBlue)
@@ -74,15 +85,28 @@ class _ClientCoachAchievementsSectionState
                         title: achievement.title,
                       ),
                     )
-                  else
-                    Text(
-                      state is ClientCoachAchievementsError
-                          ? state.message
-                          : 'Unable to load certificates.',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.medium14(
-                        context,
-                      ).copyWith(color: AppColors.textSecondary),
+                  else if (!(state is ClientCoachAchievementsError &&
+                      state.connectionError))
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          state is ClientCoachAchievementsError
+                              ? state.message
+                              : 'Unable to load certificates.',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.medium14(
+                            context,
+                          ).copyWith(color: AppColors.textSecondary),
+                        ),
+                        SizedBox(height: 8.h),
+                        TextButton(
+                          onPressed: () => context
+                              .read<ClientCoachAchievementsCubit>()
+                              .load(forceRefresh: true),
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
                 ],
               );

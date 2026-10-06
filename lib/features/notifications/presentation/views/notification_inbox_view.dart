@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/features/notifications/domain/entities/inbox_notification.dart';
 import 'package:athletica/features/notifications/domain/usecases/notification_inbox.dart';
 import 'package:athletica/features/notifications/presentation/cubits/notification_inbox_cubit.dart';
@@ -41,7 +42,14 @@ class _NotificationInboxViewState extends State<NotificationInboxView> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
-              if (state.error != null || state.badgeError != null)
+              if (state.connectionError || state.badgeConnectionError)
+                ConnectionErrorView(
+                  compact: state.items.isNotEmpty,
+                  onRetry: () =>
+                      context.read<NotificationInboxCubit>().refresh(),
+                ),
+              if ((state.error != null && !state.connectionError) ||
+                  (state.badgeError != null && !state.badgeConnectionError))
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Column(

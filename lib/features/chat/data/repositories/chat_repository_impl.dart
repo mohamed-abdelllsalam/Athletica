@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/domain/entities/chat_attachment.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
@@ -119,13 +120,8 @@ class ChatRepositoryImpl implements ChatRepository {
           const UnauthorizedFailure('Session expired. Sign in again.'),
         );
       }
-      if (error.type == DioExceptionType.connectionError ||
-          error.type == DioExceptionType.connectionTimeout ||
-          error.type == DioExceptionType.receiveTimeout ||
-          error.type == DioExceptionType.sendTimeout) {
-        return ApiError(
-          const NetworkFailure('Check your connection and try again.'),
-        );
+      if (isConnectivityException(error)) {
+        return ApiError(mapDioException(error));
       }
       final message = switch (status) {
         400 => 'The chat request is invalid.',

@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/achievements/presentation/cubits/coach_achievements_cubit.dart';
@@ -81,13 +82,23 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
               final expiringSubscriptions =
                   stats?.expiringSubscriptions.toString() ?? '--';
 
-              return CoachStatsGrid(
-                totalClients: totalClients,
-                activeClients: activeClients,
-                expiringSubscriptions: expiringSubscriptions,
-                onTotalClientsTap: () => setState(() => _selectedNavIndex = 1),
-                onInviteTap: () =>
-                    context.read<CoachInviteCubit>().createInviteLink(),
+              void retry() => context.read<CoachHomeStatsCubit>().loadStats();
+              if (state is CoachHomeStatsError && state.isConnectionError) {
+                return ConnectionErrorView(onRetry: retry, compact: true);
+              }
+              return ConnectionErrorSection(
+                hasError:
+                    state is CoachHomeStatsLoaded && state.isConnectionError,
+                onRetry: retry,
+                child: CoachStatsGrid(
+                  totalClients: totalClients,
+                  activeClients: activeClients,
+                  expiringSubscriptions: expiringSubscriptions,
+                  onTotalClientsTap: () =>
+                      setState(() => _selectedNavIndex = 1),
+                  onInviteTap: () =>
+                      context.read<CoachInviteCubit>().createInviteLink(),
+                ),
               );
             },
           ),

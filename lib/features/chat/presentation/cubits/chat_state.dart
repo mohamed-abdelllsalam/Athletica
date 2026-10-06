@@ -13,8 +13,9 @@ final class ChatLoading extends ChatState {
 }
 
 final class ChatFailureState extends ChatState {
-  const ChatFailureState(this.message);
+  const ChatFailureState(this.message, {this.connectionError = false});
   final String message;
+  final bool connectionError;
 }
 
 final class ChatReady extends ChatState {
@@ -28,6 +29,7 @@ final class ChatReady extends ChatState {
     required this.realtimeAvailable,
     this.errorMessage,
     this.uploadProgress,
+    this.connectionError = false,
   });
 
   final List<ChatMessage> messages;
@@ -39,4 +41,5 @@ final class ChatReady extends ChatState {
   final bool realtimeAvailable;
   final String? errorMessage;
   final double? uploadProgress;
+  final bool connectionError;
 }

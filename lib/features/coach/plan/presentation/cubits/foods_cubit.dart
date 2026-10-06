@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/features/coach/plan/domain/entities/food_category.dart';
 import 'package:athletica/features/coach/plan/domain/entities/food_item.dart';
 import 'package:athletica/features/coach/plan/domain/usecases/get_food_categories_usecase.dart';
@@ -19,6 +20,7 @@ final class FoodsLoaded extends FoodsState {
     required this.totalPages,
     this.isLoadingMore = false,
     this.isFiltering = false,
+    this.connectionError = false,
   });
 
   final List<FoodItem> foods;
@@ -30,24 +32,30 @@ final class FoodsLoaded extends FoodsState {
   /// True while a search/filter re-fetch is in flight; the previous list
   /// stays visible so filtering does not flash a loading state.
   final bool isFiltering;
+  final bool connectionError;
 
   bool get hasMore => currentPage < totalPages;
 
-  FoodsLoaded copyWith({bool? isLoadingMore, bool? isFiltering}) =>
-      FoodsLoaded(
-        foods: foods,
-        categories: categories,
-        currentPage: currentPage,
-        totalPages: totalPages,
-        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-        isFiltering: isFiltering ?? this.isFiltering,
-      );
+  FoodsLoaded copyWith({
+    bool? isLoadingMore,
+    bool? isFiltering,
+    bool? connectionError,
+  }) => FoodsLoaded(
+    foods: foods,
+    categories: categories,
+    currentPage: currentPage,
+    totalPages: totalPages,
+    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    isFiltering: isFiltering ?? this.isFiltering,
+    connectionError: connectionError ?? this.connectionError,
+  );
 }
 
 final class FoodsError extends FoodsState {
-  FoodsError(this.message);
+  FoodsError(this.message, {this.connectionError = false});
 
   final String message;
+  final bool connectionError;
 }
 
 class FoodsCubit extends Cubit<FoodsState> {
@@ -63,6 +71,23 @@ class FoodsCubit extends Cubit<FoodsState> {
 
   /// Guards against out-of-order responses when the user types quickly.
   int _seq = 0;
+  Future<void> retry() => load(search: _search, categoryId: _categoryId);
+
+  void _loadFailure(AppFailure failure, FoodsState previous) {
+    if (failure is NetworkFailure && previous is FoodsLoaded) {
+      emit(
+        previous.copyWith(
+          isLoadingMore: false,
+          isFiltering: false,
+          connectionError: true,
+        ),
+      );
+    } else {
+      emit(
+        FoodsError(failure.message, connectionError: failure is NetworkFailure),
+      );
+    }
+  }
 
   /// Full reload with loading state — used for the first fetch.
   ///
@@ -72,14 +97,15 @@ class FoodsCubit extends Cubit<FoodsState> {
     final seq = ++_seq;
     _search = search;
     _categoryId = categoryId;
-    emit(FoodsLoading());
+    final previous = state;
+    if (previous is! FoodsLoaded) emit(FoodsLoading());
 
     final categoriesResult = await _getCategories();
     if (seq != _seq) return;
     switch (categoriesResult) {
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(FoodsError(failure.message));
+        _loadFailure(failure, previous);
         return;
       case ApiSuccess():
         break;
@@ -95,33 +121,32 @@ class FoodsCubit extends Cubit<FoodsState> {
     switch (foodsResult) {
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(FoodsError(failure.message));
+        _loadFailure(failure, previous);
         return;
       case ApiSuccess(:final data):
         if (isClosed) return;
-        emit(FoodsLoaded(
-          foods: data.foods,
-          categories: categoriesResult.data,
-          currentPage: data.pagination.page,
-          totalPages: data.pagination.totalPages,
-        ));
+        emit(
+          FoodsLoaded(
+            foods: data.foods,
+            categories: categoriesResult.data,
+            currentPage: data.pagination.page,
+            totalPages: data.pagination.totalPages,
+          ),
+        );
     }
   }
 
   /// Smooth in-place search: keeps the current list visible while fetching
   /// and swaps results when they arrive.
   Future<void> search(String query) => _smoothRefetch(
-        search: query.trim().isEmpty ? null : query.trim(),
-        categoryId: _categoryId,
-      );
+    search: query.trim().isEmpty ? null : query.trim(),
+    categoryId: _categoryId,
+  );
 
   void selectCategory(String categoryId) =>
       _smoothRefetch(search: _search, categoryId: categoryId);
 
-  Future<void> _smoothRefetch({
-    String? search,
-    String? categoryId,
-  }) async {
+  Future<void> _smoothRefetch({String? search, String? categoryId}) async {
     final seq = ++_seq;
     final current = state;
 
@@ -151,13 +176,20 @@ class FoodsCubit extends Cubit<FoodsState> {
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return;
-        emit(FoodsLoaded(
-          foods: data.foods,
-          categories: current.categories,
-          currentPage: data.pagination.page,
-          totalPages: data.pagination.totalPages,
-        ));
+        emit(
+          FoodsLoaded(
+            foods: data.foods,
+            categories: current.categories,
+            currentPage: data.pagination.page,
+            totalPages: data.pagination.totalPages,
+          ),
+        );
       case ApiError(:final failure):
+        if (failure is NetworkFailure) {
+          if (isClosed) return;
+          _loadFailure(failure, current);
+          return;
+        }
         if (current.foods.isEmpty) {
           if (isClosed) return;
           emit(FoodsError(failure.message));
@@ -187,19 +219,22 @@ class FoodsCubit extends Cubit<FoodsState> {
     switch (result) {
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(FoodsError(failure.message));
+        _loadFailure(failure, state);
         return;
       case ApiSuccess(:final data):
         final existingIds = state.foods.map((f) => f.id).toSet();
-        final newFoods =
-            data.foods.where((f) => !existingIds.contains(f.id)).toList();
+        final newFoods = data.foods
+            .where((f) => !existingIds.contains(f.id))
+            .toList();
         if (isClosed) return;
-        emit(FoodsLoaded(
-          foods: [...state.foods, ...newFoods],
-          categories: state.categories,
-          currentPage: data.pagination.page,
-          totalPages: data.pagination.totalPages,
-        ));
+        emit(
+          FoodsLoaded(
+            foods: [...state.foods, ...newFoods],
+            categories: state.categories,
+            currentPage: data.pagination.page,
+            totalPages: data.pagination.totalPages,
+          ),
+        );
     }
   }
 }

@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/info/data/datasources/info_remote_data_source.dart';
@@ -68,10 +69,8 @@ class InfoRepositoryImpl implements InfoRepository {
   }
 
   AppFailure _mapDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.connectionError) {
-      return const NetworkFailure('No internet connection. Please try again.');
+    if (isConnectivityException(e)) {
+      return mapDioException(e);
     }
 
     final statusCode = e.response?.statusCode;

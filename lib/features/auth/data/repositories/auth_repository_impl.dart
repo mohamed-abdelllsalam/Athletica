@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/services/auth_session_service.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
@@ -273,10 +274,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   AppFailure _mapConfirmResetError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.connectionError) {
-      return const NetworkFailure('No internet connection. Please try again.');
+    if (isConnectivityException(e)) {
+      return mapDioException(e);
     }
 
     final statusCode = e.response?.statusCode;
@@ -309,10 +308,8 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   AppFailure _mapDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.connectionError) {
-      return const NetworkFailure('No internet connection. Please try again.');
+    if (isConnectivityException(e)) {
+      return mapDioException(e);
     }
 
     final statusCode = e.response?.statusCode;

@@ -11,7 +11,8 @@ final class CoachClientsInitial extends CoachClientsState {}
 final class CoachClientsLoading extends CoachClientsState {}
 
 final class CoachClientsLoaded extends CoachClientsState {
-  const CoachClientsLoaded(this.clients);
+  const CoachClientsLoaded(this.clients, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   @override
   final List<CoachAssignedClient> clients;
@@ -28,7 +29,8 @@ final class CoachClientsActionInProgress extends CoachClientsState {
 
 /// The remove failed — the list is kept so the user can retry.
 final class CoachClientsActionError extends CoachClientsState {
-  const CoachClientsActionError(this.clients, this.message);
+  const CoachClientsActionError(this.clients, this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   @override
   final List<CoachAssignedClient> clients;
@@ -36,7 +38,8 @@ final class CoachClientsActionError extends CoachClientsState {
 }
 
 final class CoachClientsError extends CoachClientsState {
-  const CoachClientsError(this.message);
+  const CoachClientsError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   final String message;
 }

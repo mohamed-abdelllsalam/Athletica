@@ -14,15 +14,21 @@ final class WorkoutExercisesLoading extends WorkoutExercisesState {
 }
 
 final class WorkoutExercisesLoaded extends WorkoutExercisesState {
-  const WorkoutExercisesLoaded(this.items, this.pagination);
+  const WorkoutExercisesLoaded(
+    this.items,
+    this.pagination, {
+    this.connectionError = false,
+  });
 
   final List<WorkoutExerciseEntry> items;
   final ApiPagination pagination;
 
   bool get hasMore => pagination.hasMore;
+  final bool connectionError;
 }
 
 final class WorkoutExercisesError extends WorkoutExercisesState {
-  const WorkoutExercisesError(this.message);
+  const WorkoutExercisesError(this.message, {this.connectionError = false});
   final String message;
+  final bool connectionError;
 }

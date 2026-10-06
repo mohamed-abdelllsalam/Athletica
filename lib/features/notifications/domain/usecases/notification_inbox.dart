@@ -16,6 +16,8 @@ sealed class InboxSnapshot {
     String? cursor,
     String? error,
     String? badgeError,
+    bool connectionError,
+    bool badgeConnectionError,
   }) = InboxState;
   const InboxSnapshot._({
     this.items = const [],
@@ -27,11 +29,14 @@ sealed class InboxSnapshot {
     this.cursor,
     this.error,
     this.badgeError,
+    this.connectionError = false,
+    this.badgeConnectionError = false,
   });
   final List<InboxNotification> items;
   final int unread;
   final bool loading, loadingMore, reading, hasMore;
   final String? cursor, error, badgeError;
+  final bool connectionError, badgeConnectionError;
   InboxSnapshot copy({
     List<InboxNotification>? items,
     int? unread,
@@ -42,6 +47,8 @@ sealed class InboxSnapshot {
     String? cursor,
     String? error,
     String? badgeError,
+    bool? connectionError,
+    bool? badgeConnectionError,
     bool clearBadgeError = false,
     bool clearCursor = false,
   }) => InboxSnapshot(
@@ -53,6 +60,12 @@ sealed class InboxSnapshot {
     hasMore: hasMore ?? this.hasMore,
     cursor: clearCursor ? null : cursor ?? this.cursor,
     error: error,
+    connectionError: error == null
+        ? false
+        : connectionError ?? this.connectionError,
+    badgeConnectionError: clearBadgeError
+        ? false
+        : badgeConnectionError ?? this.badgeConnectionError,
     badgeError: clearBadgeError ? null : badgeError ?? this.badgeError,
   );
 }
@@ -68,6 +81,8 @@ final class InboxState extends InboxSnapshot {
     super.cursor,
     super.error,
     super.badgeError,
+    super.connectionError = false,
+    super.badgeConnectionError = false,
   }) : super._();
 }
 
@@ -173,7 +188,13 @@ class NotificationInbox {
             state.copy(unread: data, error: state.error, clearBadgeError: true),
           );
         case ApiError<int>(:final failure):
-          _emit(state.copy(error: state.error, badgeError: failure.message));
+          _emit(
+            state.copy(
+              error: state.error,
+              badgeError: failure.message,
+              badgeConnectionError: failure is NetworkFailure,
+            ),
+          );
       }
     } while (_badgeAgain);
   }
@@ -227,7 +248,13 @@ class NotificationInbox {
         );
         if (_current(owner)) await refreshBadge();
       case ApiError<InboxPage>(:final failure):
-        _emit(state.copy(loading: false, error: failure.message));
+        _emit(
+          state.copy(
+            loading: false,
+            error: failure.message,
+            connectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 
@@ -275,7 +302,13 @@ class NotificationInbox {
         );
         if (_current(owner)) await refreshBadge();
       case ApiError<InboxPage>(:final failure):
-        _emit(state.copy(loadingMore: false, error: failure.message));
+        _emit(
+          state.copy(
+            loadingMore: false,
+            error: failure.message,
+            connectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 

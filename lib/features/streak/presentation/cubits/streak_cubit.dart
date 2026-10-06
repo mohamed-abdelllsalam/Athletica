@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'dart:async';
 import 'package:athletica/core/usecases/watch_completion_changes_usecase.dart';
 import 'package:athletica/core/utils/api_result.dart';
@@ -13,14 +14,16 @@ final class StreakInitial extends StreakState {}
 final class StreakLoading extends StreakState {}
 
 final class StreakLoaded extends StreakState {
-  StreakLoaded(this.data);
+  StreakLoaded(this.data, {this.isConnectionError = false});
+  final bool isConnectionError;
   final StreakData data;
 }
 
 final class StreakEmpty extends StreakState {}
 
 final class StreakError extends StreakState {
-  StreakError(this.message);
+  StreakError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
   final String message;
 }
 
@@ -37,6 +40,7 @@ class StreakCubit extends Cubit<StreakState> {
   String? _coachClientId;
   bool _hasScope = false;
   int _request = 0;
+  StreakData? _cached;
 
   Future<void> refresh() async {
     if (!_hasScope || isClosed) return;
@@ -44,7 +48,7 @@ class StreakCubit extends Cubit<StreakState> {
     // Keep the confirmed streak visible while refreshing it. Emitting a
     // loading state here makes the entire streak section flash on every
     // completion change.
-    if (state is! StreakLoaded) emit(StreakLoading());
+    if (_cached == null) emit(StreakLoading());
     final result = _coachClientId == null
         ? await _getClientStreak()
         : await _getCoachClientStreak(_coachClientId!);
@@ -62,6 +66,7 @@ class StreakCubit extends Cubit<StreakState> {
   final GetCoachClientStreakUseCase _getCoachClientStreak;
 
   Future<void> loadClient() async {
+    if (_coachClientId != null) _cached = null;
     _hasScope = true;
     _coachClientId = null;
     await refresh();
@@ -69,6 +74,7 @@ class StreakCubit extends Cubit<StreakState> {
 
   void showEmpty() {
     ++_request;
+    _cached = null;
     emit(StreakEmpty());
   }
 
@@ -82,6 +88,7 @@ class StreakCubit extends Cubit<StreakState> {
       showError('Client assignment is unavailable.');
       return;
     }
+    if (_coachClientId != coachClientId) _cached = null;
     _hasScope = true;
     _coachClientId = coachClientId;
     await refresh();
@@ -91,11 +98,45 @@ class StreakCubit extends Cubit<StreakState> {
     if (isClosed) return;
     switch (result) {
       case ApiSuccess(:final data):
+        final previous = _cached;
+        final merged = StreakData(
+          workoutSummary: data.workoutFailure is NetworkFailure
+              ? previous?.workoutSummary
+              : data.workoutSummary,
+          workoutDays: data.workoutFailure is NetworkFailure
+              ? previous?.workoutDays ?? const []
+              : data.workoutDays,
+          nutritionSummary: data.nutritionFailure is NetworkFailure
+              ? previous?.nutritionSummary
+              : data.nutritionSummary,
+          nutritionDays: data.nutritionFailure is NetworkFailure
+              ? previous?.nutritionDays ?? const []
+              : data.nutritionDays,
+          workoutError: data.workoutError,
+          nutritionError: data.nutritionError,
+          workoutFailure: data.workoutFailure,
+          nutritionFailure: data.nutritionFailure,
+        );
+        final connectionError =
+            data.workoutFailure is NetworkFailure ||
+            data.nutritionFailure is NetworkFailure;
         final hasData =
-            data.workoutSummary != null || data.nutritionSummary != null;
-        emit(hasData ? StreakLoaded(data) : StreakEmpty());
+            merged.workoutSummary != null || merged.nutritionSummary != null;
+        _cached = hasData ? merged : null;
+        emit(
+          hasData || connectionError
+              ? StreakLoaded(merged, isConnectionError: connectionError)
+              : StreakEmpty(),
+        );
       case ApiError(:final failure):
-        emit(StreakError(failure.message));
+        emit(
+          failure is NetworkFailure && _cached != null
+              ? StreakLoaded(_cached!, isConnectionError: true)
+              : StreakError(
+                  failure.message,
+                  isConnectionError: failure is NetworkFailure,
+                ),
+        );
     }
   }
 }

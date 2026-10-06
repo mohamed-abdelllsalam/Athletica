@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/auth/domain/usecases/mark_profile_complete_usecase.dart';
 import 'package:athletica/features/info/domain/entities/client_answers.dart';
@@ -27,18 +28,30 @@ class InfoCubit extends Cubit<InfoState> {
   /// Whether the backend already had stored answers for this client.
   /// When true, saving uses PATCH instead of POST to avoid duplicates.
   bool _hasExistingAnswers = false;
+  bool _loadingQuestions = false;
 
   Future<void> loadQuestions() async {
     if (state is InfoQuestionsLoaded) return;
-    emit(const InfoQuestionsLoading());
+    if (_loadingQuestions || state is InfoQuestionsLoading || isClosed) return;
+    _loadingQuestions = true;
+    try {
+      emit(const InfoQuestionsLoading());
 
-    final result = await _getQuestions();
-    switch (result) {
-      case ApiSuccess(:final data):
-        await _loadSavedAnswers(data);
-      case ApiError(:final failure):
-        if (isClosed) return;
-        emit(InfoQuestionsError(failure.message));
+      final result = await _getQuestions();
+      switch (result) {
+        case ApiSuccess(:final data):
+          await _loadSavedAnswers(data);
+        case ApiError(:final failure):
+          if (isClosed) return;
+          emit(
+            InfoQuestionsError(
+              failure.message,
+              isConnectionError: failure is NetworkFailure,
+            ),
+          );
+      }
+    } finally {
+      _loadingQuestions = false;
     }
   }
 
@@ -50,6 +63,12 @@ class InfoCubit extends Cubit<InfoState> {
       final answersResult = await _getClientAnswers();
       if (answersResult case ApiSuccess(:final data)) {
         saved = data;
+      } else if (answersResult case ApiError(
+        failure: NetworkFailure(:final message),
+      )) {
+        if (isClosed) return;
+        emit(InfoQuestionsError(message, isConnectionError: true));
+        return;
       }
     }
 

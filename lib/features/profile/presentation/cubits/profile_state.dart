@@ -17,8 +17,9 @@ final class ProfileUpdating extends ProfileState {
 }
 
 final class ProfileError extends ProfileState {
-  ProfileError(this.message, {this.profile});
+  ProfileError(this.message, {this.profile, this.isConnectionError = false});
   final String message;
+  final bool isConnectionError;
   final ClientProfileEntity? profile;
 }
 

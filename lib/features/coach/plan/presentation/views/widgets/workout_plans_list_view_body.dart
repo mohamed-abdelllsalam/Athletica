@@ -1,4 +1,5 @@
 import 'workout_plans_list_states.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/widgets/exercise_video.dart';
@@ -249,6 +250,11 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
               builder: (context, state) => switch (state) {
                 WorkoutTemplatesInitial() || WorkoutTemplatesLoading() =>
                   const Center(child: CircularProgressIndicator()),
+                WorkoutTemplatesError(connectionError: true) =>
+                  ConnectionErrorView(
+                    onRetry: () =>
+                        context.read<WorkoutTemplatesCubit>().refresh(),
+                  ),
                 WorkoutTemplatesError(:final message) => CoachWorkoutPlansError(
                   message: message,
                   onRetry: () =>
@@ -257,40 +263,67 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                 WorkoutTemplatesLoaded(:final items) => () {
                   final programs = _filtered(items).map(_toProgram).toList();
                   if (programs.isEmpty) {
-                    return const CoachWorkoutPlansEmpty();
+                    return Column(
+                      children: [
+                        if (state.connectionError)
+                          ConnectionErrorView(
+                            compact: true,
+                            onRetry: () =>
+                                context.read<WorkoutTemplatesCubit>().refresh(),
+                          ),
+                        const Expanded(child: CoachWorkoutPlansEmpty()),
+                      ],
+                    );
                   }
-                  return ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 4.h,
-                    ),
-                    itemCount: programs.length,
-                    separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                    itemBuilder: (context, index) {
-                      final program = programs[index];
-                      final color = _iconColors[index % _iconColors.length];
-                      return WorkoutPlanListCard(
-                        program: program,
-                        iconColor: color,
-                        onTap: () async {
-                          final navigator = Navigator.of(context);
-                          final templatesCubit = context
-                              .read<WorkoutTemplatesCubit>();
-                          final changed = await navigator.push<bool>(
-                            MaterialPageRoute(
-                              builder: (_) => BlocProvider.value(
-                                value: templatesCubit,
-                                child: WorkoutPlanDetailView(program: program),
-                              ),
-                            ),
-                          );
-                          if ((changed ?? false) && context.mounted) {
-                            context.read<WorkoutTemplatesCubit>().refresh();
-                          }
-                        },
-                      );
-                    },
+                  return Column(
+                    children: [
+                      if (state.connectionError)
+                        ConnectionErrorView(
+                          compact: true,
+                          onRetry: () =>
+                              context.read<WorkoutTemplatesCubit>().refresh(),
+                        ),
+                      Expanded(
+                        child: ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.w,
+                            vertical: 4.h,
+                          ),
+                          itemCount: programs.length,
+                          separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                          itemBuilder: (context, index) {
+                            final program = programs[index];
+                            final color =
+                                _iconColors[index % _iconColors.length];
+                            return WorkoutPlanListCard(
+                              program: program,
+                              iconColor: color,
+                              onTap: () async {
+                                final navigator = Navigator.of(context);
+                                final templatesCubit = context
+                                    .read<WorkoutTemplatesCubit>();
+                                final changed = await navigator.push<bool>(
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: templatesCubit,
+                                      child: WorkoutPlanDetailView(
+                                        program: program,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                                if ((changed ?? false) && context.mounted) {
+                                  context
+                                      .read<WorkoutTemplatesCubit>()
+                                      .refresh();
+                                }
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   );
                 }(),
               },

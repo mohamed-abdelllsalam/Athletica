@@ -1,4 +1,5 @@
 import 'food_search_result.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'food_search_header.dart';
 import 'food_search_states.dart';
 import 'dart:async';
@@ -27,7 +28,12 @@ class FoodSearchViewBody extends StatefulWidget {
 }
 
 class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
 
   /// Persisted across searches/filter changes so previously selected foods
   /// are never lost when the visible list shrinks.
@@ -100,6 +106,11 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
         }
 
         if (state is FoodsError) {
+          if (state.connectionError) {
+            return ConnectionErrorView(
+              onRetry: () => context.read<FoodsCubit>().retry(),
+            );
+          }
           return CoachFoodSearchError(
             message: state.message,
             onRetry: () => context.read<FoodsCubit>().load(),
@@ -118,6 +129,11 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
 
         return Column(
           children: [
+            if (loaded.connectionError)
+              ConnectionErrorView(
+                compact: true,
+                onRetry: () => context.read<FoodsCubit>().retry(),
+              ),
             SizedBox(height: 12.h),
             CoachFoodSearchHeader(
               controller: _searchController,

@@ -23,6 +23,7 @@ final class WorkoutTodayLoaded extends WorkoutTodayState {
     this.workout, {
     this.togglingLogId,
     this.errorMessage,
+    this.isConnectionError = false,
     this.dayCompletionConfirmed = false,
   });
 
@@ -30,6 +31,7 @@ final class WorkoutTodayLoaded extends WorkoutTodayState {
   final TodayWorkoutEntry? workout;
   final String? togglingLogId;
   final String? errorMessage;
+  final bool isConnectionError;
 
   /// True only on the successful backend response that changes an incomplete
   /// day to complete. It is never set by the optimistic update or initial load.
@@ -37,6 +39,7 @@ final class WorkoutTodayLoaded extends WorkoutTodayState {
 }
 
 final class WorkoutTodayError extends WorkoutTodayState {
-  const WorkoutTodayError(this.message);
+  const WorkoutTodayError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
   final String message;
 }

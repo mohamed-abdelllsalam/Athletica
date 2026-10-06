@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/get_assigned_clients_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/get_nutrition_templates_usecase.dart';
 import 'package:athletica/features/workout/domain/usecases/get_workout_templates_v1_usecase.dart';
@@ -21,16 +22,24 @@ final class CoachPlanOverviewLoaded extends CoachPlanOverviewState {
     required this.nutritionPlans,
     required this.workoutPrograms,
     required this.activeClients,
+    this.nutritionConnectionError = false,
+    this.workoutConnectionError = false,
+    this.clientsConnectionError = false,
+    this.error,
   });
 
   /// Total nutrition plan templates (`GET /nutrition/templates` pagination).
-  final int nutritionPlans;
+  final int? nutritionPlans;
 
   /// Total workout programs (`GET /workout/templates` pagination).
-  final int workoutPrograms;
+  final int? workoutPrograms;
 
   /// Assigned clients (`GET /coach/clients`).
-  final int activeClients;
+  final int? activeClients;
+  final bool nutritionConnectionError,
+      workoutConnectionError,
+      clientsConnectionError;
+  final String? error;
 }
 
 final class CoachPlanOverviewError extends CoachPlanOverviewState {
@@ -64,39 +73,39 @@ class CoachPlanOverviewCubit extends Cubit<CoachPlanOverviewState> {
     final workoutResult = await _getWorkoutTemplates(page: 1, pageSize: 1);
 
     String? error;
-    var plansCount = 0;
-    var clientsCount = 0;
-    var workoutCount = 0;
+    int? plansCount = current is CoachPlanOverviewLoaded
+        ? current.nutritionPlans
+        : null;
+    int? clientsCount = current is CoachPlanOverviewLoaded
+        ? current.activeClients
+        : null;
+    int? workoutCount = current is CoachPlanOverviewLoaded
+        ? current.workoutPrograms
+        : null;
+    var nutritionConnectionError = false;
+    var clientsConnectionError = false;
+    var workoutConnectionError = false;
 
     switch (templatesResult) {
       case ApiSuccess(:final data):
         plansCount = data.pagination.total;
       case ApiError(:final failure):
-        error = failure.message;
+        nutritionConnectionError = failure is NetworkFailure;
+        if (!nutritionConnectionError) error = failure.message;
     }
     switch (clientsResult) {
       case ApiSuccess(:final data):
         clientsCount = data.length;
       case ApiError(:final failure):
-        error ??= failure.message;
+        clientsConnectionError = failure is NetworkFailure;
+        if (!clientsConnectionError) error ??= failure.message;
     }
     switch (workoutResult) {
       case ApiSuccess(:final data):
         workoutCount = data.pagination.total;
       case ApiError(:final failure):
-        error ??= failure.message;
-    }
-
-    if (error != null) {
-      // On silent-refresh failure keep the previously loaded numbers.
-      if (!isSilentRefresh &&
-          plansCount == 0 &&
-          clientsCount == 0 &&
-          workoutCount == 0) {
-        if (isClosed) return;
-        emit(CoachPlanOverviewError(error));
-      }
-      return;
+        workoutConnectionError = failure is NetworkFailure;
+        if (!workoutConnectionError) error ??= failure.message;
     }
 
     if (isClosed) return;
@@ -105,6 +114,10 @@ class CoachPlanOverviewCubit extends Cubit<CoachPlanOverviewState> {
         nutritionPlans: plansCount,
         workoutPrograms: workoutCount,
         activeClients: clientsCount,
+        nutritionConnectionError: nutritionConnectionError,
+        workoutConnectionError: workoutConnectionError,
+        clientsConnectionError: clientsConnectionError,
+        error: error,
       ),
     );
   }

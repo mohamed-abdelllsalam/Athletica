@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/workout_templates/data/datasources/workout_templates_remote_data_source.dart';
@@ -26,6 +27,7 @@ class WorkoutTemplatesRepositoryImpl implements WorkoutTemplatesRepository {
       );
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -40,6 +42,7 @@ class WorkoutTemplatesRepositoryImpl implements WorkoutTemplatesRepository {
       final models = await _dataSource.getWorkoutTemplates(trainerId);
       return ApiSuccess(models.map((m) => m.toEntity()).toList());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -60,6 +63,7 @@ class WorkoutTemplatesRepositoryImpl implements WorkoutTemplatesRepository {
       );
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -74,6 +78,7 @@ class WorkoutTemplatesRepositoryImpl implements WorkoutTemplatesRepository {
       final model = await _dataSource.getWorkoutTemplateDayById(dayId);
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -108,6 +113,7 @@ class WorkoutTemplatesRepositoryImpl implements WorkoutTemplatesRepository {
       );
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));

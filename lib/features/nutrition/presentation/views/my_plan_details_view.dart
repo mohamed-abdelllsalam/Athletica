@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -39,29 +40,50 @@ class MyPlanDetailsView extends StatelessWidget {
                         planId: planId,
                       ),
                     ),
-                    MyPlanDetailsError(:final message) => NutritionStatus(
-                      message: message,
-                      action: 'Retry',
-                      onAction: () => context.read<MyPlanDetailsCubit>().load(
-                        planId: planId,
+                    MyPlanDetailsError(
+                      :final message,
+                      :final isConnectionError,
+                    ) =>
+                      isConnectionError
+                          ? ConnectionErrorView(
+                              onRetry: () => context
+                                  .read<MyPlanDetailsCubit>()
+                                  .load(planId: planId),
+                            )
+                          : NutritionStatus(
+                              message: message,
+                              action: 'Retry',
+                              onAction: () => context
+                                  .read<MyPlanDetailsCubit>()
+                                  .load(planId: planId),
+                            ),
+                    MyPlanDetailsLoaded(
+                      :final plan,
+                      :final isConnectionError,
+                    ) =>
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isConnectionError)
+                            ConnectionErrorView(
+                              onRetry: () => context
+                                  .read<MyPlanDetailsCubit>()
+                                  .load(planId: planId),
+                              compact: true,
+                            ),
+                          _PlanOverview(plan: plan),
+                          SizedBox(height: 16.h),
+                          if (plan.meals.isEmpty)
+                            const NutritionStatus(
+                              message: 'This plan has no meals yet.',
+                            )
+                          else
+                            _PlanMeals(
+                              key: ValueKey(plan),
+                              meals: plan.sortedMeals,
+                            ),
+                        ],
                       ),
-                    ),
-                    MyPlanDetailsLoaded(:final plan) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _PlanOverview(plan: plan),
-                        SizedBox(height: 16.h),
-                        if (plan.meals.isEmpty)
-                          const NutritionStatus(
-                            message: 'This plan has no meals yet.',
-                          )
-                        else
-                          _PlanMeals(
-                            key: ValueKey(plan),
-                            meals: plan.sortedMeals,
-                          ),
-                      ],
-                    ),
                   },
                 ),
               ),

@@ -113,7 +113,7 @@ class NutritionCompletionFeedback extends StatelessWidget {
         listenWhen: (previous, next) {
           if (next is! NutritionTodayLoaded) return false;
           final hasNewError =
-              next.errorMessage != null &&
+              next.errorMessage != null && !next.isConnectionError &&
               (previous is! NutritionTodayLoaded ||
                   previous.errorMessage != next.errorMessage);
           final justCompleted =

@@ -1,4 +1,4 @@
-﻿import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_food_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/add_template_meal_usecase.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/usecases/delete_nutrition_template_usecase.dart';
@@ -12,6 +12,7 @@ import 'package:athletica/features/coach/nutrition_templates/domain/usecases/upd
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_template_ui_mapper.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:athletica/core/errors/failures.dart';
 
 sealed class TemplateDetailState {}
 
@@ -20,7 +21,11 @@ final class TemplateDetailInitial extends TemplateDetailState {}
 final class TemplateDetailLoading extends TemplateDetailState {}
 
 final class TemplateDetailLoaded extends TemplateDetailState {
-  TemplateDetailLoaded({required this.plan, this.message});
+  TemplateDetailLoaded({
+    required this.plan,
+    this.message,
+    this.connectionError = false,
+  });
 
   final NutritionPlan plan;
 
@@ -28,15 +33,17 @@ final class TemplateDetailLoaded extends TemplateDetailState {
   /// is kept so the screen is not wiped. The UI surfaces [message] and
   /// clears it via [clearMessage].
   final String? message;
+  final bool connectionError;
 
   TemplateDetailLoaded copyWith({String? message}) =>
       TemplateDetailLoaded(plan: plan, message: message ?? this.message);
 }
 
 final class TemplateDetailError extends TemplateDetailState {
-  TemplateDetailError(this.message);
+  TemplateDetailError(this.message, {this.connectionError = false});
 
   final String message;
+  final bool connectionError;
 }
 
 final class TemplateDetailDeleted extends TemplateDetailState {}
@@ -72,24 +79,43 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
   /// edits). The opening screen consumes it to know when its cached list
   /// must be silently refreshed.
   bool hasChanges = false;
+  bool _loadingDetail = false;
 
   String get _templateId => switch (state) {
-        TemplateDetailLoaded(:final plan) => plan.id,
-        _ => '',
-      };
+    TemplateDetailLoaded(:final plan) => plan.id,
+    _ => '',
+  };
 
   Future<void> load(String templateId) async {
-    hasChanges = false;
-    emit(TemplateDetailLoading());
+    if (_loadingDetail || isClosed) return;
+    _loadingDetail = true;
+    try {
+      hasChanges = false;
+      final previous = state;
+      if (previous is! TemplateDetailLoaded) emit(TemplateDetailLoading());
 
-    final result = await _getDetail(templateId);
-    switch (result) {
-      case ApiSuccess(:final data):
-        if (isClosed) return;
-        emit(TemplateDetailLoaded(plan: _mapper.toPlan(data)));
-      case ApiError(:final failure):
-        if (isClosed) return;
-        emit(TemplateDetailError(failure.message));
+      final result = await _getDetail(templateId);
+      switch (result) {
+        case ApiSuccess(:final data):
+          if (isClosed) return;
+          emit(TemplateDetailLoaded(plan: _mapper.toPlan(data)));
+        case ApiError(:final failure):
+          if (isClosed) return;
+          if (failure is NetworkFailure && previous is TemplateDetailLoaded) {
+            emit(
+              TemplateDetailLoaded(plan: previous.plan, connectionError: true),
+            );
+          } else {
+            emit(
+              TemplateDetailError(
+                failure.message,
+                connectionError: failure is NetworkFailure,
+              ),
+            );
+          }
+      }
+    } finally {
+      _loadingDetail = false;
     }
   }
 
@@ -102,17 +128,25 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
         emit(TemplateDetailLoaded(plan: _mapper.toPlan(data)));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(TemplateDetailLoaded(
-          plan: (state as TemplateDetailLoaded).plan,
-          message: failure.message,
-        ));
+        emit(
+          TemplateDetailLoaded(
+            plan: (state as TemplateDetailLoaded).plan,
+            message: failure.message,
+            connectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 
   void clearMessage() {
     final state = this.state;
     if (state is TemplateDetailLoaded && state.message != null) {
-      emit(TemplateDetailLoaded(plan: state.plan));
+      emit(
+        TemplateDetailLoaded(
+          plan: state.plan,
+          connectionError: state.connectionError,
+        ),
+      );
     }
   }
 
@@ -214,10 +248,9 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
       case ApiError(:final failure):
         // Roll back to server truth and surface the error.
         if (isClosed) return;
-        emit(TemplateDetailLoaded(
-          plan: current.plan,
-          message: failure.message,
-        ));
+        emit(
+          TemplateDetailLoaded(plan: current.plan, message: failure.message),
+        );
     }
   }
 
@@ -275,13 +308,17 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     }
 
     // 1. Removed ingredients -> DELETE relation
-    final editedRelations =
-        editedMeal.ingredients.map((i) => i.relationId).toSet();
+    final editedRelations = editedMeal.ingredients
+        .map((i) => i.relationId)
+        .toSet();
     for (final ingredient in original.ingredients) {
       final relationId = ingredient.relationId;
       if (relationId != null && !editedRelations.contains(relationId)) {
-        final result =
-            await _deleteFood(_templateId, editedMeal.id, relationId);
+        final result = await _deleteFood(
+          _templateId,
+          editedMeal.id,
+          relationId,
+        );
         switch (result) {
           case ApiError(:final failure):
             if (isClosed) return;
@@ -294,11 +331,11 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     }
 
     // 2. Added ingredients (no relation yet, must carry a catalog foodId)
-    final originalRelations =
-        original.ingredients.map((i) => i.relationId).toSet();
+    final originalRelations = original.ingredients
+        .map((i) => i.relationId)
+        .toSet();
     for (final ingredient in editedMeal.ingredients) {
-      if (ingredient.relationId != null ||
-          !_isValidUuid(ingredient.foodId)) {
+      if (ingredient.relationId != null || !_isValidUuid(ingredient.foodId)) {
         continue;
       }
       final quantity = ingredient.grams > 0 ? ingredient.grams : 100;
@@ -347,8 +384,7 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
 
     // 4. Name (meal_type) and notes changes
     final newName = editedMeal.name.trim();
-    final nameChanged =
-        newName.isNotEmpty && newName != original.name.trim();
+    final nameChanged = newName.isNotEmpty && newName != original.name.trim();
     final notesChanged = (editedMeal.notes ?? '') != (original.notes ?? '');
     if (nameChanged || notesChanged) {
       final result = await _updateMeal(
@@ -388,6 +424,5 @@ class TemplateDetailCubit extends Cubit<TemplateDetailState> {
     caseSensitive: false,
   );
 
-  static bool _isValidUuid(String? id) =>
-      id != null && _uuidRegex.hasMatch(id);
+  static bool _isValidUuid(String? id) => id != null && _uuidRegex.hasMatch(id);
 }

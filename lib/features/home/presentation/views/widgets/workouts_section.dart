@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -113,7 +114,7 @@ class _WorkoutsBody extends StatelessWidget {
                   next.errorMessage != null &&
                   (prev is! WorkoutTodayLoaded ||
                       prev.errorMessage != next.errorMessage);
-              return freshError;
+              return freshError && !next.isConnectionError;
             },
             listener: (context, state) {
               final loaded = state as WorkoutTodayLoaded;
@@ -124,19 +125,29 @@ class _WorkoutsBody extends StatelessWidget {
             builder: (context, state) => switch (state) {
               WorkoutTodayInitial() ||
               WorkoutTodayLoading() => const _TodayCardShimmer(),
-              WorkoutTodayError(:final message) => _CardError(
-                message: message,
-                onRetry: () => context.read<WorkoutTodayCubit>().load(),
-              ),
-              WorkoutTodayLoaded(:final workout) =>
-                workout == null
-                    ? _EmptyCard(
-                        onRefresh: () =>
-                            context.read<WorkoutTodayCubit>().load(),
+              WorkoutTodayError(:final message, :final isConnectionError) =>
+                isConnectionError
+                    ? ConnectionErrorView(
+                        onRetry: () => context.read<WorkoutTodayCubit>().load(),
+                        compact: true,
                       )
-                    : workout.isRest
-                    ? _RestCard(note: workout.note)
-                    : _TodayWorkoutCard(workout: workout),
+                    : _CardError(
+                        message: message,
+                        onRetry: () => context.read<WorkoutTodayCubit>().load(),
+                      ),
+              WorkoutTodayLoaded(:final workout, :final isConnectionError) =>
+                ConnectionErrorSection(
+                  hasError: isConnectionError,
+                  onRetry: () => context.read<WorkoutTodayCubit>().load(),
+                  child: workout == null
+                      ? _EmptyCard(
+                          onRefresh: () =>
+                              context.read<WorkoutTodayCubit>().load(),
+                        )
+                      : workout.isRest
+                      ? _RestCard(note: workout.note)
+                      : _TodayWorkoutCard(workout: workout),
+                ),
             },
           ),
         ],

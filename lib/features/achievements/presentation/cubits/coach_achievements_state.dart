@@ -33,8 +33,13 @@ final class CoachAchievementsDeleteSuccess extends CoachAchievementsState {
 }
 
 final class CoachAchievementsError extends CoachAchievementsState {
-  const CoachAchievementsError(this.message, {this.previous});
+  const CoachAchievementsError(
+    this.message, {
+    this.previous,
+    this.connectionError = false,
+  });
 
   final String message;
   final List<CoachAchievement>? previous;
+  final bool connectionError;
 }

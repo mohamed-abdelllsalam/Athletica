@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/api_result.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/features/workout/domain/usecases/create_workout_template_v1_usecase.dart';
 import 'package:athletica/features/workout/domain/usecases/delete_workout_template_usecase.dart';
 import 'package:athletica/features/workout/domain/usecases/get_workout_templates_v1_usecase.dart';
@@ -20,7 +21,10 @@ class WorkoutTemplatesCubit extends Cubit<WorkoutTemplatesState> {
 
   Future<void> load({int page = 1, int pageSize = 10}) async {
     if (state is WorkoutTemplatesLoading) return;
-    emit(const WorkoutTemplatesLoading());
+    final previous = state;
+    if (previous is! WorkoutTemplatesLoaded) {
+      emit(const WorkoutTemplatesLoading());
+    }
     final result = await _getTemplates(page: page, pageSize: pageSize);
     switch (result) {
       case ApiSuccess(:final data):
@@ -28,7 +32,22 @@ class WorkoutTemplatesCubit extends Cubit<WorkoutTemplatesState> {
         emit(WorkoutTemplatesLoaded(data.items, data.pagination));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(WorkoutTemplatesError(failure.message));
+        if (failure is NetworkFailure && previous is WorkoutTemplatesLoaded) {
+          emit(
+            WorkoutTemplatesLoaded(
+              previous.items,
+              previous.pagination,
+              connectionError: true,
+            ),
+          );
+        } else {
+          emit(
+            WorkoutTemplatesError(
+              failure.message,
+              connectionError: failure is NetworkFailure,
+            ),
+          );
+        }
     }
   }
 
@@ -54,8 +73,10 @@ class WorkoutTemplatesCubit extends Cubit<WorkoutTemplatesState> {
         ),
       );
     }
-    final result =
-        await _createTemplate(title: title, description: description);
+    final result = await _createTemplate(
+      title: title,
+      description: description,
+    );
     switch (result) {
       case ApiSuccess():
         _mutating = false;

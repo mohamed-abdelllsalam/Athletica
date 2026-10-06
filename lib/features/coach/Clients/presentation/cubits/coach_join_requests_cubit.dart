@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/accept_coach_join_request_usecase.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/get_coach_join_requests_usecase.dart';
@@ -16,19 +17,34 @@ class CoachJoinRequestsCubit extends Cubit<CoachJoinRequestsState> {
   final AcceptCoachJoinRequestUseCase _acceptRequest;
   final RejectCoachJoinRequestUseCase _rejectRequest;
 
-  Future<void> loadRequests() async {
-    if (state is CoachJoinRequestsLoading) return;
+  bool _loading = false;
 
-    emit(CoachJoinRequestsLoading());
+  Future<void> loadRequests() async {
+    if (_loading || isClosed || state is CoachJoinRequestsActionInProgress) return;
+    _loading = true;
+    final current = state;
+
+    if (current is! CoachJoinRequestsLoaded && current is! CoachJoinRequestsActionError) emit(CoachJoinRequestsLoading());
 
     final result = await _getRequests();
+    _loading = false;
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return;
         emit(CoachJoinRequestsLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(CoachJoinRequestsError(failure.message));
+        emit(
+          failure is NetworkFailure && (current is CoachJoinRequestsLoaded || current is CoachJoinRequestsActionError)
+              ? CoachJoinRequestsLoaded(
+                  current.requests,
+                  isConnectionError: true,
+                )
+              : CoachJoinRequestsError(
+                  failure.message,
+                  isConnectionError: failure is NetworkFailure,
+                ),
+        );
     }
   }
 
@@ -58,7 +74,7 @@ class CoachJoinRequestsCubit extends Cubit<CoachJoinRequestsState> {
         );
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(CoachJoinRequestsActionError(requests, failure.message));
+        emit(CoachJoinRequestsActionError(requests, failure.message, isConnectionError: failure is NetworkFailure));
     }
   }
 }

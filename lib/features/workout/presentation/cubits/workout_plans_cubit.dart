@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/workout/domain/entities/workout_plan.dart';
 import 'package:athletica/features/workout/domain/usecases/delete_workout_plan_usecase.dart';
@@ -22,7 +23,8 @@ class WorkoutPlansCubit extends Cubit<WorkoutPlansState> {
     int pageSize = 10,
   }) async {
     if (state is WorkoutPlansLoading) return;
-    emit(const WorkoutPlansLoading());
+    final previous = state;
+    if (previous is! WorkoutPlansLoaded) emit(const WorkoutPlansLoading());
     final result = await _getPlans(
       clientId: clientId,
       isActive: isActive,
@@ -35,7 +37,22 @@ class WorkoutPlansCubit extends Cubit<WorkoutPlansState> {
         emit(WorkoutPlansLoaded(data.items, data.pagination));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(WorkoutPlansError(failure.message));
+        if (failure is NetworkFailure && previous is WorkoutPlansLoaded) {
+          emit(
+            WorkoutPlansLoaded(
+              previous.items,
+              previous.pagination,
+              connectionError: true,
+            ),
+          );
+        } else {
+          emit(
+            WorkoutPlansError(
+              failure.message,
+              connectionError: failure is NetworkFailure,
+            ),
+          );
+        }
     }
   }
 }
@@ -63,7 +80,10 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
 
   Future<void> load(String planId) async {
     if (state is WorkoutPlanDetailLoading) return;
-    emit(const WorkoutPlanDetailLoading());
+    final previous = state;
+    if (previous is! WorkoutPlanDetailLoaded) {
+      emit(const WorkoutPlanDetailLoading());
+    }
     final result = await _getDetail(planId);
     switch (result) {
       case ApiSuccess(:final data):
@@ -71,7 +91,16 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
         emit(WorkoutPlanDetailLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(WorkoutPlanDetailError(failure.message));
+        if (failure is NetworkFailure && previous is WorkoutPlanDetailLoaded) {
+          emit(WorkoutPlanDetailLoaded(previous.plan, connectionError: true));
+        } else {
+          emit(
+            WorkoutPlanDetailError(
+              failure.message,
+              connectionError: failure is NetworkFailure,
+            ),
+          );
+        }
     }
   }
 
@@ -100,7 +129,8 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
     final current = state;
     if (current is! WorkoutPlanDetailLoaded) return Future.value(false);
     return _mutate(
-      () => _updatePlan(current.plan.id, title: title, description: description),
+      () =>
+          _updatePlan(current.plan.id, title: title, description: description),
     );
   }
 
@@ -174,9 +204,7 @@ class WorkoutPlanDetailCubit extends Cubit<WorkoutPlanDetailState> {
   Future<bool> removeExercise(String dayId, String exerciseId) {
     final current = state;
     if (current is! WorkoutPlanDetailLoaded) return Future.value(false);
-    return _mutate(
-      () => _exercises.delete(current.plan.id, dayId, exerciseId),
-    );
+    return _mutate(() => _exercises.delete(current.plan.id, dayId, exerciseId));
   }
 
   Future<bool> addDay(String title, {String? note}) {

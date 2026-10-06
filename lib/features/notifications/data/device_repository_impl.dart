@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
 import 'package:athletica/core/services/auth_session_service.dart';
@@ -41,6 +42,7 @@ class DeviceRepositoryImpl implements DeviceRepository {
 
   AppFailure _failure(Object error) {
     if (error is DioException) {
+      if (isConnectivityException(error)) return mapDioException(error);
       final status = error.response?.statusCode;
       final body = error.response?.data;
       if (status == 409 &&
@@ -54,8 +56,9 @@ class DeviceRepositoryImpl implements DeviceRepository {
       }
       if (status == 401) return const UnauthorizedFailure('Session expired.');
       if (status == null || status == 429 || status >= 500) {
-        return const NetworkFailure(
+        return const ServerFailure(
           'Notification service temporarily unavailable.',
+          retryable: true,
         );
       }
     }

@@ -14,9 +14,10 @@ final class ClientCoachLoading extends ClientCoachState {
 
 /// A coach is assigned.
 final class ClientCoachLoaded extends ClientCoachState {
-  const ClientCoachLoaded(this.coach);
+  const ClientCoachLoaded(this.coach, {this.connectionError = false});
 
   final AssignedCoach coach;
+  final bool connectionError;
 }
 
 /// No coach assigned — the join form is shown.
@@ -40,7 +41,8 @@ final class ClientCoachRequestSent extends ClientCoachState {
 }
 
 final class ClientCoachError extends ClientCoachState {
-  const ClientCoachError(this.message);
+  const ClientCoachError(this.message, {this.connectionError = false});
 
   final String message;
+  final bool connectionError;
 }

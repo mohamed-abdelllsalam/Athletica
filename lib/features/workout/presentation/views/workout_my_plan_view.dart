@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -114,26 +115,33 @@ class _Body extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: BlocConsumer<WorkoutMyPlanCubit, WorkoutMyPlanState>(
-            listenWhen: (_, state) =>
-                state is WorkoutMyPlanLoaded && state.plan != null,
-            listener: (context, state) {
-              final loaded = state as WorkoutMyPlanLoaded;
-              context.read<WorkoutMyPlanCubit>().loadDetails(loaded.plan!.id);
-            },
+          child: BlocBuilder<WorkoutMyPlanCubit, WorkoutMyPlanState>(
             builder: (context, state) => switch (state) {
               WorkoutMyPlanInitial() || WorkoutMyPlanLoading() => const Center(
                 child: CircularProgressIndicator(),
               ),
-              WorkoutMyPlanError(:final message) => WorkoutStatusView(
-                icon: Icons.error_outline,
-                title: 'Could not load your plan',
-                message: message,
-                actionLabel: 'Retry',
-                onAction: () => _reload(context),
-              ),
-              WorkoutMyPlanLoaded(:final plan) =>
-                plan == null
+              WorkoutMyPlanError(:final message, :final isConnectionError) =>
+                isConnectionError
+                    ? SingleChildScrollView(
+                        child: ConnectionErrorView(
+                          onRetry: () => _reload(context),
+                        ),
+                      )
+                    : WorkoutStatusView(
+                        icon: Icons.error_outline,
+                        title: 'Could not load your plan',
+                        message: message,
+                        actionLabel: 'Retry',
+                        onAction: () => _reload(context),
+                      ),
+              WorkoutMyPlanLoaded(:final plan, :final isConnectionError) =>
+                isConnectionError
+                    ? SingleChildScrollView(
+                        child: ConnectionErrorView(
+                          onRetry: () => _reload(context),
+                        ),
+                      )
+                    : plan == null
                     ? WorkoutStatusView(
                         icon: Icons.fitness_center,
                         title: 'No training plan yet',
@@ -143,12 +151,27 @@ class _Body extends StatelessWidget {
                         onAction: () => _reload(context),
                       )
                     : const Center(child: CircularProgressIndicator()),
-              WorkoutMyPlanDetailLoaded(:final plan) => _PlanBody(
-                plan: plan,
-                onRefresh: () => _reload(context),
-                initialDayNumber: initialDayNumber,
-                userGender: userGender,
-              ),
+              WorkoutMyPlanDetailLoaded(
+                :final plan,
+                :final isConnectionError,
+              ) =>
+                Column(
+                  children: [
+                    if (isConnectionError)
+                      ConnectionErrorView(
+                        onRetry: () => _reload(context),
+                        compact: true,
+                      ),
+                    Expanded(
+                      child: _PlanBody(
+                        plan: plan,
+                        onRefresh: () => _reload(context),
+                        initialDayNumber: initialDayNumber,
+                        userGender: userGender,
+                      ),
+                    ),
+                  ],
+                ),
             },
           ),
         ),
@@ -264,6 +287,10 @@ class _PlanBodyState extends State<_PlanBody> {
           if (!selected.isRest && exercises.isNotEmpty) ...[
             BlocBuilder<WorkoutTodayCubit, WorkoutTodayState>(
               builder: (context, state) {
+                if (state is WorkoutTodayError && state.isConnectionError ||
+                    state is WorkoutTodayLoaded && state.isConnectionError) {
+                  return ConnectionErrorView(onRetry: () => context.read<WorkoutTodayCubit>().load(), compact: true);
+                }
                 final today = state is WorkoutTodayLoaded
                     ? state.workout
                     : null;

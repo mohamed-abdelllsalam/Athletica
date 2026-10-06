@@ -13,10 +13,7 @@ final class InfoQuestionsLoading extends InfoState {
 }
 
 final class InfoQuestionsLoaded extends InfoState {
-  const InfoQuestionsLoaded(
-    this.questions, {
-    this.savedAnswers = const {},
-  });
+  const InfoQuestionsLoaded(this.questions, {this.savedAnswers = const {}});
 
   final List<ClientQuestion> questions;
 
@@ -26,8 +23,9 @@ final class InfoQuestionsLoaded extends InfoState {
 }
 
 final class InfoQuestionsError extends InfoState {
-  const InfoQuestionsError(this.message);
+  const InfoQuestionsError(this.message, {this.isConnectionError = false});
   final String message;
+  final bool isConnectionError;
 }
 
 final class InfoLoading extends InfoState {

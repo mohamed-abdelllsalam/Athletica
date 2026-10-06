@@ -10,13 +10,15 @@ class CheckInSubmissionCubit extends Cubit<ApiResult<CheckInSubmission>?> {
   final GetCoachSubmissionDetailUseCase _getCoachDetail;
   final GetClientSubmissionDetailUseCase _getClientDetail;
   int _request = 0;
+  ApiSuccess<CheckInSubmission>? previousResult;
 
   Future<void> load({
     String? coachClientId,
     required String submissionId,
   }) async {
     final request = ++_request;
-    emit(null);
+    if (state case ApiSuccess<CheckInSubmission> previous) previousResult = previous;
+    if (previousResult == null) emit(null);
     final result = coachClientId == null
         ? await _getClientDetail(submissionId)
         : await _getCoachDetail(

@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/profile/domain/entities/user_profile_entity.dart';
@@ -24,6 +25,7 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
   String? _selectedLocation;
 
   bool _hasChanges = false;
+  bool _retryingLoad = false;
   String _initialUsername = '';
   String _initialGender = '';
   String _initialHeight = '';
@@ -58,8 +60,12 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
 
   void _initializeFromProfile() {
     final state = context.read<ProfileCubit>().state;
-    if (state is ProfileLoaded) {
-      final profile = state.profile;
+    final profile = switch (state) {
+      ProfileLoaded(:final profile) => profile,
+      ProfileError(:final profile) => profile,
+      _ => null,
+    };
+    if (profile != null) {
       _initialUsername = profile.name;
       _initialGender = profile.gender ?? '';
       _initialHeight = profile.height?.toString() ?? '';
@@ -73,15 +79,14 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
       _weightController.text = _initialWeight;
       _goalController.text = _initialGoal;
       _phoneNumberController.text = _initialPhoneNumber;
-      _selectedLocation =
-          _initialLocation.isEmpty ? null : _initialLocation;
+      _selectedLocation = _initialLocation.isEmpty ? null : _initialLocation;
       _onFieldChanged();
     }
   }
 
   void _onFieldChanged() {
-    final changed = _usernameController.text.trim() !=
-            _initialUsername.trim() ||
+    final changed =
+        _usernameController.text.trim() != _initialUsername.trim() ||
         _genderController.text != _initialGender ||
         _heightController.text != _initialHeight ||
         _weightController.text != _initialWeight ||
@@ -93,11 +98,17 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
 
   @override
   void dispose() {
+    _usernameController.removeListener(_onFieldChanged);
     _usernameController.dispose();
+    _genderController.removeListener(_onFieldChanged);
     _genderController.dispose();
+    _heightController.removeListener(_onFieldChanged);
     _heightController.dispose();
+    _weightController.removeListener(_onFieldChanged);
     _weightController.dispose();
+    _goalController.removeListener(_onFieldChanged);
     _goalController.dispose();
+    _phoneNumberController.removeListener(_onFieldChanged);
     _phoneNumberController.dispose();
     super.dispose();
   }
@@ -171,6 +182,11 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
                       BlocConsumer<ProfileCubit, ProfileState>(
                         listener: (context, state) {
                           if (state is ProfileLoaded) {
+                            if (_retryingLoad) {
+                              _retryingLoad = false;
+                              if (!_hasChanges) _initializeFromProfile();
+                              return;
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Profile updated successfully'),
@@ -179,6 +195,7 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
                             );
                             Navigator.pop(context);
                           } else if (state is ProfileError) {
+                            _retryingLoad = false;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(state.message),
@@ -189,37 +206,58 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
                         },
                         builder: (context, state) {
                           final isUpdating = state is ProfileUpdating;
-                          return SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed:
-                                  (_hasChanges && !isUpdating) ? _saveProfile : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _hasChanges
-                                    ? AppColors.buttonColor
-                                    : AppColors.surfaceDark,
-                                foregroundColor: AppColors.textPrimary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
+                          return Column(
+                            children: [
+                              if (state is ProfileError &&
+                                  state.isConnectionError)
+                                ConnectionErrorView(
+                                  compact: true,
+                                  onRetry: () {
+                                    _retryingLoad = true;
+                                    context.read<ProfileCubit>().loadProfile(
+                                      forceRefresh: true,
+                                    );
+                                  },
                                 ),
-                                padding: EdgeInsets.symmetric(vertical: 14.h),
-                              ),
-                              child: isUpdating
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : Text(
-                                      'Done',
-                                      style: AppTextStyles.semiBold15(
-                                        context,
-                                      ).copyWith(color: AppColors.textPrimary),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: (_hasChanges && !isUpdating)
+                                      ? _saveProfile
+                                      : null,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _hasChanges
+                                        ? AppColors.buttonColor
+                                        : AppColors.surfaceDark,
+                                    foregroundColor: AppColors.textPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12.r),
                                     ),
-                            ),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 14.h,
+                                    ),
+                                  ),
+                                  child: isUpdating
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Text(
+                                          'Done',
+                                          style:
+                                              AppTextStyles.semiBold15(
+                                                context,
+                                              ).copyWith(
+                                                color: AppColors.textPrimary,
+                                              ),
+                                        ),
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -297,10 +335,7 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
           items: items.map((location) {
             return DropdownMenuItem(
               value: location,
-              child: Text(
-                location,
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: Text(location, overflow: TextOverflow.ellipsis),
             );
           }).toList(),
           onChanged: (value) {
@@ -323,10 +358,10 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
 
     final newUsername =
         username != _initialUsername.trim() && username.isNotEmpty
-            ? username
-            : null;
-    final newGender = _genderController.text != _initialGender &&
-            gender.isNotEmpty
+        ? username
+        : null;
+    final newGender =
+        _genderController.text != _initialGender && gender.isNotEmpty
         ? _genderController.text
         : null;
     final newHeight = _heightController.text != _initialHeight
@@ -335,10 +370,9 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
     final newWeight = _weightController.text != _initialWeight
         ? double.tryParse(_weightController.text.trim())
         : null;
-    final newGoal =
-        _goalController.text != _initialGoal && goal.isNotEmpty
-            ? _goalController.text
-            : null;
+    final newGoal = _goalController.text != _initialGoal && goal.isNotEmpty
+        ? _goalController.text
+        : null;
     final newPhoneNumber = phoneNumber != _initialPhoneNumber.trim()
         ? phoneNumber
         : null;
@@ -355,21 +389,21 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
         newGoal == null &&
         newPhoneNumber == null &&
         newLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No changes to save.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No changes to save.')));
       return;
     }
 
     context.read<ProfileCubit>().updateProfile(
-          username: newUsername,
-          gender: newGender,
-          height: newHeight,
-          weight: newWeight,
-          goal: newGoal,
-          phoneNumber: newPhoneNumber,
-          location: newLocation,
-        );
+      username: newUsername,
+      gender: newGender,
+      height: newHeight,
+      weight: newWeight,
+      goal: newGoal,
+      phoneNumber: newPhoneNumber,
+      location: newLocation,
+    );
   }
 
   Widget _buildAppBar(BuildContext context) {

@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/assigned/data/datasources/assigned_remote_data_source.dart';
@@ -16,6 +17,7 @@ class AssignedRepositoryImpl implements AssignedRepository {
       final model = await _dataSource.getAssignedPlans();
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -28,6 +30,7 @@ class AssignedRepositoryImpl implements AssignedRepository {
       await _dataSource.assignWorkoutTemplate(templateId);
       return const ApiSuccess(null);
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -40,6 +43,7 @@ class AssignedRepositoryImpl implements AssignedRepository {
       await _dataSource.assignNutritionTemplate(templateId);
       return const ApiSuccess(null);
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));

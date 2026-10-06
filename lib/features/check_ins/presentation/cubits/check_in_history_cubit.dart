@@ -7,10 +7,12 @@ class CheckInHistoryCubit extends Cubit<ApiResult<List<CheckInSubmission>>?> {
   CheckInHistoryCubit(this._getSubmissions) : super(null);
   final GetCoachSubmissionsUseCase _getSubmissions;
   int _request = 0;
+  ApiResult<List<CheckInSubmission>>? previousResult;
 
   Future<void> load(String coachClientId) async {
     final request = ++_request;
-    emit(null);
+    if (state is ApiSuccess<List<CheckInSubmission>>) previousResult = state;
+    if (previousResult == null) emit(null);
     final result = await _getSubmissions(coachClientId);
     if (!isClosed && request == _request) emit(result);
   }

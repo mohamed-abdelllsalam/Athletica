@@ -1,4 +1,6 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/errors/failures.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -21,6 +23,7 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
   String _query = '';
   bool _isLoading = true;
   String? _error;
+  bool _connectionError = false;
   List<TemplateItem> _templates = [];
   String? _selectedId;
   bool _isAssigning = false;
@@ -35,8 +38,9 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
 
   Future<void> _loadTemplates() async {
     setState(() {
-      _isLoading = true;
+      _isLoading = _templates.isEmpty;
       _error = null;
+      _connectionError = false;
     });
 
     try {
@@ -65,6 +69,7 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
             });
           case ApiError(:final failure):
             setState(() {
+              _connectionError = failure is NetworkFailure;
               _error = failure.message;
               _isLoading = false;
             });
@@ -87,6 +92,7 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
             });
           case ApiError(:final failure):
             setState(() {
+              _connectionError = failure is NetworkFailure;
               _error = failure.message;
               _isLoading = false;
             });
@@ -136,6 +142,7 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
                     .copyWith(color: AppColors.textPrimary),
               ),
               SizedBox(height: 16.h),
+              if (_connectionError) ConnectionErrorView(compact: true, onRetry: _loadTemplates),
               TemplateSearchField(
                 onChanged: (v) => setState(() => _query = v),
               ),
@@ -165,7 +172,7 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null) {
+    if (_error != null && !_connectionError) {
       return TemplateErrorView(message: _error!, onRetry: _loadTemplates);
     }
 

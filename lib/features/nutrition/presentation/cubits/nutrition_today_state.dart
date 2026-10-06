@@ -17,6 +17,7 @@ final class NutritionTodayLoaded extends NutritionTodayState {
     this.meals, {
     this.togglingMealLogIds = const {},
     this.errorMessage,
+    this.isConnectionError = false,
   });
 
   @override
@@ -24,13 +25,15 @@ final class NutritionTodayLoaded extends NutritionTodayState {
   final Set<String> togglingMealLogIds;
   String? get togglingMealLogId => togglingMealLogIds.firstOrNull;
   final String? errorMessage;
+  final bool isConnectionError;
 
   /// True when every meal is completed and there is at least one meal.
   bool get dayCompleted => meals.dayCompleted == true;
 }
 
 final class NutritionTodayError extends NutritionTodayState {
-  const NutritionTodayError(this.message);
+  const NutritionTodayError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   final String message;
 }

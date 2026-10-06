@@ -11,7 +11,11 @@ final class CoachJoinRequestsInitial extends CoachJoinRequestsState {}
 final class CoachJoinRequestsLoading extends CoachJoinRequestsState {}
 
 final class CoachJoinRequestsLoaded extends CoachJoinRequestsState {
-  const CoachJoinRequestsLoaded(this.requests);
+  const CoachJoinRequestsLoaded(
+    this.requests, {
+    this.isConnectionError = false,
+  });
+  final bool isConnectionError;
 
   @override
   final List<JoinRequest> requests;
@@ -28,7 +32,8 @@ final class CoachJoinRequestsActionInProgress extends CoachJoinRequestsState {
 
 /// The last action failed — the list is kept so the user can retry.
 final class CoachJoinRequestsActionError extends CoachJoinRequestsState {
-  const CoachJoinRequestsActionError(this.requests, this.message);
+  const CoachJoinRequestsActionError(this.requests, this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   @override
   final List<JoinRequest> requests;
@@ -36,7 +41,8 @@ final class CoachJoinRequestsActionError extends CoachJoinRequestsState {
 }
 
 final class CoachJoinRequestsError extends CoachJoinRequestsState {
-  const CoachJoinRequestsError(this.message);
+  const CoachJoinRequestsError(this.message, {this.isConnectionError = false});
+  final bool isConnectionError;
 
   final String message;
 }

@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'dart:convert';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/network/api_endpoints.dart';
@@ -187,6 +188,9 @@ class InboxRepositoryImpl implements InboxRepository {
       return ApiSuccess(await action());
     } catch (error) {
       if (error is DioException) {
+        if (isConnectivityException(error)) {
+          return ApiError(mapDioException(error));
+        }
         final status = error.response?.statusCode;
         if (status == 401) {
           return const ApiError(
@@ -201,8 +205,9 @@ class InboxRepositoryImpl implements InboxRepository {
         }
         if (status == null || status == 429 || status >= 500) {
           return const ApiError(
-            NetworkFailure(
+            ServerFailure(
               'Unable to connect. Your saved notifications are available.',
+              retryable: true,
             ),
           );
         }

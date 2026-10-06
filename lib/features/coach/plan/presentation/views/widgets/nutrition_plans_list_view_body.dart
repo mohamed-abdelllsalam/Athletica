@@ -1,4 +1,5 @@
 import 'nutrition_plans_list_states.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_templates_list_cubit.dart';
@@ -21,7 +22,7 @@ class NutritionPlansListViewBody extends StatefulWidget {
 
 class _NutritionPlansListViewBodyState
     extends State<NutritionPlansListViewBody> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
   String _query = '';
   String _selectedCategory = 'All';
   List<NutritionPlan> _apiPlans = [];
@@ -29,24 +30,31 @@ class _NutritionPlansListViewBodyState
   bool _loadedOnce = false;
   bool _loadingMore = false;
   String? _errorMessage;
+  bool _connectionError = false;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     // Seed from the cached cubit state so reopening the screen shows the
     // last-known list instantly while it silently revalidates in the
     // background (bloc listeners do not replay the current state).
-    switch (context.read<NutritionTemplatesListCubit>().state) {
+    final state = context.read<NutritionTemplatesListCubit>().state;
+    switch (state) {
       case NutritionTemplatesListLoaded(:final plans, :final isLoadingMore):
         setState(() {
           _apiPlans = plans;
           _loadingMore = isLoadingMore;
           _loadedOnce = true;
+          _connectionError = state.connectionError;
         });
       case NutritionTemplatesListLoading():
         setState(() => _loading = true);
       case NutritionTemplatesListError(:final message):
-        setState(() => _errorMessage = message);
+        setState(() {
+          _errorMessage = message;
+          _connectionError = state.connectionError;
+        });
       case NutritionTemplatesListInitial():
         break;
     }
@@ -133,12 +141,15 @@ class _NutritionPlansListViewBodyState
                   _loading = false;
                   _loadedOnce = true;
                   _loadingMore = isLoadingMore;
+                  _connectionError = state.connectionError;
+                  _errorMessage = null;
                 });
               case NutritionTemplatesListError(:final message):
                 setState(() {
                   _loading = false;
                   _loadingMore = false;
                   _errorMessage = message;
+                  _connectionError = state.connectionError;
                 });
               case NutritionTemplatesListInitial():
                 break;
@@ -240,6 +251,12 @@ class _NutritionPlansListViewBodyState
             ),
           ),
           SizedBox(height: 14.h),
+          if (_connectionError)
+            ConnectionErrorView(
+              compact: true,
+              onRetry: () =>
+                  context.read<NutritionTemplatesListCubit>().loadTemplates(),
+            ),
           Expanded(
             child: Builder(
               builder: (context) {
@@ -249,6 +266,13 @@ class _NutritionPlansListViewBodyState
                   return CoachNutritionPlansLoading();
                 }
                 if (_errorMessage != null && _apiPlans.isEmpty) {
+                  if (_connectionError) {
+                    return ConnectionErrorView(
+                      onRetry: () => context
+                          .read<NutritionTemplatesListCubit>()
+                          .loadTemplates(),
+                    );
+                  }
                   return CoachNutritionPlansError(
                     message: _errorMessage!,
                     onRetry: () => context

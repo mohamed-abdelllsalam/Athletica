@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/profile/presentation/cubits/profile_info_cubit.dart';
@@ -49,15 +50,52 @@ class ProfileInfoViewBody extends StatelessWidget {
                       );
                     },
                   ),
+                  ProfileInfoError(isConnectionError: true, :final answers) =>
+                    Column(
+                      children: [
+                        ConnectionErrorView(
+                          compact: answers != null,
+                          onRetry: () => context
+                              .read<ProfileInfoCubit>()
+                              .loadAnswers(forceRefresh: true),
+                        ),
+                        if (answers != null)
+                          Expanded(
+                            child: ListView.separated(
+                              padding: EdgeInsets.all(16.w),
+                              itemCount: answers.length,
+                              separatorBuilder: (_, _) =>
+                                  SizedBox(height: 24.h),
+                              itemBuilder: (context, index) => _QuestionItem(
+                                number: index + 1,
+                                question: answers[index].question,
+                                answer: answers[index].value,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ProfileInfoError(:final message) => Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 24.w),
-                      child: Text(
-                        message,
-                        style: AppTextStyles.medium14(
-                          context,
-                        ).copyWith(color: AppColors.textPrimary),
-                        textAlign: TextAlign.center,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            message,
+                            style: AppTextStyles.medium14(
+                              context,
+                            ).copyWith(color: AppColors.textPrimary),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 8.h),
+                          TextButton(
+                            onPressed: () => context
+                                .read<ProfileInfoCubit>()
+                                .loadAnswers(forceRefresh: true),
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
                     ),
                   ),

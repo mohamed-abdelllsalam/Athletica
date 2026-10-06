@@ -1,4 +1,5 @@
 import 'coach_plan_type_card.dart';
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -20,17 +21,17 @@ class CoachPlanViewBody extends StatelessWidget {
         builder: (context, state) {
           final plansCount = switch (state) {
             CoachPlanOverviewLoaded(:final nutritionPlans) =>
-              nutritionPlans.toString(),
+              nutritionPlans?.toString() ?? '--',
             _ => '--',
           };
           final workoutCount = switch (state) {
             CoachPlanOverviewLoaded(:final workoutPrograms) =>
-              workoutPrograms.toString(),
+              workoutPrograms?.toString() ?? '--',
             _ => '--',
           };
           final activeClientsCount = switch (state) {
             CoachPlanOverviewLoaded(:final activeClients) =>
-              activeClients.toString(),
+              activeClients?.toString() ?? '--',
             _ => '--',
           };
 
@@ -82,6 +83,14 @@ class CoachPlanViewBody extends StatelessWidget {
                   },
                 ),
                 SizedBox(height: 20.h),
+                if (state is CoachPlanOverviewLoaded &&
+                    (state.workoutConnectionError ||
+                        state.clientsConnectionError))
+                  ConnectionErrorView(
+                    compact: true,
+                    onRetry: () =>
+                        context.read<CoachPlanOverviewCubit>().load(),
+                  ),
                 CoachPlanTypeCard(
                   title: 'Nutrition',
                   subtitle: 'Meal Plan & Diets',
@@ -108,10 +117,22 @@ class CoachPlanViewBody extends StatelessWidget {
                     }
                   },
                 ),
-                if (state is CoachPlanOverviewError) ...[
+                if (state is CoachPlanOverviewLoaded &&
+                    (state.nutritionConnectionError ||
+                        state.clientsConnectionError))
+                  ConnectionErrorView(
+                    compact: true,
+                    onRetry: () =>
+                        context.read<CoachPlanOverviewCubit>().load(),
+                  ),
+                if (state is CoachPlanOverviewError ||
+                    (state is CoachPlanOverviewLoaded &&
+                        state.error != null)) ...[
                   SizedBox(height: 16.h),
                   Text(
-                    state.message,
+                    state is CoachPlanOverviewError
+                        ? state.message
+                        : (state as CoachPlanOverviewLoaded).error!,
                     textAlign: TextAlign.center,
                     style: AppTextStyles.meduim12(
                       context,

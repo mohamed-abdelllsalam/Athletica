@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/clients/domain/entities/client_detail.dart';
 import 'package:athletica/features/coach/clients/domain/usecases/delete_client_nutrition_plan_usecase.dart';
@@ -18,9 +19,15 @@ final class ClientDetailLoaded extends ClientDetailState {
 }
 
 final class ClientDetailError extends ClientDetailState {
-  ClientDetailError(this.message);
+  ClientDetailError(
+    this.message, {
+    this.detail,
+    this.isConnectionError = false,
+  });
 
   final String message;
+  final ClientDetail? detail;
+  final bool isConnectionError;
 }
 
 class ClientDetailCubit extends Cubit<ClientDetailState> {
@@ -38,8 +45,15 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
 
   Future<void> loadClientDetail(String clientId) async {
     if (state is ClientDetailLoading) return;
+    final previous = _currentClientId == clientId
+        ? switch (state) {
+            ClientDetailLoaded(:final detail) => detail,
+            ClientDetailError(:final detail) => detail,
+            _ => null,
+          }
+        : null;
     _currentClientId = clientId;
-    emit(ClientDetailLoading());
+    if (previous == null) emit(ClientDetailLoading());
 
     final result = await _getClientDetail(clientId);
     switch (result) {
@@ -48,7 +62,13 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
         emit(ClientDetailLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ClientDetailError(failure.message));
+        emit(
+          ClientDetailError(
+            failure.message,
+            detail: failure is NetworkFailure ? previous : null,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 
@@ -64,7 +84,13 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
         }
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ClientDetailError(failure.message));
+        emit(
+          ClientDetailError(
+            failure.message,
+            detail: failure is NetworkFailure ? current.detail : null,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 
@@ -80,7 +106,13 @@ class ClientDetailCubit extends Cubit<ClientDetailState> {
         }
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ClientDetailError(failure.message));
+        emit(
+          ClientDetailError(
+            failure.message,
+            detail: failure is NetworkFailure ? current.detail : null,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 }

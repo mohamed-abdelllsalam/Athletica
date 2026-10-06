@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:athletica/features/profile/domain/entities/user_profile_entity.dart';
+import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/profile/domain/usecases/delete_profile_image_usecase.dart';
 import 'package:athletica/features/profile/domain/usecases/get_client_profile_usecase.dart';
@@ -21,22 +23,41 @@ class ProfileCubit extends Cubit<ProfileState> {
   final UploadProfileImageUseCase _uploadProfileImage;
   final DeleteProfileImageUseCase _deleteProfileImage;
 
+  ClientProfileEntity? get _currentProfile => switch (state) {
+    ProfileLoaded(:final profile) => profile,
+    ProfileUpdating(:final profile) => profile,
+    ProfileImageUploading(:final profile) => profile,
+    ProfileImageUploaded(:final profile) => profile,
+    ProfileImageDeleted(:final profile) => profile,
+    ProfileError(:final profile) => profile,
+    _ => null,
+  };
+
+  bool _loading = false;
+
   Future<void> loadProfile({bool forceRefresh = false}) async {
+    if (_loading || isClosed) return;
     if (!forceRefresh && (state is ProfileLoaded || state is ProfileLoading)) {
       return;
     }
-    final currentProfile = state is ProfileLoaded
-        ? (state as ProfileLoaded).profile
-        : null;
+    _loading = true;
+    final currentProfile = _currentProfile;
     if (currentProfile == null) emit(ProfileLoading());
     final result = await _getClientProfile();
+    _loading = false;
     switch (result) {
       case ApiSuccess(:final data):
         if (isClosed) return;
         emit(ProfileLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message, profile: currentProfile));
+        emit(
+          ProfileError(
+            failure.message,
+            profile: currentProfile,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 
@@ -50,9 +71,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     String? phoneNumber,
     String? location,
   }) async {
-    final currentProfile = state is ProfileLoaded
-        ? (state as ProfileLoaded).profile
-        : null;
+    final currentProfile = _currentProfile;
     if (currentProfile != null) {
       emit(ProfileUpdating(currentProfile));
     }
@@ -72,14 +91,18 @@ class ProfileCubit extends Cubit<ProfileState> {
         await loadProfile(forceRefresh: true);
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message, profile: currentProfile));
+        emit(
+          ProfileError(
+            failure.message,
+            profile: currentProfile,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 
   Future<void> uploadImage(File imageFile) async {
-    final currentProfile = state is ProfileLoaded
-        ? (state as ProfileLoaded).profile
-        : null;
+    final currentProfile = _currentProfile;
     if (currentProfile != null) {
       emit(ProfileImageUploading(currentProfile));
     }
@@ -90,14 +113,18 @@ class ProfileCubit extends Cubit<ProfileState> {
         await loadProfile(forceRefresh: true);
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message, profile: currentProfile));
+        emit(
+          ProfileError(
+            failure.message,
+            profile: currentProfile,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 
   Future<void> deleteImage() async {
-    final currentProfile = state is ProfileLoaded
-        ? (state as ProfileLoaded).profile
-        : null;
+    final currentProfile = _currentProfile;
     if (currentProfile != null) {
       emit(ProfileImageUploading(currentProfile));
     }
@@ -108,7 +135,13 @@ class ProfileCubit extends Cubit<ProfileState> {
         await loadProfile(forceRefresh: true);
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message, profile: currentProfile));
+        emit(
+          ProfileError(
+            failure.message,
+            profile: currentProfile,
+            isConnectionError: failure is NetworkFailure,
+          ),
+        );
     }
   }
 }

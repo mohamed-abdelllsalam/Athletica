@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'widgets/coach_active_clients_states.dart';
 import 'widgets/coach_active_clients_search.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -21,12 +22,13 @@ class CoachActiveClientsView extends StatefulWidget {
 }
 
 class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
-  final TextEditingController _searchController = TextEditingController();
+  late final TextEditingController _searchController;
   String _query = '';
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     context.read<CoachClientsCubit>().loadClients();
   }
 
@@ -77,7 +79,8 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
           Expanded(
             child: BlocBuilder<CoachClientsCubit, CoachClientsState>(
               builder: (context, state) {
-                if (state is CoachClientsLoading) {
+                if (state is CoachClientsLoading ||
+                    state is CoachClientsInitial) {
                   return const Center(
                     child: CircularProgressIndicator(
                       color: AppColors.primaryBlue,
@@ -86,6 +89,14 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
                 }
 
                 if (state is CoachClientsError) {
+                  if (state.isConnectionError) {
+                    return SingleChildScrollView(
+                      child: ConnectionErrorView(
+                        onRetry: () =>
+                            context.read<CoachClientsCubit>().loadClients(),
+                      ),
+                    );
+                  }
                   return CoachActiveClientsError(
                     message: state.message,
                     onRetry: () =>
@@ -94,6 +105,36 @@ class _CoachActiveClientsViewState extends State<CoachActiveClientsView> {
                 }
 
                 final clients = state.clients;
+                if (state is CoachClientsLoaded && state.isConnectionError || state is CoachClientsActionError && state.isConnectionError) {
+                  return Column(
+                    children: [
+                      ConnectionErrorView(
+                        onRetry: () =>
+                            context.read<CoachClientsCubit>().loadClients(),
+                        compact: true,
+                      ),
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            for (final client in _filtered(clients))
+                              CoachAssignedClientCard(
+                                client: client,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  CoachClientDetailView.routeName,
+                                  arguments: {
+                                    'clientId': client.clientId,
+                                    'clientName': client.name,
+                                    'coachClientId': client.relationId,
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
                 final filtered = _filtered(clients);
 
                 if (filtered.isEmpty) {

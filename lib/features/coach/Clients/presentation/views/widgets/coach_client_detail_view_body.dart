@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'coach_client_deactivate_plan_dialog.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -65,6 +66,24 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
           builder: (context, state) {
             if (state is ClientDetailLoading) {
               return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state case ClientDetailError(
+              isConnectionError: true,
+              :final detail,
+            )) {
+              return Column(
+                children: [
+                  ConnectionErrorView(
+                    compact: detail != null,
+                    onRetry: () => context
+                        .read<ClientDetailCubit>()
+                        .loadClientDetail(widget.clientId),
+                  ),
+                  if (detail != null)
+                    Expanded(child: _buildContent(context, detail)),
+                ],
+              );
             }
 
             if (state is ClientDetailError) {

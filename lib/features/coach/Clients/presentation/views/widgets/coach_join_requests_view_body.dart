@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'coach_join_requests_states.dart';
 import 'coach_join_request_tile.dart';
 import 'package:athletica/core/di/injection_container.dart';
@@ -38,7 +39,7 @@ class _CoachJoinRequestsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<CoachJoinRequestsCubit, CoachJoinRequestsState>(
       listenWhen: (previous, current) =>
-          current is CoachJoinRequestsActionError,
+          current is CoachJoinRequestsActionError && !current.isConnectionError,
       listener: (context, state) {
         if (state is CoachJoinRequestsActionError) {
           _showSnackBar(context, state.message);
@@ -52,13 +53,23 @@ class _CoachJoinRequestsContent extends StatelessWidget {
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
               child: Text(
-                'Request (${state.requests.length})',
+                state is CoachJoinRequestsError ||
+                        state is CoachJoinRequestsLoading ||
+                        state is CoachJoinRequestsInitial
+                    ? 'Requests'
+                    : 'Request (${state.requests.length})',
                 style: AppTextStyles.medium15(
                   context,
                 ).copyWith(color: AppColors.textPrimary),
               ),
             ),
             SizedBox(height: 12.h),
+            if (state is CoachJoinRequestsLoaded && state.isConnectionError || state is CoachJoinRequestsActionError && state.isConnectionError)
+              ConnectionErrorView(
+                onRetry: () =>
+                    context.read<CoachJoinRequestsCubit>().loadRequests(),
+                compact: true,
+              ),
             Expanded(child: _buildBody(context, state)),
           ],
         );
@@ -70,10 +81,19 @@ class _CoachJoinRequestsContent extends StatelessWidget {
     return switch (state) {
       CoachJoinRequestsInitial() ||
       CoachJoinRequestsLoading() => const CoachJoinRequestsLoadingView(),
-      CoachJoinRequestsError(:final message) => CoachJoinRequestsErrorView(
-        message: message,
-        onRetry: () => context.read<CoachJoinRequestsCubit>().loadRequests(),
-      ),
+      CoachJoinRequestsError(:final message, :final isConnectionError) =>
+        isConnectionError
+            ? SingleChildScrollView(
+                child: ConnectionErrorView(
+                  onRetry: () =>
+                      context.read<CoachJoinRequestsCubit>().loadRequests(),
+                ),
+              )
+            : CoachJoinRequestsErrorView(
+                message: message,
+                onRetry: () =>
+                    context.read<CoachJoinRequestsCubit>().loadRequests(),
+              ),
       _ => _buildList(context, state.requests),
     };
   }

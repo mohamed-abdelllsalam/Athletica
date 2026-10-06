@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'dart:io';
 
 import 'package:athletica/core/di/injection_container.dart';
@@ -316,9 +317,15 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
           SizedBox(width: 8.w),
           BlocBuilder<ProfileCubit, ProfileState>(
             buildWhen: (prev, curr) =>
-                curr is ProfileLoaded || curr is ProfileLoading,
+                curr is ProfileLoaded ||
+                curr is ProfileLoading ||
+                curr is ProfileError,
             builder: (context, state) {
-              final name = state is ProfileLoaded ? state.profile.name : '...';
+              final name = switch (state) {
+                ProfileLoaded(:final profile) => profile.name,
+                ProfileError(:final profile?) => profile.name,
+                _ => '...',
+              };
               return Text(
                 name,
                 style: AppTextStyles.semiBold15(
@@ -335,9 +342,23 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
   Widget _buildProfileSection(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
       buildWhen: (prev, curr) =>
-          curr is ProfileLoaded || curr is ProfileLoading,
+          curr is ProfileLoaded ||
+          curr is ProfileLoading ||
+          curr is ProfileError,
       builder: (context, state) {
-        final profile = state is ProfileLoaded ? state.profile : null;
+        final profile = switch (state) {
+          ProfileLoaded(:final profile) => profile,
+          ProfileUpdating(:final profile) => profile,
+          ProfileImageUploading(:final profile) => profile,
+          ProfileError(:final profile) => profile,
+          _ => null,
+        };
+        if (state case ProfileError(isConnectionError: true, profile: null)) {
+          return ConnectionErrorView(
+            onRetry: () =>
+                context.read<ProfileCubit>().loadProfile(forceRefresh: true),
+          );
+        }
         final name = profile?.name ?? '—';
         final imageUrl = profile?.profileImage;
         final height = profile?.height != null ? '${profile!.height} Cm' : '—';
@@ -345,6 +366,13 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
 
         return Column(
           children: [
+            if (state case ProfileError(isConnectionError: true))
+              ConnectionErrorView(
+                compact: true,
+                onRetry: () => context.read<ProfileCubit>().loadProfile(
+                  forceRefresh: true,
+                ),
+              ),
             Row(
               children: [
                 GestureDetector(
@@ -577,6 +605,9 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
           ProfileError(:final profile) => profile,
           _ => null,
         };
+        if (state case ProfileError(isConnectionError: true, profile: null)) {
+          return const SizedBox.shrink();
+        }
         return ProfileAssignedPlansSection(profile: profile);
       },
     );

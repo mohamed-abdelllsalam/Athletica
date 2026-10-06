@@ -108,6 +108,7 @@ class CheckInHistoryView extends StatelessWidget {
                     SizedBox(height: 16.h),
                     CheckInHistorySection(
                       result: state,
+                      previousResult: cubit.previousResult,
                       onRetry: () => cubit.load(coachClientId),
                       onOpen: (submission) async {
                         await Navigator.push<void>(

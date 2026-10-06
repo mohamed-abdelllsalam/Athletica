@@ -1,3 +1,4 @@
+import 'package:athletica/core/errors/api_error_mapper.dart';
 import 'package:athletica/core/errors/failures.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/features/coach/clients/data/datasources/coach_clients_remote_data_source.dart';
@@ -20,6 +21,7 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
       final models = await _dataSource.getClientsByTrainerId(trainerId);
       return ApiSuccess(models.map((m) => m.toEntity()).toList());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -32,6 +34,7 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
       final models = await _dataSource.getAssignedClients();
       return ApiSuccess(models.map((m) => m.toEntity()).toList());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -44,6 +47,7 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
       final model = await _dataSource.getClientDetail(clientId);
       return ApiSuccess(model.toEntity());
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -56,6 +60,7 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
       await _dataSource.removeAssignedClient(clientId);
       return const ApiSuccess(null);
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -68,6 +73,7 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
       await _dataSource.deleteNutritionPlan(planId);
       return const ApiSuccess(null);
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
@@ -80,6 +86,7 @@ class CoachClientsRepositoryImpl implements CoachClientsRepository {
       await _dataSource.deleteWorkoutPlan(planId);
       return const ApiSuccess(null);
     } on DioException catch (e) {
+      if (isConnectivityException(e)) return ApiError(mapDioException(e));
       return ApiError(ServerFailure(e.message ?? 'Something went wrong'));
     } catch (e) {
       return ApiError(UnknownFailure(e.toString()));
