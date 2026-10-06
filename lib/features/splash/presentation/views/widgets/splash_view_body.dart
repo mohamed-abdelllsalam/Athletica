@@ -78,7 +78,7 @@ class _SplashViewBodyState extends State<SplashViewBody>
     _startTypewriter();
     final remainingChars = math.max(0, _appName.length - _visibleChars);
     final remainingMs = remainingChars * _typeInterval.inMilliseconds;
-    final totalDelay = Duration(milliseconds: remainingMs + 1500);
+    final totalDelay = Duration(milliseconds: remainingMs);
     _navigateTimer?.cancel();
     _navigateTimer = Timer(totalDelay, () {
       if (!mounted) return;

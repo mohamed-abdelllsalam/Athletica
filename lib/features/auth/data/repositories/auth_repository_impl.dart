@@ -235,7 +235,13 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<bool>> checkClientProfileCompletion() async {
     try {
+      if (await TokenStorageService.instance.isProfileComplete()) {
+        return const ApiSuccess(true);
+      }
       final isComplete = await _remoteDataSource.checkClientProfileCompletion();
+      if (isComplete) {
+        await TokenStorageService.instance.saveProfileComplete();
+      }
       return ApiSuccess(isComplete);
     } on DioException catch (e) {
       return ApiError(_mapDioError(e));

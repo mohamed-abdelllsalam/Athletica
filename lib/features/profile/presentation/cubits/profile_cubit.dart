@@ -25,7 +25,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     if (!forceRefresh && (state is ProfileLoaded || state is ProfileLoading)) {
       return;
     }
-    emit(ProfileLoading());
+    final currentProfile = state is ProfileLoaded
+        ? (state as ProfileLoaded).profile
+        : null;
+    if (currentProfile == null) emit(ProfileLoading());
     final result = await _getClientProfile();
     switch (result) {
       case ApiSuccess(:final data):
@@ -33,7 +36,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         emit(ProfileLoaded(data));
       case ApiError(:final failure):
         if (isClosed) return;
-        emit(ProfileError(failure.message));
+        emit(ProfileError(failure.message, profile: currentProfile));
     }
   }
 
@@ -47,8 +50,9 @@ class ProfileCubit extends Cubit<ProfileState> {
     String? phoneNumber,
     String? location,
   }) async {
-    final currentProfile =
-        state is ProfileLoaded ? (state as ProfileLoaded).profile : null;
+    final currentProfile = state is ProfileLoaded
+        ? (state as ProfileLoaded).profile
+        : null;
     if (currentProfile != null) {
       emit(ProfileUpdating(currentProfile));
     }
@@ -73,8 +77,9 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   Future<void> uploadImage(File imageFile) async {
-    final currentProfile =
-        state is ProfileLoaded ? (state as ProfileLoaded).profile : null;
+    final currentProfile = state is ProfileLoaded
+        ? (state as ProfileLoaded).profile
+        : null;
     if (currentProfile != null) {
       emit(ProfileImageUploading(currentProfile));
     }
@@ -90,8 +95,9 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   Future<void> deleteImage() async {
-    final currentProfile =
-        state is ProfileLoaded ? (state as ProfileLoaded).profile : null;
+    final currentProfile = state is ProfileLoaded
+        ? (state as ProfileLoaded).profile
+        : null;
     if (currentProfile != null) {
       emit(ProfileImageUploading(currentProfile));
     }

@@ -31,8 +31,8 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
-  /// Defensive questionnaire gate: Home must not render until backend totals
-  /// confirm completion. A failed request must not imply an incomplete profile.
+  /// Returning clients reuse verified completion; otherwise verify with the API.
+  /// A failed request must not imply an incomplete profile.
   Future<void> _checkProfileCompletion() async {
     if (_profileCheckFailed) {
       setState(() {
