@@ -7,6 +7,53 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:481799697583:android:6c66ddb560898ad7a4505a",
+        "android_client_info": {
+          "package_name": "com.athletica.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "481799697583-932ftr527i0p34det507lgc75nfo6bmp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.athletica.app",
+            "certificate_hash": "acc85dd3570de037b20808d99c5cdddd41ac14e8"
+          }
+        },
+        {
+          "client_id": "481799697583-s8eoafsguqvjllo9foju8k06db2296np.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQU1sXYPioaaIzx9DPmd6EoFh6zK98uT4"
+        },
+        {
+          "current_key": "AIzaSyCjSc-2MPweA-zOGTMlrUzKq5aRmr0Uy_w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "481799697583-s8eoafsguqvjllo9foju8k06db2296np.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "481799697583-lm1vvkm47hj3pt2iqj8e4c79eba5b63s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.athletica"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:481799697583:android:9b6aa441decae0c5a4505a",
         "android_client_info": {
           "package_name": "com.example.athletica"
@@ -28,6 +75,9 @@
       ],
       "api_key": [
         {
+          "current_key": "AIzaSyDQU1sXYPioaaIzx9DPmd6EoFh6zK98uT4"
+        },
+        {
           "current_key": "AIzaSyCjSc-2MPweA-zOGTMlrUzKq5aRmr0Uy_w"
         }
       ],
@@ -37,6 +87,13 @@
             {
               "client_id": "481799697583-s8eoafsguqvjllo9foju8k06db2296np.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "481799697583-lm1vvkm47hj3pt2iqj8e4c79eba5b63s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.athletica"
+              }
             }
           ]
         }
@@ -65,6 +122,9 @@
       ],
       "api_key": [
         {
+          "current_key": "AIzaSyDQU1sXYPioaaIzx9DPmd6EoFh6zK98uT4"
+        },
+        {
           "current_key": "AIzaSyCjSc-2MPweA-zOGTMlrUzKq5aRmr0Uy_w"
         }
       ],
@@ -74,6 +134,13 @@
             {
               "client_id": "481799697583-s8eoafsguqvjllo9foju8k06db2296np.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "481799697583-lm1vvkm47hj3pt2iqj8e4c79eba5b63s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.athletica"
+              }
             }
           ]
         }
