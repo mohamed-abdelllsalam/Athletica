@@ -17,12 +17,13 @@ workflows:
 
     environment:
       flutter: 3.41.6
-    groups:
-      - athletica_ios_prod  
+      groups:
+        - athletica_ios_prod
 
     scripts:
       - name: Get Flutter packages
-        script: flutter pub get
+        script: |
+          flutter pub get
 
       - name: Install CocoaPods dependencies
         script: |
@@ -41,7 +42,8 @@ workflows:
           touch .env.dev
 
       - name: Analyze Flutter project
-        script: flutter analyze
+        script: |
+          flutter analyze
 
       - name: Run tests
         script: |
