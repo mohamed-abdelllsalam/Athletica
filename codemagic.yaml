@@ -53,11 +53,11 @@ workflows:
             echo "No Flutter tests found. Skipping tests."
           fi
 
-      - name: Build iOS Simulator Release
+      - name: Build iOS Simulator
         script: |
           flutter build ios \
             --simulator \
-            --release \
+            --profile \
             --target lib/main_prod.dart
 
       - name: Package iOS Simulator app
