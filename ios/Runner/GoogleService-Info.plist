@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>481799697583-lm1vvkm47hj3pt2iqj8e4c79eba5b63s.apps.googleusercontent.com</string>
+	<string>481799697583-efu76j1uc49cab83i2gmlvrjnmo6hiet.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.481799697583-lm1vvkm47hj3pt2iqj8e4c79eba5b63s</string>
+	<string>com.googleusercontent.apps.481799697583-efu76j1uc49cab83i2gmlvrjnmo6hiet</string>
 	<key>ANDROID_CLIENT_ID</key>
-	<string>481799697583-0no6gugugf0vc8vum0fd75n187vem0q5.apps.googleusercontent.com</string>
+	<string>481799697583-932ftr527i0p34det507lgc75nfo6bmp.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyCvber_YOrPAaNoiQRWfo39Qi4KXR-nato</string>
+	<string>AIzaSyA1ilDuOliDKu5EyqK2FDhllHKjPWsjRQQ</string>
 	<key>GCM_SENDER_ID</key>
 	<string>481799697583</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.athletica</string>
+	<string>com.athletica.app</string>
 	<key>PROJECT_ID</key>
 	<string>athletica-d2dd2</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:481799697583:ios:c2f0bc8dbb397a01a4505a</string>
+	<string>1:481799697583:ios:e66fa9552ff4fd95a4505a</string>
 </dict>
 </plist>
