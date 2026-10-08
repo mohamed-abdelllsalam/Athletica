@@ -1,0 +1,278 @@
+# Codemagic CI/CD for Athletica (Flutter, flavors: dev / prod)
+#
+# Project-specific facts this file relies on (do NOT change blindly):
+# - Flutter 3.41.6 / Dart 3.11.4 (see local `flutter --version`), no FVM.
+# - Entry points: lib/main_dev.dart (flavor dev) and lib/main_prod.dart (flavor prod).
+# - Android product flavors in android/app/build.gradle.kts: `dev`
+#   (applicationIdSuffix ".dev") and `prod` (applicationId "com.athletica.app").
+#   Production AAB:  flutter build appbundle --release --flavor prod --target lib/main_prod.dart
+#   Output: build/app/outputs/bundle/prodRelease/app-prod-release.aab
+# - iOS has NO flavors/schemes per flavor: single "Runner" scheme, Release
+#   configuration used for archiving, bundle id com.example.athletica.
+#   Production IPA (note: NO --flavor flag, iOS would fail with an unknown flavor):
+#     flutter build ipa --release --target lib/main_prod.dart
+# - Env keys (and ONLY these) are read via flutter_dotenv / AppConfig
+#   (see .env.example, lib/core/config/app_config.dart): BASE_URL, APP_NAME, SENTRY_DSN.
+#   None is strictly required at runtime (AppConfig has prod-safe fallbacks),
+#   but CI creates .env.prod from Codemagic variables so real prod values are used.
+# - pubspec.yaml declares BOTH .env.dev and .env.prod as bundled assets, so BOTH
+#   files must exist at build time even though only .env.prod is loaded in prod.
+# - android/settings.gradle.kts requires android/local.properties with flutter.sdk,
+#   so CI generates it (Codemagic builders do not check it into Git).
+# - android/app/build.gradle.kts reads android/key.properties for the release
+#   signingConfig, so CI generates key.properties from the Codemagic Android
+#   signing identity (CM_KEYSTORE_*). No Gradle changes, no keystore in Git.
+#
+# REQUIRED MANUAL SETUP IN CODEMAGIC (see checklist at the bottom of this file):
+#   1. Code signing identity  : Android keystore reference  -> ATHLETICA_KEYSTORE
+#   2. Variable group         : athletica_prod with BASE_URL, APP_NAME,
+#                               SENTRY_DSN (secret), GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS (secret)
+#   3. iOS signing identities : distribution certificate + provisioning profile
+#                               for bundle id com.example.athletica (app_store)
+#   4. Google Play            : first AAB upload + first release created MANUALLY,
+#                               service account linked (see docs link in checklist).
+#
+# SECURITY: this file contains NO secrets. All credentials come from Codemagic
+# encrypted variables / code signing identities. Scripts never print secret values.
+
+workflows:
+  # ---------------------------------------------------------------------------
+  # Android production: signed prod AAB (+ optional Google Play internal draft)
+  # ---------------------------------------------------------------------------
+  android-prod:
+    name: Android Production (AAB)
+    max_build_duration: 120
+    instance_type: linux_x2
+    environment:
+      flutter: 3.41.6
+      java: 17
+      android_signing:
+        - ATHLETICA_KEYSTORE
+      groups:
+        - athletica_prod
+      vars:
+        PACKAGE_NAME: "com.athletica.app"
+        GOOGLE_PLAY_TRACK: "internal"
+    cache:
+      cache_paths:
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.gradle/caches
+    triggering_events:
+      - push
+      - tag
+    branch_patterns:
+      - pattern: master
+        include: true
+        source: true
+    tag_patterns:
+      - pattern: "v*"
+        include: true
+    scripts:
+      - name: Set up Android local.properties (flutter.sdk)
+        script: |
+          set -e
+          printf 'flutter.sdk=%s\n' "$FLUTTER_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+          echo "android/local.properties configured."
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Prepare production environment (.env.prod)
+        script: |
+          set -e
+          # Values come from the `athletica_prod` variable group. Never echo them.
+          printf 'BASE_URL=%s\nAPP_NAME=%s\nSENTRY_DSN=%s\n' \
+            "$BASE_URL" "$APP_NAME" "$SENTRY_DSN" > "$CM_BUILD_DIR/.env.prod"
+          for key in BASE_URL APP_NAME SENTRY_DSN; do
+            grep -q "^${key}=" "$CM_BUILD_DIR/.env.prod" \
+              || { echo "Missing $key in .env.prod"; exit 1; }
+          done
+          # pubspec.yaml bundles BOTH env files as assets, so .env.dev must
+          # exist at build time too (placeholder is enough for a prod build).
+          if [ ! -f "$CM_BUILD_DIR/.env.dev" ]; then
+            printf 'BASE_URL=\nAPP_NAME=\nSENTRY_DSN=\n' > "$CM_BUILD_DIR/.env.dev"
+          fi
+          echo ".env files prepared (values hidden)."
+      - name: Static analysis
+        script: |
+          flutter analyze
+      - name: Run tests (skips cleanly until *_test.dart files exist)
+        script: |
+          set -e
+          # KNOWN PROJECT STATE (Oct 2026): test/ contains only empty
+          # directories, no *_test.dart files, so plain `flutter test`
+          # exits 1 with "does not appear to contain any test files".
+          # Guard keeps the workflow green without masking real failures:
+          # as soon as test files exist, their failures WILL fail the build.
+          if find test -name '*_test.dart' | grep -q .; then
+            flutter test
+          else
+            echo 'No *_test.dart files in test/ yet - skipping (add tests to enforce).'
+          fi
+      - name: Configure Android release signing (key.properties from CI identity)
+        script: |
+          set -e
+          : "${CM_KEYSTORE_PATH:?CM_KEYSTORE_PATH is missing - check android_signing reference.}"
+          : "${CM_KEYSTORE_PASSWORD:?CM_KEYSTORE_PASSWORD is missing.}"
+          : "${CM_KEY_ALIAS:?CM_KEY_ALIAS is missing.}"
+          : "${CM_KEY_PASSWORD:?CM_KEY_PASSWORD is missing.}"
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' \
+            "$CM_KEYSTORE_PASSWORD" "$CM_KEY_PASSWORD" "$CM_KEY_ALIAS" "$CM_KEYSTORE_PATH" \
+            > "$CM_BUILD_DIR/android/key.properties"
+          echo "android/key.properties configured from Codemagic signing identity."
+      - name: Show pubspec version (traceability, no version changes in CI)
+        script: |
+          grep '^version:' pubspec.yaml
+          echo "Package: $PACKAGE_NAME"
+      # OPTIONAL, opt-in only: derive --build-number from Google Play so every
+      # upload has a unique versionCode. OFF by default because the project
+      # versions via pubspec.yaml + scripts/distribute_*.ps1. To enable,
+      # uncomment the lines below AND pass the computed number to the build.
+      # - name: Resolve next Android version code from Google Play (optional)
+      #   script: |
+      #     set -e
+      #     LATEST="$(google-play get-latest-build-number --package-name "$PACKAGE_NAME")"
+      #     echo "Latest version code on Play: $LATEST"
+      #     echo "NEXT_BUILD_NUMBER=$((LATEST + 1))" >> "$CM_ENV"
+      - name: Build production App Bundle (prod flavor)
+        script: |
+          set -e
+          flutter build appbundle --release --flavor prod --target lib/main_prod.dart
+      - name: Verify release artifacts
+        script: |
+          set -e
+          ls -la build/app/outputs/bundle/prodRelease/
+    artifacts:
+      - build/app/outputs/bundle/**/*.aab
+      - build/app/outputs/mapping/**/mapping.txt
+    publishing:
+      google_play:
+        credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: true
+
+  # ---------------------------------------------------------------------------
+  # iOS production: signed prod IPA (no flavors on iOS - single Runner scheme)
+  # ---------------------------------------------------------------------------
+  ios-prod:
+    name: iOS Production (IPA)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      flutter: 3.41.6
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.athletica
+      groups:
+        - athletica_prod
+      vars:
+        BUNDLE_ID: "com.example.athletica"
+        XCODE_SCHEME: "Runner"
+    cache:
+      cache_paths:
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/Library/Caches/CocoaPods
+    triggering_events:
+      - push
+      - tag
+    branch_patterns:
+      - pattern: master
+        include: true
+        source: true
+    tag_patterns:
+      - pattern: "v*"
+        include: true
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Install CocoaPods dependencies
+        script: |
+          set -e
+          find . -name "Podfile" -execdir pod install \;
+      - name: Prepare production environment (.env.prod)
+        script: |
+          set -e
+          # Values come from the `athletica_prod` variable group. Never echo them.
+          printf 'BASE_URL=%s\nAPP_NAME=%s\nSENTRY_DSN=%s\n' \
+            "$BASE_URL" "$APP_NAME" "$SENTRY_DSN" > "$CM_BUILD_DIR/.env.prod"
+          for key in BASE_URL APP_NAME SENTRY_DSN; do
+            grep -q "^${key}=" "$CM_BUILD_DIR/.env.prod" \
+              || { echo "Missing $key in .env.prod"; exit 1; }
+          done
+          # pubspec.yaml bundles BOTH env files as assets, so .env.dev must
+          # exist at build time too (placeholder is enough for a prod build).
+          if [ ! -f "$CM_BUILD_DIR/.env.dev" ]; then
+            printf 'BASE_URL=\nAPP_NAME=\nSENTRY_DSN=\n' > "$CM_BUILD_DIR/.env.dev"
+          fi
+          echo ".env files prepared (values hidden)."
+      - name: Static analysis
+        script: |
+          flutter analyze
+      - name: Run tests (skips cleanly until *_test.dart files exist)
+        script: |
+          set -e
+          # See android-prod for rationale: test/ has no *_test.dart files yet.
+          if find test -name '*_test.dart' | grep -q .; then
+            flutter test
+          else
+            echo 'No *_test.dart files in test/ yet - skipping (add tests to enforce).'
+          fi
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Show pubspec version (traceability, no version changes in CI)
+        script: |
+          grep '^version:' pubspec.yaml
+      - name: Build production IPA (existing Runner scheme, Release config)
+        script: |
+          set -e
+          # NOTE: no --flavor flag - the iOS project defines no flavors.
+          # The prod entry point + .env.prod select the production backend.
+          flutter build ipa --release \
+            --target lib/main_prod.dart \
+            --export-options-plist=/Users/builder/export_options.plist
+      - name: Verify release artifacts
+        script: |
+          set -e
+          ls -la build/ios/ipa/
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+  # ---------------------------------------------------------------------------
+  # Validation: fast analyze + test on development (no signing, no publishing)
+  # ---------------------------------------------------------------------------
+  dev-validate:
+    name: Validate (Analyze + Test)
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: 3.41.6
+      java: 17
+    cache:
+      cache_paths:
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.gradle/caches
+    triggering_events:
+      - push
+      - pull_request
+    branch_patterns:
+      - pattern: development
+        include: true
+        source: true
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Static analysis
+        script: |
+          flutter analyze
+      - name: Run tests (skips cleanly until *_test.dart files exist)
+        script: |
+          set -e
+          # See android-prod for rationale: test/ has no *_test.dart files yet.
+          if find test -name '*_test.dart' | grep -q .; then
+            flutter test
+          else
+            echo 'No *_test.dart files in test/ yet - skipping (add tests to enforce).'
+          fi
