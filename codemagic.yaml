@@ -1,44 +1,8 @@
-# Codemagic CI/CD for Athletica - iOS Simulator build for Appetize testing.
-#
-# Purpose: produce an UNSIGNED iOS Simulator build (.app zipped for Appetize)
-# using the PRODUCTION configuration. Here `prod` means ONLY:
-#   lib/main_prod.dart + .env.prod + production API configuration.
-# It does NOT mean App Store / TestFlight distribution. No Apple Distribution
-# certificate, provisioning profile, App Store Connect API key, or any
-# distribution signing is required or configured.
-#
-# Project-specific facts this file relies on (do NOT change blindly):
-# - Flutter 3.41.6 / Dart 3.11.4 (see local `flutter --version`), no FVM.
-# - Production entry point: lib/main_prod.dart (flavors exist only on
-#   Android; iOS has a single "Runner" scheme, so NO --flavor flag).
-# - Simulator build:
-#     flutter build ios --simulator --release --target lib/main_prod.dart
-#   Standard Flutter output: build/ios/iphonesimulator/Runner.app
-#   (device builds go to build/ios/iphoneos/ instead - NOT used here).
-#   The zip step verifies Runner.app exists and fails loudly if the path
-#   ever differs, printing where .app bundles actually are.
-# - Env keys (and ONLY these) are read via flutter_dotenv / AppConfig
-#   (see .env.example, lib/core/config/app_config.dart): BASE_URL, APP_NAME, SENTRY_DSN.
-#   None is strictly required at runtime (AppConfig has prod-safe fallbacks),
-#   but CI creates .env.prod from Codemagic variables so real prod values are used.
-# - pubspec.yaml declares BOTH .env.dev and .env.prod as bundled assets, so BOTH
-#   files must exist at build time even though only .env.prod is loaded in prod.
-# - Trigger syntax follows the current Codemagic schema: triggers are nested
-#   under `triggering:` (events / branch_patterns / tag_patterns).
-#   Docs: https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app/
-#
-# REQUIRED MANUAL SETUP IN CODEMAGIC:
-#   1. Variable group `athletica_ios_prod` with BASE_URL, APP_NAME,
-#      SENTRY_DSN (secret). That is ALL - no signing identities needed.
-#
-# SECURITY: this file contains NO secrets. All values come from Codemagic
-# encrypted variables. Scripts never print secret values.
-
 workflows:
   ios-prod:
-    name: iOS Prod Simulator (Appetize)
-    max_build_duration: 120
+    name: Athletica iOS Production Simulator
     instance_type: mac_mini_m2
+
     triggering:
       events:
         - push
@@ -48,77 +12,56 @@ workflows:
           include: true
           source: true
       tag_patterns:
-        - pattern: "v*"
+        - pattern: v*
           include: true
+
     environment:
       flutter: 3.41.6
-      groups:
-        - athletica_ios_prod
-    cache:
-      cache_paths:
-        - $FLUTTER_ROOT/.pub-cache
-        - $HOME/Library/Caches/CocoaPods
+    groups:
+      - athletica_ios_prod  
+
     scripts:
       - name: Get Flutter packages
-        script: |
-          flutter pub get
+        script: flutter pub get
+
       - name: Install CocoaPods dependencies
         script: |
-          set -e
-          find . -name "Podfile" -execdir pod install \;
-      - name: Prepare production environment (.env.prod)
+          cd ios
+          pod install
+          cd ..
+
+      - name: Prepare environment files
         script: |
-          set -e
-          # Values come from the `athletica_ios_prod` variable group. Never echo them.
-          printf 'BASE_URL=%s\nAPP_NAME=%s\nSENTRY_DSN=%s\n' \
-            "$BASE_URL" "$APP_NAME" "$SENTRY_DSN" > "$CM_BUILD_DIR/.env.prod"
-          for key in BASE_URL APP_NAME SENTRY_DSN; do
-            grep -q "^${key}=" "$CM_BUILD_DIR/.env.prod" \
-              || { echo "Missing $key in .env.prod"; exit 1; }
-          done
-          # pubspec.yaml bundles BOTH env files as assets, so .env.dev must
-          # exist at build time too (placeholder is enough for a prod build).
-          if [ ! -f "$CM_BUILD_DIR/.env.dev" ]; then
-            printf 'BASE_URL=\nAPP_NAME=\nSENTRY_DSN=\n' > "$CM_BUILD_DIR/.env.dev"
-          fi
-          echo ".env files prepared (values hidden)."
-      - name: Static analysis
+          cat > .env.prod <<EOF
+          BASE_URL=$BASE_URL
+          APP_NAME=$APP_NAME
+          SENTRY_DSN=$SENTRY_DSN
+          EOF
+
+          touch .env.dev
+
+      - name: Analyze Flutter project
+        script: flutter analyze
+
+      - name: Run tests
         script: |
-          flutter analyze
-      - name: Run tests (skips cleanly until *_test.dart files exist)
-        script: |
-          set -e
-          # KNOWN PROJECT STATE: test/ contains no *_test.dart files, so plain
-          # `flutter test` exits 1 with "does not appear to contain any test files".
-          # Guard keeps the workflow green without masking real failures:
-          # as soon as test files exist, their failures WILL fail the build.
-          if find test -name '*_test.dart' | grep -q .; then
+          if find test -type f -name '*_test.dart' | grep -q .; then
             flutter test
           else
-            echo 'No *_test.dart files in test/ yet - skipping (add tests to enforce).'
+            echo "No Flutter tests found. Skipping tests."
           fi
-      - name: Show pubspec version (traceability, no version changes in CI)
+
+      - name: Build iOS Simulator Release
         script: |
-          grep '^version:' pubspec.yaml
-      - name: Build iOS Simulator app (unsigned, prod entry point)
+          flutter build ios \
+            --simulator \
+            --release \
+            --target lib/main_prod.dart
+
+      - name: Package iOS Simulator app
         script: |
-          set -e
-          # NOTE: no --flavor flag - the iOS project defines no flavors.
-          # No signing: simulator builds run unsigned by design.
-          # The prod entry point + .env.prod select the production backend.
-          flutter build ios --simulator --release --target lib/main_prod.dart
-      - name: Zip Runner.app for Appetize
-        script: |
-          set -e
-          APP_DIR="$CM_BUILD_DIR/build/ios/iphonesimulator"
-          if [ ! -d "$APP_DIR/Runner.app" ]; then
-            echo "Expected $APP_DIR/Runner.app was not produced."
-            echo "Locating built .app bundles under build/ios:"
-            find "$CM_BUILD_DIR/build/ios" -maxdepth 3 -name "*.app" -type d
-            exit 1
-          fi
-          cd "$APP_DIR"
+          cd build/ios/iphonesimulator
           zip -r Runner.zip Runner.app
-          ls -la Runner.zip
+
     artifacts:
       - build/ios/iphonesimulator/Runner.zip
