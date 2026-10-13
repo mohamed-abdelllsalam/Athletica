@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/client_profile_avatar.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/entities/assigned_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -79,24 +80,15 @@ class CoachNutritionPlanClientPicker extends StatelessWidget {
                       onTap: () => onClientSelected(client.relationId),
                       child: Column(
                         children: [
-                          Container(
-                            width: 48.r,
-                            height: 48.r,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.surfaceDark,
-                              border: isSelected
-                                  ? Border.all(
-                                      color: AppColors.primaryBlue,
-                                      width: 2,
-                                    )
-                                  : null,
-                            ),
-                            child: Icon(
-                              Icons.person,
-                              color: AppColors.textSecondary,
-                              size: 26.sp,
-                            ),
+                          ClientProfileAvatar(
+                            imageUrl: client.profileImage,
+                            size: 48.r,
+                            backgroundColor: AppColors.surfaceDark,
+                            placeholderColor: AppColors.textSecondary,
+                            borderColor: isSelected
+                                ? AppColors.primaryBlue
+                                : null,
+                            borderWidth: 2,
                           ),
                           SizedBox(height: 4.h),
                           SizedBox(

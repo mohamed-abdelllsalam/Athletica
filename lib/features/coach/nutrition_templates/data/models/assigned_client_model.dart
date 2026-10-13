@@ -10,6 +10,7 @@ class AssignedClientModel {
     required this.name,
     required this.email,
     required this.goal,
+    this.profileImage,
   });
 
   final String relationId;
@@ -17,6 +18,7 @@ class AssignedClientModel {
   final String name;
   final String email;
   final String goal;
+  final String? profileImage;
 
   factory AssignedClientModel.fromJson(Map<String, dynamic> json) {
     final client = json['client'] as Map<String, dynamic>? ?? {};
@@ -27,6 +29,7 @@ class AssignedClientModel {
       name: (user['username'] as String?) ?? '',
       email: (user['email'] as String?) ?? '',
       goal: normalizeGoalValue((client['goal'] as String?) ?? ''),
+      profileImage: client['profile_image'] as String?,
     );
   }
 
@@ -36,5 +39,6 @@ class AssignedClientModel {
         name: name,
         email: email,
         goal: goal,
+        profileImage: profileImage,
       );
 }

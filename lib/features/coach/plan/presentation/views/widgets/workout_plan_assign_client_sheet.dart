@@ -162,6 +162,7 @@ class _WorkoutPlanAssignClientSheetState
                           _selectedRelationId == client.relationId;
                       return CoachWorkoutAssignmentClientAvatar(
                         name: client.name,
+                        profileImage: client.profileImage,
                         isSelected: isSelected,
                         onTap: () {
                           setState(() {
