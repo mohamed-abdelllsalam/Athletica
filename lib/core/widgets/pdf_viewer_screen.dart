@@ -3,13 +3,11 @@ import 'dart:typed_data';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
-import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/utils/pdf_opener.dart' show resolvePdfUrl;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   const PdfViewerScreen({super.key, required this.url, this.title});
@@ -77,8 +75,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       final message = status == 401
           ? 'You are not authorized to view this PDF. Please sign in again.'
           : status == 404
-              ? 'The PDF could not be found.'
-              : 'The PDF could not be downloaded. Please check your connection.';
+          ? 'The PDF could not be found.'
+          : 'The PDF could not be downloaded. Please check your connection.';
       setState(() {
         _isLoading = false;
         _errorMessage = message;
@@ -89,27 +87,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         _isLoading = false;
         _errorMessage = 'The PDF could not be opened. Please try again.';
       });
-    }
-  }
-
-  Future<void> _openExternally() async {
-    final url = _resolvedUrl;
-    if (url == null) return;
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(uri, mode: LaunchMode.platformDefault);
-      }
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        AppSnackBar.error(
-          content: Text('The PDF could not be opened externally.'),
-        ),
-      );
     }
   }
 
@@ -141,17 +118,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           ).copyWith(color: AppColors.textPrimary),
         ),
         centerTitle: true,
-        actions: [
-          if (_resolvedUrl != null)
-            IconButton(
-              tooltip: 'Open externally',
-              icon: const Icon(
-                Icons.open_in_new,
-                color: AppColors.textPrimary,
-              ),
-              onPressed: _openExternally,
-            ),
-        ],
       ),
       body: _buildBody(),
     );
@@ -200,21 +166,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                       style: AppTextStyles.semiBold14(
                         context,
                       ).copyWith(color: AppColors.textPrimary),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  OutlinedButton(
-                    onPressed: _openExternally,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.textSecondary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
-                    child: Text(
-                      'Open externally',
-                      style: AppTextStyles.medium14(context),
                     ),
                   ),
                 ],

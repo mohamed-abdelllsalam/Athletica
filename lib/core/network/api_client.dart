@@ -185,6 +185,7 @@ class ApiClient {
           error: true,
           compact: true,
           filter: (options, args) =>
+              options.responseType != ResponseType.bytes &&
               !options.path.contains('/messaging/') &&
               !options.path.startsWith('messaging/') &&
               !options.path.startsWith('devices') &&
