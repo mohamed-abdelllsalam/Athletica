@@ -60,6 +60,13 @@ class ApiClient {
           final isPublicAuth = ApiEndpoints.isPublicAuthPath(options.uri.path);
 
           if (!isPublicAuth) {
+            final session = sl<AuthSessionService>().current;
+            if (session != null) {
+              // Bind the request to the session that sent it, so a 401 that
+              // lands after logout (or a re-login) is recognized as stale.
+              options.extra['sessionGeneration'] ??= session.generation;
+            }
+
             final token = await TokenStorageService.instance.getToken();
 
             if (token != null) {
@@ -84,6 +91,13 @@ class ApiClient {
         onError: (error, handler) async {
           final requestOptions = error.requestOptions;
 
+          // Server logout is best-effort: its failures must never trigger
+          // refresh or session expiry, only propagate to the caller.
+          if (ApiEndpoints.isLogoutPath(requestOptions.uri.path)) {
+            handler.next(error);
+            return;
+          }
+
           final isPublicAuth = ApiEndpoints.isPublicAuthPath(
             requestOptions.uri.path,
           );
@@ -96,6 +110,15 @@ class ApiClient {
             return;
           }
 
+          // Sent with no session and no credentials, completing after a
+          // newer session started: not ours to expire.
+          if (generation == null &&
+              sl<AuthSessionService>().current != null &&
+              requestOptions.headers['Authorization'] == null) {
+            handler.next(error);
+            return;
+          }
+
           final isSessionExpired =
               (error.response?.statusCode == 401 ||
                   _isAuthenticationRequiredBody(error.response?.data)) &&
@@ -103,7 +126,7 @@ class ApiClient {
 
           if (isSessionExpired) {
             if (requestOptions.extra['authRetry'] == true) {
-              await _expireSession();
+              await _expireSessionForRequest(generation);
               handler.next(error);
               return;
             }
@@ -120,7 +143,7 @@ class ApiClient {
               final token = await TokenStorageService.instance.getToken();
 
               if (token == null) {
-                await _expireSession();
+                await _expireSessionForRequest(generation);
                 handler.next(error);
                 return;
               }
@@ -144,7 +167,7 @@ class ApiClient {
               return;
             }
 
-            await _expireSession();
+            await _expireSessionForRequest(generation);
           }
 
           handler.next(error);
@@ -177,6 +200,13 @@ class ApiClient {
 
   Dio get dio => _dio;
 
+  /// Test-only reset for the static expiry guard, whose cooldown would
+  /// otherwise leak across 401 cases in one test process.
+  @visibleForTesting
+  void resetSessionExpiredStateForTest() {
+    _sessionExpiredGuard.resetForTest();
+  }
+
   Future<bool> _refreshOnce() {
     final existing = _refreshing;
 
@@ -188,6 +218,14 @@ class ApiClient {
     _refreshing = completer;
 
     () async {
+      // Session that started this refresh. Logout ends the session (and a
+      // re-login replaces it), so a late result must never overwrite live
+      // credentials. Generations only increment, never repeat.
+      final refreshGeneration = sl<AuthSessionService>().current?.generation;
+      if (refreshGeneration == null) {
+        completer.complete(false);
+        return;
+      }
       try {
         final refreshToken = await TokenStorageService.instance
             .getRefreshToken();
@@ -222,6 +260,12 @@ class ApiClient {
           return;
         }
 
+        if (sl<AuthSessionService>().current?.generation !=
+            refreshGeneration) {
+          completer.complete(false);
+          return;
+        }
+
         await TokenStorageService.instance.saveTokens(
           accessToken: access,
           refreshToken: rotated,
@@ -247,7 +291,27 @@ class ApiClient {
     return completer.future;
   }
 
+  /// Expires the session a request belongs to. A stale request (ended or
+  /// replaced session) never clears, expires, or navigates away from a
+  /// newer session; only the matching live session is expired.
+  Future<void> _expireSessionForRequest(int? generation) async {
+    final current = sl<AuthSessionService>().current;
+    if (current == null) {
+      return;
+    }
+    if (generation != null && current.generation != generation) {
+      return;
+    }
+    await _expireSession();
+  }
+
   Future<void> _expireSession() async {
+    // No live session: a stale post-logout response must not navigate or
+    // clear state. Checked before the guard so suppressed events leave no
+    // guard state behind.
+    if (sl<AuthSessionService>().current == null) {
+      return;
+    }
     if (!_sessionExpiredGuard.shouldHandle(DateTime.now())) {
       return;
     }

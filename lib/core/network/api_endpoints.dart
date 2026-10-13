@@ -52,6 +52,15 @@ class ApiEndpoints {
     );
   }
 
+  /// Best-effort logout must never enter the session-expiry flow, even when
+  /// the backend answers 401.
+  static bool isLogoutPath(String uriPath) {
+    final path = Uri.parse(uriPath).path;
+    return path == logout ||
+        path == '/$logout' ||
+        path.endsWith('/$logout');
+  }
+
   // ── Profile ─────────────────────────────────────────────────────────────
   static const String profile = 'profile';
   static const String profileImage = 'profile/image';

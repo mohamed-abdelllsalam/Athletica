@@ -4,8 +4,14 @@ import 'package:athletica/features/workout/domain/usecases/assign_workout_templa
 import 'package:athletica/features/workout/domain/usecases/update_plan_exercise_usecase.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Default prescription applied to every exercise on the coach assignment
+/// screen. The coach can change any value before assigning.
+const defaultExerciseSets = 3;
+const defaultExerciseReps = 10;
+const defaultExerciseRestSeconds = 60;
+
 /// Per-exercise loads a coach sets for one client assignment. Null means
-/// "leave unset" (coach fills it later); the backend treats omitted loads
+/// "leave unset" (field cleared); the backend treats omitted loads
 /// as null. Matched to the created plan by [dayNumber] + [exerciseOrder],
 /// which the assign snapshot preserves.
 class ExerciseLoadInput {

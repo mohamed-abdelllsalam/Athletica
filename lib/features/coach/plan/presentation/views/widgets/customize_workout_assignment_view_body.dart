@@ -19,7 +19,14 @@ class _ExerciseLoadFields {
     required this.dayNumber,
     required this.exerciseOrder,
     required this.name,
-  });
+    required String initialSets,
+    required String initialReps,
+    required String initialRest,
+  }) {
+    sets.text = initialSets;
+    reps.text = initialReps;
+    rest.text = initialRest;
+  }
 
   final int dayNumber;
   final int exerciseOrder;
@@ -60,7 +67,7 @@ class _CustomizeWorkoutAssignmentViewBodyState
   void initState() {
     super.initState();
     // Template exercises carry no loads (sets/reps always null server-side),
-    // so fields start empty = "leave unset, fill later". Rest days have no
+    // so every field starts at the default prescription. Rest days have no
     // exercises and produce no fields.
     _fields = [
       for (final day in widget.template.days)
@@ -70,6 +77,9 @@ class _CustomizeWorkoutAssignmentViewBodyState
               dayNumber: day.dayNumber,
               exerciseOrder: exercise.exerciseOrder,
               name: _exerciseName(exercise),
+              initialSets: '$defaultExerciseSets',
+              initialReps: '$defaultExerciseReps',
+              initialRest: '$defaultExerciseRestSeconds',
             ),
     ];
   }
