@@ -205,12 +205,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                           hintText: 'Confirm your password',
                           labelText: 'Confirm Password',
                           textInputAction: TextInputAction.done,
-                          validator: (value) {
-                            if (value == null || value.length < 8) {
-                              return 'Confirm your password';
-                            }
-                            return null;
-                          },
+                          validator: validatePassword,
                         ),
                       ],
                     ),

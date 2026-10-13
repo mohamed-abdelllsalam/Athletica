@@ -30,10 +30,7 @@ class _NewPasswordViewBodyState extends State<NewPasswordViewBody> {
   late String password, confirmPassword;
 
   String? validateConfirmPassword(String? value) {
-    if (value == null || value.length < 8) {
-      return 'Confirm your password';
-    }
-    return null;
+    return validatePassword(value);
   }
 
   void _submit(BuildContext context) {
@@ -152,7 +149,7 @@ class NewPasswordForm extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Password must be at least 8 characters, include a number and a special character',
+            'Password must be at least 8 characters and include uppercase and lowercase letters',
             style: AppTextStyles.medium13(context).copyWith(
               color: const Color(0xFF909090),
             ),

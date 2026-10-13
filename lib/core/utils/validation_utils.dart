@@ -10,13 +10,14 @@ String? validateEmail(String? value) {
 
 String? validatePassword(String? value) {
   final password = value ?? '';
-  final hasMinLength = password.length >= 8;
-  final hasUppercase = password.contains(RegExp(r'[A-Z]'));
-  final hasNumber = password.contains(RegExp(r'[0-9]'));
-  final hasSpecialChar = password.contains(RegExp(r'[!@#\$&*~]'));
-
-  if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecialChar) {
-    return '8+ chars, uppercase, number & special char';
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters';
+  }
+  if (!password.contains(RegExp(r'[A-Z]'))) {
+    return 'Password must include an uppercase letter';
+  }
+  if (!password.contains(RegExp(r'[a-z]'))) {
+    return 'Password must include a lowercase letter';
   }
   return null;
 }
