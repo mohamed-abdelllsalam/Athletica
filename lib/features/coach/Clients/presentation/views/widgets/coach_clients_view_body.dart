@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/connection_error_view.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'coach_clients_states.dart';
 import 'coach_active_clients_search.dart';
 import 'coach_remove_client_dialog.dart';
@@ -46,7 +47,7 @@ class _CoachClientsViewBodyState extends State<CoachClientsViewBody> {
     final messenger = ScaffoldMessenger.of(context);
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(AppSnackBar.error(content: Text(message)));
   }
 
   List<CoachAssignedClient> _filter(List<CoachAssignedClient> clients) {

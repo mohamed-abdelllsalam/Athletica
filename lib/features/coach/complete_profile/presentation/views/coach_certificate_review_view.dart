@@ -1,4 +1,5 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -41,9 +42,8 @@ class _CoachCertificateReviewBody extends StatelessWidget {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
-              SnackBar(
+              AppSnackBar.error(
                 content: Text(state.message),
-                backgroundColor: Colors.redAccent,
               ),
             );
           return;

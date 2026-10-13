@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'dart:io';
 
@@ -83,9 +84,8 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          AppSnackBar.error(
             content: Text('Failed to pick image: $e'),
-            backgroundColor: Colors.red,
           ),
         );
       }
@@ -100,7 +100,7 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
         final assignmentId = data?.assignmentId;
         if (assignmentId == null || assignmentId.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No assigned coach is available.')),
+            AppSnackBar.neutral(content: Text('No assigned coach is available.')),
           );
           return;
         }
@@ -116,7 +116,7 @@ class _ProfileViewBodyState extends State<ProfileViewBody> {
       case ApiError(:final failure):
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(failure.message)));
+        ).showSnackBar(AppSnackBar.error(content: Text(failure.message)));
     }
   }
 

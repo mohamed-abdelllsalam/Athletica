@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
@@ -120,7 +121,7 @@ class _WorkoutsBody extends StatelessWidget {
               final loaded = state as WorkoutTodayLoaded;
               ScaffoldMessenger.of(
                 context,
-              ).showSnackBar(SnackBar(content: Text(loaded.errorMessage!)));
+              ).showSnackBar(AppSnackBar.error(content: Text(loaded.errorMessage!)));
             },
             builder: (context, state) => switch (state) {
               WorkoutTodayInitial() ||

@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/widgets/refresh_on_focus.dart';
 import 'package:athletica/core/di/injection_container.dart';
@@ -93,7 +94,7 @@ class _BodyState extends State<_Body> {
               if (loaded.errorMessage != null) {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(SnackBar(content: Text(loaded.errorMessage!)));
+                ).showSnackBar(AppSnackBar.error(content: Text(loaded.errorMessage!)));
               } else if (loaded.dayCompletionConfirmed) {
                 _showCompletion();
               }

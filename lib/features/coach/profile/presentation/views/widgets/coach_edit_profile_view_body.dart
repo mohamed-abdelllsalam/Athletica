@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'coach_edit_profile_header.dart';
 import 'coach_edit_profile_save_action.dart';
@@ -250,16 +251,15 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            AppSnackBar.success(
               content: Text('Profile updated successfully'),
-              backgroundColor: Colors.green,
             ),
           );
           Navigator.pop(context);
         } else if (state is CoachProfileError) {
           _retryingLoad = false;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
         }
       },
@@ -322,7 +322,7 @@ class _CoachEditProfileViewBodyState extends State<CoachEditProfileViewBody> {
         newLocation == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('No changes to save.')));
+      ).showSnackBar(AppSnackBar.neutral(content: Text('No changes to save.')));
       return;
     }
 

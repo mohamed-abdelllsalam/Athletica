@@ -33,4 +33,7 @@ abstract class AppColors {
   static const Color inactiveTabBg = Color(0xFF2A2A2A);
 
   static const Color notificationBadge = Color(0xFFFF5252);
+
+  static const Color success = Color(0xFF4CAF50);
+  static const Color error = Color(0xFFF44336);
 }

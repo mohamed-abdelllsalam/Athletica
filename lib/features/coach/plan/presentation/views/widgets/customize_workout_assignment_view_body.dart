@@ -4,6 +4,7 @@ import 'workout_assignment_header.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/bilingual_label.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/unfocus_on_tap.dart';
 import 'package:athletica/features/coach/plan/presentation/cubits/customize_workout_assignment_cubit.dart';
 import 'package:athletica/features/workout/domain/entities/workout_template.dart';
@@ -95,9 +96,8 @@ class _CustomizeWorkoutAssignmentViewBodyState
           !isValidLoadValue(field.reps.text) ||
           !isValidLoadValue(field.rest.text)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          AppSnackBar.error(
             content: Text('Sets, reps and rest must be positive numbers.'),
-            backgroundColor: Colors.red,
           ),
         );
         return;
@@ -132,7 +132,7 @@ class _CustomizeWorkoutAssignmentViewBodyState
             Navigator.pop(context, planId);
           case CustomizeAssignmentFailure(:final message):
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message), backgroundColor: Colors.red),
+              AppSnackBar.error(content: Text(message)),
             );
           case CustomizeAssignmentInitial():
           case CustomizeAssignmentSubmitting():

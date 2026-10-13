@@ -1,5 +1,6 @@
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/errors/failures.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/services/token_storage_service.dart';
 import 'package:athletica/core/utils/api_result.dart';
@@ -202,7 +203,7 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
     if (actionState is AssignActionSuccess) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        AppSnackBar.success(
           content: Text(
             _isWorkout
                 ? 'Workout plan assigned!'
@@ -213,7 +214,7 @@ class AssignTemplateSheetState extends State<AssignTemplateSheet> {
     } else if (actionState is AssignActionError) {
       setState(() => _isAssigning = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(actionState.message)),
+        AppSnackBar.error(content: Text(actionState.message)),
       );
     }
   }

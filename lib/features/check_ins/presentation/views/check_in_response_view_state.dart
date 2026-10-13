@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:athletica/core/utils/check_in_media.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
@@ -44,7 +45,7 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
     if (saved) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Saved.')));
+      ).showSnackBar(AppSnackBar.success(content: Text('Saved.')));
     }
   }
 
@@ -52,7 +53,7 @@ class CheckInResponseViewState extends State<CheckInResponseView> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(AppSnackBar.error(content: Text(message)));
   }
 
   void _showFullPhoto(BuildContext context, String url) {

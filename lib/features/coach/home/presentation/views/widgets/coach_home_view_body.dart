@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/connection_error_view.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/features/achievements/presentation/cubits/coach_achievements_cubit.dart';
@@ -55,11 +56,19 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
     super.dispose();
   }
 
-  void _showSnackBar(BuildContext context, String message) {
+  void _showSnackBar(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
     final messenger = ScaffoldMessenger.of(context);
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        isError
+            ? AppSnackBar.error(content: Text(message))
+            : AppSnackBar.success(content: Text(message)),
+      );
   }
 
   Widget _buildHomeTab() {
@@ -154,7 +163,7 @@ class _CoachHomeViewBodyState extends State<CoachHomeViewBody> {
           } else if (state is CoachInviteError) {
             // The open dialog already surfaces regenerate errors inline.
             if (_inviteDialogOpen) return;
-            _showSnackBar(context, state.message);
+            _showSnackBar(context, state.message, isError: true);
           }
         },
         child: Scaffold(

@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/connection_error_view.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'coach_client_deactivate_plan_dialog.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -191,13 +192,13 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
         case ApiError(:final failure):
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(failure.message)));
+          ).showSnackBar(AppSnackBar.error(content: Text(failure.message)));
           return;
       }
     }
     if (assignmentId == null || assignmentId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Client assignment is unavailable.')),
+        AppSnackBar.error(content: Text('Client assignment is unavailable.')),
       );
       return;
     }
@@ -312,7 +313,7 @@ class _CoachClientDetailViewBodyState extends State<CoachClientDetailViewBody> {
       await context.read<ClientDetailCubit>().loadClientDetail(widget.clientId);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Workout assigned successfully')),
+        AppSnackBar.success(content: Text('Workout assigned successfully')),
       );
     }
   }

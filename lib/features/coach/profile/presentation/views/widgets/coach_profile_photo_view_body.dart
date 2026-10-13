@@ -4,6 +4,7 @@ import 'coach_profile_photo_image.dart';
 import 'dart:io';
 
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_cubit.dart';
 import 'package:athletica/features/coach/profile/presentation/cubits/coach_profile_state.dart';
@@ -61,9 +62,8 @@ class _CoachProfilePhotoViewBodyState extends State<CoachProfilePhotoViewBody> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          AppSnackBar.error(
             content: Text('Failed to pick image: $e'),
-            backgroundColor: Colors.red,
           ),
         );
       }

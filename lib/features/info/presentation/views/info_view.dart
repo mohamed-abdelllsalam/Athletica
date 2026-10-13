@@ -1,4 +1,5 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
@@ -46,9 +47,8 @@ class _InfoScaffold extends StatelessWidget {
                   );
                 } else if (state is AuthFailureState) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    AppSnackBar.error(
                       content: Text(state.message),
-                      backgroundColor: Colors.red,
                     ),
                   );
                 }

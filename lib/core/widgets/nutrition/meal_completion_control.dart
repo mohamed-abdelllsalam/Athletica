@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/nutrition/presentation/cubits/nutrition_today_cubit.dart';
 import 'package:athletica/features/nutrition/presentation/cubits/nutrition_today_state.dart';
 import 'package:flutter/material.dart';
@@ -132,7 +133,7 @@ class NutritionCompletionFeedback extends StatelessWidget {
           if (loaded.errorMessage != null) {
             ScaffoldMessenger.of(
               context,
-            ).showSnackBar(SnackBar(content: Text(loaded.errorMessage!)));
+            ).showSnackBar(AppSnackBar.error(content: Text(loaded.errorMessage!)));
             return;
           }
           showDialog<void>(

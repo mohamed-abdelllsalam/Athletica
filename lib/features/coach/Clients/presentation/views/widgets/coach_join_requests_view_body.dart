@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/connection_error_view.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'coach_join_requests_states.dart';
 import 'coach_join_request_tile.dart';
 import 'package:athletica/core/di/injection_container.dart';
@@ -32,7 +33,7 @@ class _CoachJoinRequestsContent extends StatelessWidget {
   void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(AppSnackBar.error(content: Text(message)));
   }
 
   @override

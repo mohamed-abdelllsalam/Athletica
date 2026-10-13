@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/validation_utils.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
@@ -42,9 +43,8 @@ class _NewPasswordViewBodyState extends State<NewPasswordViewBody> {
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        AppSnackBar.error(
           content: Text('Passwords do not match'),
-          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -63,9 +63,8 @@ class _NewPasswordViewBodyState extends State<NewPasswordViewBody> {
       listener: (context, state) {
         if (state is ResetPasswordSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            AppSnackBar.success(
               content: Text('Password reset successfully. Please login.'),
-              backgroundColor: Colors.green,
             ),
           );
           Navigator.pushNamedAndRemoveUntil(
@@ -75,7 +74,7 @@ class _NewPasswordViewBodyState extends State<NewPasswordViewBody> {
           );
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
         }
       },

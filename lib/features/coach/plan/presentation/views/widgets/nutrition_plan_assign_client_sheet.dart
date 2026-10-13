@@ -2,6 +2,7 @@ import 'nutrition_plan_client_picker.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/widgets/app_shimmer.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/entities/assigned_client.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
 import 'package:athletica/features/coach/plan/domain/entities/nutrition_plan.dart';
@@ -40,7 +41,7 @@ class _NutritionPlanAssignClientSheetState
     final selectedId = _selectedClientId;
     if (selectedId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        AppSnackBar.neutral(
           content: Text(
             'Please select a client',
             style: AppTextStyles.medium14(
@@ -75,26 +76,24 @@ class _NutritionPlanAssignClientSheetState
           case AssignPlanSuccess():
             Navigator.pop(context);
             messenger.showSnackBar(
-              SnackBar(
+              AppSnackBar.success(
                 content: Text(
                   'Plan assigned successfully',
                   style: AppTextStyles.medium14(
                     context,
                   ).copyWith(color: Colors.white),
                 ),
-                backgroundColor: Colors.green,
               ),
             );
           case AssignPlanError(:final message):
             messenger.showSnackBar(
-              SnackBar(
+              AppSnackBar.error(
                 content: Text(
                   message,
                   style: AppTextStyles.medium14(
                     context,
                   ).copyWith(color: Colors.white),
                 ),
-                backgroundColor: Colors.red,
               ),
             );
           default:

@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
@@ -30,9 +31,8 @@ class _SettingsViewBodyState extends State<SettingsViewBody> {
           );
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            AppSnackBar.error(
               content: Text(state.message),
-              backgroundColor: Colors.red,
             ),
           );
         }

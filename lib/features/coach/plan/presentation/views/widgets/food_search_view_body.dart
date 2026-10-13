@@ -1,4 +1,5 @@
 import 'food_search_result.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'food_search_header.dart';
 import 'food_search_states.dart';
@@ -73,7 +74,7 @@ class _FoodSearchViewBodyState extends State<FoodSearchViewBody> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(
+          AppSnackBar.neutral(
             content: Text('${food.displayName} is already in this meal.'),
           ),
         );

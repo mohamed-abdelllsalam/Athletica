@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/verification_utils.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/new_password_view.dart';
@@ -154,9 +155,8 @@ class _ResetOtpViewBodyState extends State<ResetOtpViewBody> {
   void _continue() {
     if (!isOtpComplete) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        AppSnackBar.error(
           content: Text('Please enter the complete code.'),
-          backgroundColor: Colors.red,
         ),
       );
       final firstEmptyIndex = _controllers.indexWhere((c) => c.text.isEmpty);
@@ -225,17 +225,15 @@ class _ResetOtpViewBodyState extends State<ResetOtpViewBody> {
       listener: (context, state) {
         if (state is ResetRequestSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            AppSnackBar.success(
               content: Text(state.message),
-              backgroundColor: Colors.green,
             ),
           );
           _startCountdown();
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            AppSnackBar.error(
               content: Text(state.message),
-              backgroundColor: Colors.red,
             ),
           );
         }

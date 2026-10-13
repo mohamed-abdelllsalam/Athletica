@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/sign_in_view.dart';
@@ -223,15 +224,14 @@ class _SignUpEmailVerificationOtpViewBodyState
           );
         } else if (state is VerificationCodeResent) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            AppSnackBar.success(
               content: Text('Verification code sent. Please check your email.'),
-              backgroundColor: Colors.green,
             ),
           );
           _startCountdown();
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
         }
       },

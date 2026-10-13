@@ -1,5 +1,6 @@
 import 'coach_client_workout_template_controls.dart';
 import 'coach_client_workout_template_card.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/api_result.dart';
 import 'package:athletica/core/utils/app_colors.dart';
@@ -66,7 +67,7 @@ class _CoachClientWorkoutTemplatePickerState
       case ApiError(:final failure):
         setState(() => _loadingId = null);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message), backgroundColor: Colors.red),
+          AppSnackBar.error(content: Text(failure.message)),
         );
       case ApiSuccess(:final data):
         setState(() => _loadingId = null);

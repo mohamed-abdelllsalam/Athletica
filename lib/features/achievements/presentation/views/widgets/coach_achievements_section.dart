@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/pdf_opener.dart';
@@ -30,9 +31,10 @@ class CoachAchievementsSection extends StatelessWidget {
           _ => null,
         };
         if (message == null) return;
+        final isSuccess = state is CoachAchievementsDeleteSuccess;
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(message)));
+          ..showSnackBar(isSuccess ? AppSnackBar.success(content: Text(message)) : AppSnackBar.error(content: Text(message)));
       },
       child: BlocBuilder<CoachAchievementsCubit, CoachAchievementsState>(
         builder: (context, state) {

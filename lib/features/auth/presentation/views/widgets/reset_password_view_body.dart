@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/validation_utils.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
 import 'package:athletica/features/auth/presentation/views/reset_otp_view.dart';
@@ -38,11 +39,10 @@ class _ResetPasswordViewBodyState extends State<ResetPasswordViewBody> {
 
   void _onRequestSuccess(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      AppSnackBar.success(
         content: Text(
           message.isEmpty ? 'A reset link has been sent' : message,
         ),
-        backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -61,7 +61,7 @@ class _ResetPasswordViewBodyState extends State<ResetPasswordViewBody> {
           _onRequestSuccess(context, state.message);
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
         }
       },

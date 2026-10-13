@@ -1,4 +1,5 @@
 import 'workout_plans_list_states.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -163,7 +164,7 @@ class _WorkoutPlansListViewBodyState extends State<WorkoutPlansListViewBody> {
                 // server-side — reload so the library reflects server truth.
                 context.read<WorkoutTemplatesCubit>().refresh();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(message), backgroundColor: Colors.red),
+                  AppSnackBar.error(content: Text(message)),
                 );
               case SaveWorkoutPlanIdle():
                 break;

@@ -1,6 +1,7 @@
 import 'invite_code_components.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/coach/home/domain/entities/coach_invite_code.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_cubit.dart';
 import 'package:athletica/features/coach/home/presentation/cubits/coach_invite_state.dart';
@@ -96,10 +97,14 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
     _showCopied('Code copied to clipboard.');
   }
 
-  void _showCopied(String message) {
+  void _showCopied(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        isError
+            ? AppSnackBar.error(content: Text(message))
+            : AppSnackBar.success(content: Text(message)),
+      );
   }
 
   String get _expiryLabel {
@@ -125,7 +130,7 @@ class _InviteCodeDialogState extends State<InviteCodeDialog>
           if (state is CoachInviteSuccess) {
             _onRegenerated(state.invite);
           } else if (state is CoachInviteError) {
-            _showCopied(state.message);
+            _showCopied(state.message, isError: true);
           }
         },
         builder: (context, state) => Dialog(

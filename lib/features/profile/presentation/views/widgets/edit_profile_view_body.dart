@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -188,18 +189,16 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
                               return;
                             }
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              AppSnackBar.success(
                                 content: Text('Profile updated successfully'),
-                                backgroundColor: Colors.green,
                               ),
                             );
                             Navigator.pop(context);
                           } else if (state is ProfileError) {
                             _retryingLoad = false;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              AppSnackBar.error(
                                 content: Text(state.message),
-                                backgroundColor: Colors.red,
                               ),
                             );
                           }
@@ -391,7 +390,7 @@ class _EditProfileViewBodyState extends State<EditProfileViewBody> {
         newLocation == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('No changes to save.')));
+      ).showSnackBar(AppSnackBar.neutral(content: Text('No changes to save.')));
       return;
     }
 

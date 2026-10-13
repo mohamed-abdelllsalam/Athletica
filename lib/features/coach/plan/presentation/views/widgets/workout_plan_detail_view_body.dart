@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'workout_plan_detail_states.dart';
 import 'workout_plan_create_content.dart';
@@ -454,7 +455,7 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody> {
   void _showMutationError() {
     final err = context.read<WorkoutTemplateDetailCubit>().lastError;
     if (err == null) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    ScaffoldMessenger.of(context).showSnackBar(AppSnackBar.error(content: Text(err)));
   }
 
   /// Leaving flow for saved templates: auto-saves a dirty name/description
@@ -627,7 +628,7 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody> {
         : null;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message ?? 'Delete failed')));
+    ).showSnackBar(AppSnackBar.error(content: Text(message ?? 'Delete failed')));
   }
 
   void _showAssignSheet(
@@ -665,7 +666,7 @@ class _WorkoutPlanDetailViewBodyState extends State<WorkoutPlanDetailViewBody> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Workout assigned successfully')),
+      AppSnackBar.success(content: Text('Workout assigned successfully')),
     );
   }
 }

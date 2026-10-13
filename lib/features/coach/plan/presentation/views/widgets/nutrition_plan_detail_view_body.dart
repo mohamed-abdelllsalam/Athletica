@@ -1,5 +1,6 @@
 import 'nutrition_plan_detail_states.dart';
 import 'nutrition_plan_primary_action.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'nutrition_plan_dialogs.dart';
 import 'package:athletica/core/di/injection_container.dart';
@@ -257,14 +258,13 @@ class _NutritionPlanDetailViewBodyState
           final message = state is TemplateDetailLoaded ? state.message : null;
           if (message != null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              AppSnackBar.error(
                 content: Text(
                   message,
                   style: AppTextStyles.medium14(
                     context,
                   ).copyWith(color: Colors.white),
                 ),
-                backgroundColor: Colors.red,
               ),
             );
             context.read<TemplateDetailCubit>().clearMessage();

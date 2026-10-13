@@ -1,3 +1,4 @@
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/views/widgets/custom_button.dart';
@@ -54,9 +55,8 @@ class _InfoViewBodyState extends State<InfoViewBody> {
     for (final question in _questions) {
       if (!_isAnswered(question)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          AppSnackBar.error(
             content: Text('Please answer "${question.question}" to continue.'),
-            backgroundColor: Colors.red,
           ),
         );
         return;
@@ -212,7 +212,7 @@ class _InfoViewBodyState extends State<InfoViewBody> {
           );
         } else if (state is InfoError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
         }
       },

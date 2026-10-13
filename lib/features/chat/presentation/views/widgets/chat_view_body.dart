@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/connection_error_view.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'dart:async';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/services/chat_visibility_service.dart';
@@ -209,7 +210,7 @@ class _ChatViewBodyState extends State<ChatViewBody>
                       ScaffoldMessenger.of(context)
                         ..hideCurrentSnackBar()
                         ..showSnackBar(
-                          SnackBar(content: Text(state.errorMessage!)),
+                          AppSnackBar.error(content: Text(state.errorMessage!)),
                         );
                     }
                     if (messages.isNotEmpty &&

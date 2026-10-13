@@ -1,4 +1,5 @@
 import 'package:athletica/core/di/injection_container.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
@@ -233,7 +234,7 @@ class _ExerciseRowState extends State<_ExerciseRow> {
         (reps != null && reps <= 0) ||
         (rest != null && rest <= 0)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sets, reps and rest must be positive.')),
+        AppSnackBar.error(content: Text('Sets, reps and rest must be positive.')),
       );
       return;
     }
@@ -249,7 +250,7 @@ class _ExerciseRowState extends State<_ExerciseRow> {
       final err = context.read<WorkoutPlanDetailCubit>().lastError;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(err ?? 'Update failed')));
+      ).showSnackBar(AppSnackBar.error(content: Text(err ?? 'Update failed')));
     } else {
       FocusScope.of(context).unfocus();
     }

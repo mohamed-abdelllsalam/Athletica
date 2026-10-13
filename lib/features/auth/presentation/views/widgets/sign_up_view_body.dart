@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/validation_utils.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/auth/domain/entities/auth_status.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:athletica/features/auth/presentation/cubits/auth_state.dart';
@@ -73,9 +74,8 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        AppSnackBar.error(
           content: Text('Passwords do not match'),
-          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -83,9 +83,8 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
 
     if (!agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        AppSnackBar.error(
           content: Text('You must agree to the terms & conditions'),
-          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -120,7 +119,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
           );
         } else if (state is EmailVerificationRequired) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
           Navigator.pushNamed(
             context,
@@ -129,7 +128,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
           );
         } else if (state is AuthFailureState) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
         }
       },
@@ -321,9 +320,8 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
     };
     if (route == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        AppSnackBar.error(
           content: Text('Login failed. Please try again.'),
-          backgroundColor: Colors.red,
         ),
       );
       return;

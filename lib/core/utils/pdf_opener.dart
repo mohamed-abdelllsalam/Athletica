@@ -1,4 +1,5 @@
 import 'package:athletica/core/network/api_endpoints.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/pdf_viewer_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -75,9 +76,8 @@ Future<void> openPdfFromContext(
   if (resolved == null) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      AppSnackBar.error(
         content: Text('The PDF could not be opened. Please try again.'),
-        backgroundColor: Colors.redAccent,
       ),
     );
     return;

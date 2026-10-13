@@ -1,4 +1,5 @@
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
 import 'package:athletica/core/utils/pdf_opener.dart';
@@ -38,9 +39,8 @@ class _ClientCoachAchievementsSectionState
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            SnackBar(
+            AppSnackBar.error(
               content: Text(state.message),
-              backgroundColor: Colors.redAccent,
             ),
           );
       },

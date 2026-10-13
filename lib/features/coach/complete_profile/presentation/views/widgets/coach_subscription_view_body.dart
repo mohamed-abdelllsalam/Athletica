@@ -1,6 +1,7 @@
 import 'coach_subscription_sections.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/coach_subscription_cubit.dart';
 import 'package:athletica/features/coach/complete_profile/presentation/cubits/coach_subscription_state.dart';
 import 'package:athletica/features/coach/home/presentation/views/coach_home_view.dart';
@@ -93,7 +94,7 @@ class _CoachSubscriptionViewBodyState extends State<CoachSubscriptionViewBody> {
           );
         } else if (state is CoachSubscriptionError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            AppSnackBar.error(content: Text(state.message)),
           );
         }
       },

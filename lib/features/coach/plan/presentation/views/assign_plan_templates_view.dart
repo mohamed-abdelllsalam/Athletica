@@ -5,6 +5,7 @@ import 'widgets/coach_assign_templates_header.dart';
 import 'widgets/coach_assign_templates_states.dart';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/coach/nutrition_templates/domain/entities/assigned_client.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/assign_plan_cubit.dart';
 import 'package:athletica/features/coach/nutrition_templates/presentation/cubits/nutrition_templates_list_cubit.dart';
@@ -46,13 +47,13 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
       listener: (context, state) {
         if (state is AssignPlanSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Plan assigned successfully!')),
+            AppSnackBar.success(content: Text('Plan assigned successfully!')),
           );
           Navigator.pop(context);
         } else if (state is AssignPlanError) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          ).showSnackBar(AppSnackBar.error(content: Text(state.message)));
         }
       },
       child: Column(
@@ -138,14 +139,14 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
     if (clients.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('No clients loaded')));
+      ).showSnackBar(AppSnackBar.error(content: Text('No clients loaded')));
       return;
     }
 
     final match = findRosterMatch(clients, clientId);
     if (match == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Client not found in your roster')),
+        AppSnackBar.error(content: Text('Client not found in your roster')),
       );
       return;
     }
@@ -171,7 +172,7 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
     if (current is AssignPlanClientsError) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(current.message)));
+      ).showSnackBar(AppSnackBar.error(content: Text(current.message)));
       return null;
     }
 
@@ -185,13 +186,15 @@ class _AssignPlanTemplatesViewBody extends StatelessWidget {
       if (settled is AssignPlanClientsLoaded) return settled.clients;
       if (!context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text((settled as AssignPlanClientsError).message)),
+        AppSnackBar.error(
+          content: Text((settled as AssignPlanClientsError).message),
+        ),
       );
       return null;
     } on TimeoutException {
       if (!context.mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        AppSnackBar.neutral(
           content: Text('Still loading clients, please try again'),
         ),
       );

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:athletica/core/di/injection_container.dart';
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/utils/pdf_opener.dart' show resolvePdfUrl;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -105,9 +106,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        AppSnackBar.error(
           content: Text('The PDF could not be opened externally.'),
-          backgroundColor: Colors.redAccent,
         ),
       );
     }

@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
 import 'package:athletica/features/check_ins/presentation/views/check_in_questions_view.dart';
@@ -200,7 +201,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
     final message = state is CheckInsReady && state.message != null
         ? state.message!
         : fallback;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(AppSnackBar.error(content: Text(message)));
   }
 
   Future<void> _save() async {
@@ -208,7 +209,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
     if (!mounted || !success) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Template saved.')));
+    ).showSnackBar(AppSnackBar.success(content: Text('Template saved.')));
     await _popPage();
   }
 
@@ -229,7 +230,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Question saved.')));
+    ).showSnackBar(AppSnackBar.success(content: Text('Question saved.')));
   }
 
   /// Local draft (unsaved) differs from the last server baseline, or text
@@ -268,7 +269,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
         cubit.state is CheckInsReady && (cubit.state as CheckInsReady).saving;
     if (saving) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saving… please wait.')),
+        AppSnackBar.neutral(content: Text('Saving… please wait.')),
       );
       return;
     }
@@ -315,7 +316,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Template saved.')));
+      ).showSnackBar(AppSnackBar.success(content: Text('Template saved.')));
       await _popPage();
     }
   }
@@ -338,7 +339,7 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
           : 'Could not save the updated template.';
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(AppSnackBar.error(content: Text(message)));
       return;
     }
     // Rebase local edits onto the saved server questions (real UUIDs for
@@ -353,12 +354,12 @@ class CheckInQuestionsViewState extends State<CheckInQuestionsView> {
           : 'Could not send check-in.';
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(AppSnackBar.error(content: Text(message)));
       return;
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Updated check-in sent.')),
+      AppSnackBar.success(content: Text('Updated check-in sent.')),
     );
   }
 

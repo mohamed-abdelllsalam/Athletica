@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/check_ins/check_in_ui.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/core/widgets/connection_error_view.dart';
 import 'package:athletica/features/check_ins/domain/entities/check_in.dart';
 import 'package:athletica/features/check_ins/presentation/cubits/check_ins_cubit.dart';
@@ -84,9 +85,11 @@ class CheckInCoachListState extends State<CheckInCoachList> {
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(sent ? 'Check-in sent to ${entry.clientName}.' : error!),
-      ),
+      sent
+          ? AppSnackBar.success(
+              content: Text('Check-in sent to ${entry.clientName}.'),
+            )
+          : AppSnackBar.error(content: Text(error!)),
     );
   }
 

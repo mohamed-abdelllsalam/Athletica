@@ -1,4 +1,5 @@
 import 'package:athletica/core/widgets/connection_error_view.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'dart:async';
 import 'package:athletica/core/widgets/unfocus_on_tap.dart';
 
@@ -262,7 +263,7 @@ class _CoachChatViewBodyState extends State<CoachChatViewBody>
         _forceFollowLatest = false;
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+          ..showSnackBar(AppSnackBar.error(content: Text(state.errorMessage!)));
       }
       final messages = chat.ChatMessage.chronological(state.messages);
       if (messages.isNotEmpty && messages.last.id != _latestMessageId) {

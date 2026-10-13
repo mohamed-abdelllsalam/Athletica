@@ -1,5 +1,6 @@
 import 'package:athletica/core/utils/app_colors.dart';
 import 'package:athletica/core/utils/app_text_styles.dart';
+import 'package:athletica/core/widgets/app_snack_bar.dart';
 import 'package:athletica/features/achievements/domain/entities/coach_achievement.dart';
 import 'package:athletica/features/achievements/domain/usecases/upload_coach_achievement_usecase.dart';
 import 'package:athletica/features/achievements/presentation/cubits/coach_achievements_cubit.dart';
@@ -38,12 +39,17 @@ class _CoachCompleteProfileViewBodyState
     await cubit.load(forceRefresh: true);
     if (!mounted) return;
     final refreshState = cubit.state;
-    final message = refreshState is CoachAchievementsError
+    final isRefreshError = refreshState is CoachAchievementsError;
+    final message = isRefreshError
         ? 'Certificate uploaded, but the list could not be refreshed.'
         : 'Certificate uploaded successfully.';
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        isRefreshError
+            ? AppSnackBar.neutral(content: Text(message))
+            : AppSnackBar.success(content: Text(message)),
+      );
   }
 
   Future<void> _continue() async {
@@ -61,9 +67,8 @@ class _CoachCompleteProfileViewBodyState
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(
+          AppSnackBar.error(
             content: Text(state.message),
-            backgroundColor: Colors.redAccent,
           ),
         );
       return;
@@ -93,9 +98,8 @@ class _CoachCompleteProfileViewBodyState
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            SnackBar(
+            AppSnackBar.error(
               content: Text(completeState.message),
-              backgroundColor: Colors.redAccent,
             ),
           );
       }
